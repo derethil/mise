@@ -10,10 +10,14 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// version is set via -ldflags at release build time (see .goreleaser.yaml).
+var version = "dev"
+
 var rootCmd = &cli.Command{
-	Name:  "mise",
-	Usage: "mise is a CLI for managing Tandoor recipes",
-	Flags: config.Flags(),
+	Name:    "mise",
+	Usage:   "mise is a CLI for managing Tandoor recipes",
+	Version: version,
+	Flags:   config.Flags(),
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		cfg, err := config.Load(cmd)
 		if err != nil {
