@@ -28,10 +28,10 @@
       modules = [
         {
           languages.go.enable = true;
-          packages = [pkgs.just];
           outputs = {
             mise = pkg;
           };
+          packages = [pkgs.just];
           scripts.mise.exec = ''
             cd "$DEVENV_ROOT" && go run . "$@"
           '';

@@ -1,0 +1,722 @@
+{
+    "id": 598,
+    "name": "Air Fryer Carrots",
+    "description": "",
+    "image": "https://recipes.lumelle.me/media/recipes/568d1756-6895-4a76-b4a6-e3d281359f01_598.jpg",
+    "keywords": [
+        {
+            "id": 4,
+            "name": "Backlog",
+            "label": "Backlog",
+            "description": "",
+            "parent": null,
+            "numchild": 0,
+            "created_at": "2026-08-01T14:59:02.929274-06:00",
+            "updated_at": "2026-09-02T13:28:01.943696-06:00",
+            "full_name": "Backlog"
+        },
+        {
+            "id": 12,
+            "name": "kshn-haic",
+            "label": "kshn-haic",
+            "description": "Flag to hide the ingredient allocation action chip",
+            "parent": null,
+            "numchild": 0,
+            "created_at": "2026-08-01T17:05:45.145979-06:00",
+            "updated_at": "2026-08-01T17:05:45.145985-06:00",
+            "full_name": "kshn-haic"
+        }
+    ],
+    "steps": [
+        {
+            "id": 5878,
+            "name": "",
+            "instruction": "Add the carrots, olive oil, salt, and pepper into a mixing bowl and mix until combined.",
+            "ingredients": [
+                {
+                    "id": 12058,
+                    "food": {
+                        "id": 1697,
+                        "name": "carrots",
+                        "plural_name": null,
+                        "description": "",
+                        "recipe": null,
+                        "url": "",
+                        "properties": [],
+                        "properties_food_amount": 100.0,
+                        "properties_food_unit": null,
+                        "fdc_id": null,
+                        "food_onhand": false,
+                        "supermarket_category": null,
+                        "parent": null,
+                        "numchild": 0,
+                        "inherit_fields": [],
+                        "full_name": "carrots",
+                        "ignore_shopping": false,
+                        "substitute": [],
+                        "substitute_siblings": false,
+                        "substitute_children": false,
+                        "substitute_onhand": false,
+                        "child_inherit_fields": [],
+                        "open_data_slug": null,
+                        "shopping_lists": []
+                    },
+                    "unit": {
+                        "id": 23,
+                        "name": "large",
+                        "plural_name": null,
+                        "description": null,
+                        "base_unit": null,
+                        "open_data_slug": null
+                    },
+                    "amount": 4.0,
+                    "conversions": [
+                        {
+                            "food": "carrots",
+                            "unit": "large",
+                            "amount": 4.0
+                        }
+                    ],
+                    "note": "peeled and cut into match sticks",
+                    "order": 0,
+                    "is_header": false,
+                    "no_amount": false,
+                    "original_text": "4 large carrots (peeled and cut into match sticks)",
+                    "used_in_recipes": [
+                        {
+                            "id": 598,
+                            "name": "Air Fryer Carrots"
+                        }
+                    ],
+                    "checked": false
+                },
+                {
+                    "id": 12059,
+                    "food": {
+                        "id": 8,
+                        "name": "Olive Oil",
+                        "plural_name": "Olive Oil",
+                        "description": "",
+                        "recipe": null,
+                        "url": "",
+                        "properties": [
+                            {
+                                "id": 27,
+                                "property_amount": 0.0,
+                                "property_type": {
+                                    "id": 2,
+                                    "name": "Proteins",
+                                    "unit": "g",
+                                    "description": null,
+                                    "order": 0,
+                                    "open_data_slug": "property-proteins",
+                                    "fdc_id": 1003
+                                }
+                            },
+                            {
+                                "id": 28,
+                                "property_amount": 800.0,
+                                "property_type": {
+                                    "id": 1,
+                                    "name": "Calories",
+                                    "unit": "kcal",
+                                    "description": null,
+                                    "order": 0,
+                                    "open_data_slug": "property-calories",
+                                    "fdc_id": 1008
+                                }
+                            },
+                            {
+                                "id": 29,
+                                "property_amount": 93.33,
+                                "property_type": {
+                                    "id": 3,
+                                    "name": "Fats",
+                                    "unit": "g",
+                                    "description": null,
+                                    "order": 0,
+                                    "open_data_slug": "property-fats",
+                                    "fdc_id": 1004
+                                }
+                            },
+                            {
+                                "id": 30,
+                                "property_amount": 0.0,
+                                "property_type": {
+                                    "id": 4,
+                                    "name": "Carbohydrates",
+                                    "unit": "g",
+                                    "description": null,
+                                    "order": 0,
+                                    "open_data_slug": "property-carbohydrates",
+                                    "fdc_id": 1005
+                                }
+                            }
+                        ],
+                        "properties_food_amount": 100.0,
+                        "properties_food_unit": {
+                            "id": 13,
+                            "name": "g",
+                            "plural_name": "g",
+                            "description": null,
+                            "base_unit": "g",
+                            "open_data_slug": "unit-g"
+                        },
+                        "fdc_id": 1937207,
+                        "food_onhand": false,
+                        "supermarket_category": {
+                            "id": 18,
+                            "name": "Oil and Vinegar",
+                            "description": null,
+                            "open_data_slug": "category-oil-vinegar"
+                        },
+                        "parent": null,
+                        "numchild": 0,
+                        "inherit_fields": [],
+                        "full_name": "Olive Oil",
+                        "ignore_shopping": false,
+                        "substitute": [],
+                        "substitute_siblings": false,
+                        "substitute_children": false,
+                        "substitute_onhand": false,
+                        "child_inherit_fields": [],
+                        "open_data_slug": "food-olive-oil",
+                        "shopping_lists": []
+                    },
+                    "unit": {
+                        "id": 28,
+                        "name": "tablespoons",
+                        "plural_name": null,
+                        "description": null,
+                        "base_unit": null,
+                        "open_data_slug": null
+                    },
+                    "amount": 2.0,
+                    "conversions": [
+                        {
+                            "food": "Olive Oil",
+                            "unit": "tablespoons",
+                            "amount": 2.0
+                        }
+                    ],
+                    "note": "",
+                    "order": 1,
+                    "is_header": false,
+                    "no_amount": false,
+                    "original_text": "2 tablespoons olive oil",
+                    "used_in_recipes": [
+                        {
+                            "id": 598,
+                            "name": "Air Fryer Carrots"
+                        }
+                    ],
+                    "checked": false
+                },
+                {
+                    "id": 12060,
+                    "food": {
+                        "id": 391,
+                        "name": "Salt",
+                        "plural_name": "Salt",
+                        "description": "",
+                        "recipe": null,
+                        "url": "",
+                        "properties": [
+                            {
+                                "id": 1492,
+                                "property_amount": 0.0,
+                                "property_type": {
+                                    "id": 1,
+                                    "name": "Calories",
+                                    "unit": "kcal",
+                                    "description": null,
+                                    "order": 0,
+                                    "open_data_slug": "property-calories",
+                                    "fdc_id": 1008
+                                }
+                            },
+                            {
+                                "id": 1493,
+                                "property_amount": 0.0,
+                                "property_type": {
+                                    "id": 2,
+                                    "name": "Proteins",
+                                    "unit": "g",
+                                    "description": null,
+                                    "order": 0,
+                                    "open_data_slug": "property-proteins",
+                                    "fdc_id": 1003
+                                }
+                            },
+                            {
+                                "id": 1494,
+                                "property_amount": 0.0,
+                                "property_type": {
+                                    "id": 3,
+                                    "name": "Fats",
+                                    "unit": "g",
+                                    "description": null,
+                                    "order": 0,
+                                    "open_data_slug": "property-fats",
+                                    "fdc_id": 1004
+                                }
+                            },
+                            {
+                                "id": 1495,
+                                "property_amount": 0.0,
+                                "property_type": {
+                                    "id": 4,
+                                    "name": "Carbohydrates",
+                                    "unit": "g",
+                                    "description": null,
+                                    "order": 0,
+                                    "open_data_slug": "property-carbohydrates",
+                                    "fdc_id": 1005
+                                }
+                            }
+                        ],
+                        "properties_food_amount": 100.0,
+                        "properties_food_unit": {
+                            "id": 13,
+                            "name": "g",
+                            "plural_name": "g",
+                            "description": null,
+                            "base_unit": "g",
+                            "open_data_slug": "unit-g"
+                        },
+                        "fdc_id": 746775,
+                        "food_onhand": false,
+                        "supermarket_category": {
+                            "id": 22,
+                            "name": "Herbs and Spices",
+                            "description": null,
+                            "open_data_slug": "category-herbs-spices"
+                        },
+                        "parent": null,
+                        "numchild": 0,
+                        "inherit_fields": [],
+                        "full_name": "Salt",
+                        "ignore_shopping": false,
+                        "substitute": [],
+                        "substitute_siblings": false,
+                        "substitute_children": false,
+                        "substitute_onhand": false,
+                        "child_inherit_fields": [],
+                        "open_data_slug": "food-salt",
+                        "shopping_lists": []
+                    },
+                    "unit": {
+                        "id": 16,
+                        "name": "teaspoon",
+                        "plural_name": null,
+                        "description": null,
+                        "base_unit": null,
+                        "open_data_slug": null
+                    },
+                    "amount": 0.5,
+                    "conversions": [
+                        {
+                            "food": "Salt",
+                            "unit": "teaspoon",
+                            "amount": 0.5
+                        }
+                    ],
+                    "note": "",
+                    "order": 2,
+                    "is_header": false,
+                    "no_amount": false,
+                    "original_text": "1/2 teaspoon salt",
+                    "used_in_recipes": [
+                        {
+                            "id": 598,
+                            "name": "Air Fryer Carrots"
+                        }
+                    ],
+                    "checked": false
+                },
+                {
+                    "id": 12061,
+                    "food": {
+                        "id": 433,
+                        "name": "pepper",
+                        "plural_name": null,
+                        "description": "",
+                        "recipe": null,
+                        "url": "",
+                        "properties": [],
+                        "properties_food_amount": 100.0,
+                        "properties_food_unit": null,
+                        "fdc_id": null,
+                        "food_onhand": false,
+                        "supermarket_category": null,
+                        "parent": null,
+                        "numchild": 0,
+                        "inherit_fields": [],
+                        "full_name": "pepper",
+                        "ignore_shopping": false,
+                        "substitute": [],
+                        "substitute_siblings": false,
+                        "substitute_children": false,
+                        "substitute_onhand": false,
+                        "child_inherit_fields": [],
+                        "open_data_slug": null,
+                        "shopping_lists": []
+                    },
+                    "unit": {
+                        "id": 16,
+                        "name": "teaspoon",
+                        "plural_name": null,
+                        "description": null,
+                        "base_unit": null,
+                        "open_data_slug": null
+                    },
+                    "amount": 0.5,
+                    "conversions": [
+                        {
+                            "food": "pepper",
+                            "unit": "teaspoon",
+                            "amount": 0.5
+                        }
+                    ],
+                    "note": "",
+                    "order": 3,
+                    "is_header": false,
+                    "no_amount": false,
+                    "original_text": "1/2 teaspoon pepper",
+                    "used_in_recipes": [
+                        {
+                            "id": 598,
+                            "name": "Air Fryer Carrots"
+                        }
+                    ],
+                    "checked": false
+                }
+            ],
+            "instructions_markdown": "<p>Add the carrots, olive oil, salt, and pepper into a mixing bowl and mix until combined.</p>",
+            "time": 0,
+            "order": 0,
+            "show_as_header": true,
+            "file": null,
+            "step_recipe": null,
+            "step_recipe_data": null,
+            "show_ingredients_table": true
+        },
+        {
+            "id": 5879,
+            "name": "",
+            "instruction": "Add the seasoned carrots to an air fryer basket and air fry at 180C/350F for 15 minutes, shaking halfway through.",
+            "ingredients": [],
+            "instructions_markdown": "<p>Add the seasoned carrots to an air fryer basket and air fry at 180C/350F for 15 minutes, shaking halfway through.</p>",
+            "time": 0,
+            "order": 0,
+            "show_as_header": true,
+            "file": null,
+            "step_recipe": null,
+            "step_recipe_data": null,
+            "show_ingredients_table": true
+        },
+        {
+            "id": 5880,
+            "name": "",
+            "instruction": "Remove the carrots from the air fryer and repeat the process until all the carrots are cooked.",
+            "ingredients": [],
+            "instructions_markdown": "<p>Remove the carrots from the air fryer and repeat the process until all the carrots are cooked.</p>",
+            "time": 0,
+            "order": 0,
+            "show_as_header": true,
+            "file": null,
+            "step_recipe": null,
+            "step_recipe_data": null,
+            "show_ingredients_table": true
+        }
+    ],
+    "working_time": 0,
+    "waiting_time": 0,
+    "created_by": {
+        "id": 1,
+        "username": "madelicious",
+        "first_name": "Madison",
+        "last_name": "Glenn",
+        "display_name": "Madison Glenn",
+        "is_staff": true,
+        "is_superuser": true,
+        "is_active": true
+    },
+    "created_at": "2026-08-01T15:05:32.464980-06:00",
+    "updated_at": "2026-08-01T17:05:45.136133-06:00",
+    "source_url": "https://thebigmansworld.com/air-fryer-carrots/",
+    "internal": true,
+    "show_ingredient_overview": true,
+    "nutrition": {
+        "id": 66,
+        "carbohydrates": 7.0,
+        "fats": 7.0,
+        "proteins": 1.0,
+        "calories": 92.0,
+        "source": ""
+    },
+    "properties": [],
+    "food_properties": {
+        "1": {
+            "id": 1,
+            "name": "Calories",
+            "description": null,
+            "unit": "kcal",
+            "order": 0,
+            "food_values": {
+                "1697": {
+                    "id": 1697,
+                    "food": {
+                        "id": 1697,
+                        "name": "carrots"
+                    },
+                    "value": null
+                },
+                "8": {
+                    "id": 8,
+                    "food": {
+                        "id": 8,
+                        "name": "Olive Oil"
+                    },
+                    "value": null,
+                    "missing_conversion": {
+                        "base_unit": {
+                            "id": 28,
+                            "name": "tablespoons"
+                        },
+                        "converted_unit": {
+                            "id": 13,
+                            "name": "g"
+                        }
+                    }
+                },
+                "391": {
+                    "id": 391,
+                    "food": {
+                        "id": 391,
+                        "name": "Salt"
+                    },
+                    "value": null,
+                    "missing_conversion": {
+                        "base_unit": {
+                            "id": 16,
+                            "name": "teaspoon"
+                        },
+                        "converted_unit": {
+                            "id": 13,
+                            "name": "g"
+                        }
+                    }
+                },
+                "433": {
+                    "id": 433,
+                    "food": {
+                        "id": 433,
+                        "name": "pepper"
+                    },
+                    "value": null
+                }
+            },
+            "total_value": 0,
+            "missing_value": true
+        },
+        "2": {
+            "id": 2,
+            "name": "Proteins",
+            "description": null,
+            "unit": "g",
+            "order": 0,
+            "food_values": {
+                "1697": {
+                    "id": 1697,
+                    "food": {
+                        "id": 1697,
+                        "name": "carrots"
+                    },
+                    "value": null
+                },
+                "8": {
+                    "id": 8,
+                    "food": {
+                        "id": 8,
+                        "name": "Olive Oil"
+                    },
+                    "value": null,
+                    "missing_conversion": {
+                        "base_unit": {
+                            "id": 28,
+                            "name": "tablespoons"
+                        },
+                        "converted_unit": {
+                            "id": 13,
+                            "name": "g"
+                        }
+                    }
+                },
+                "391": {
+                    "id": 391,
+                    "food": {
+                        "id": 391,
+                        "name": "Salt"
+                    },
+                    "value": null,
+                    "missing_conversion": {
+                        "base_unit": {
+                            "id": 16,
+                            "name": "teaspoon"
+                        },
+                        "converted_unit": {
+                            "id": 13,
+                            "name": "g"
+                        }
+                    }
+                },
+                "433": {
+                    "id": 433,
+                    "food": {
+                        "id": 433,
+                        "name": "pepper"
+                    },
+                    "value": null
+                }
+            },
+            "total_value": 0,
+            "missing_value": true
+        },
+        "3": {
+            "id": 3,
+            "name": "Fats",
+            "description": null,
+            "unit": "g",
+            "order": 0,
+            "food_values": {
+                "1697": {
+                    "id": 1697,
+                    "food": {
+                        "id": 1697,
+                        "name": "carrots"
+                    },
+                    "value": null
+                },
+                "8": {
+                    "id": 8,
+                    "food": {
+                        "id": 8,
+                        "name": "Olive Oil"
+                    },
+                    "value": null,
+                    "missing_conversion": {
+                        "base_unit": {
+                            "id": 28,
+                            "name": "tablespoons"
+                        },
+                        "converted_unit": {
+                            "id": 13,
+                            "name": "g"
+                        }
+                    }
+                },
+                "391": {
+                    "id": 391,
+                    "food": {
+                        "id": 391,
+                        "name": "Salt"
+                    },
+                    "value": null,
+                    "missing_conversion": {
+                        "base_unit": {
+                            "id": 16,
+                            "name": "teaspoon"
+                        },
+                        "converted_unit": {
+                            "id": 13,
+                            "name": "g"
+                        }
+                    }
+                },
+                "433": {
+                    "id": 433,
+                    "food": {
+                        "id": 433,
+                        "name": "pepper"
+                    },
+                    "value": null
+                }
+            },
+            "total_value": 0,
+            "missing_value": true
+        },
+        "4": {
+            "id": 4,
+            "name": "Carbohydrates",
+            "description": null,
+            "unit": "g",
+            "order": 0,
+            "food_values": {
+                "1697": {
+                    "id": 1697,
+                    "food": {
+                        "id": 1697,
+                        "name": "carrots"
+                    },
+                    "value": null
+                },
+                "8": {
+                    "id": 8,
+                    "food": {
+                        "id": 8,
+                        "name": "Olive Oil"
+                    },
+                    "value": null,
+                    "missing_conversion": {
+                        "base_unit": {
+                            "id": 28,
+                            "name": "tablespoons"
+                        },
+                        "converted_unit": {
+                            "id": 13,
+                            "name": "g"
+                        }
+                    }
+                },
+                "391": {
+                    "id": 391,
+                    "food": {
+                        "id": 391,
+                        "name": "Salt"
+                    },
+                    "value": null,
+                    "missing_conversion": {
+                        "base_unit": {
+                            "id": 16,
+                            "name": "teaspoon"
+                        },
+                        "converted_unit": {
+                            "id": 13,
+                            "name": "g"
+                        }
+                    }
+                },
+                "433": {
+                    "id": 433,
+                    "food": {
+                        "id": 433,
+                        "name": "pepper"
+                    },
+                    "value": null
+                }
+            },
+            "total_value": 0,
+            "missing_value": true
+        }
+    },
+    "servings": 4,
+    "file_path": "",
+    "servings_text": "",
+    "diameter": 0,
+    "diameter_text": "",
+    "rating": null,
+    "last_cooked": null,
+    "private": false,
+    "shared": []
+}
