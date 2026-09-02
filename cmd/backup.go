@@ -20,11 +20,11 @@ var backupCmd = &cli.Command{
 		cfg := config.FromContext(ctx)
 		client := tandoor.NewClient(cfg.Tandoor.BaseURL, cfg.Tandoor.Token, config.BackupDir)
 
-		recipe, err := client.GetRecipeByID(id)
-		if err != nil {
+		recipe := tandoor.NewRecipe(client, id)
+		if err := recipe.Load(); err != nil {
 			return err
 		}
 
-		return client.BackupRecipe(recipe)
+		return recipe.Backup()
 	},
 }

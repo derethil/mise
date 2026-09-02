@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -45,62 +43,6 @@ func (s *ClientSuite) SetupTest() {
 
 func (s *ClientSuite) TearDownTest() {
 	s.server.Close()
-}
-
-func (s *ClientSuite) TestGetRecipeByID() {
-	recipe, err := s.client.GetRecipeByID(42)
-
-	s.Require().NoError(err)
-	s.Equal(42, recipe.ID)
-	s.Equal(http.MethodGet, s.lastMethod)
-	s.Equal("/api/recipe/42/", s.lastPath)
-	s.Equal("Bearer test-token", s.lastAuth)
-}
-
-func (s *ClientSuite) TestGetRecipeByID_HTTPError() {
-	s.status = http.StatusForbidden
-
-	_, err := s.client.GetRecipeByID(42)
-
-	s.Error(err)
-}
-
-func (s *ClientSuite) TestBackupRecipe() {
-	recipe, err := s.client.GetRecipeByID(42)
-	s.Require().NoError(err)
-
-	err = s.client.BackupRecipe(recipe)
-	s.Require().NoError(err)
-
-	data, err := os.ReadFile(filepath.Join(s.backupDir, "42.json"))
-	s.Require().NoError(err)
-	s.JSONEq(`{"id": 42, "name": "Tacos"}`, string(data))
-}
-
-func (s *ClientSuite) TestRestoreRecipe() {
-	err := os.WriteFile(filepath.Join(s.backupDir, "42.json"), []byte(`{"id": 42, "name": "Restored Tacos"}`), 0o644)
-	s.Require().NoError(err)
-
-	err = s.client.RestoreRecipe(42)
-
-	s.Require().NoError(err)
-	s.Equal(http.MethodPut, s.lastMethod)
-	s.Equal("/api/recipe/42/", s.lastPath)
-}
-
-func (s *ClientSuite) TestRestoreRecipe_MissingBackupFile() {
-	err := s.client.RestoreRecipe(999)
-
-	s.Error(err)
-}
-
-func (s *ClientSuite) TestRestoreRecipe_InvalidBackupFile() {
-	err := os.WriteFile(filepath.Join(s.backupDir, "999.json"), []byte(`not json`), 0o644)
-	s.Require().NoError(err)
-
-	err = s.client.RestoreRecipe(999)
-
-	s.Error(err)
 }
 
 func TestClientSuite(t *testing.T) {
