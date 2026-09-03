@@ -54,7 +54,7 @@ func (s *ConfigSuite) load(args ...string) Config {
 func (s *ConfigSuite) TestDefaults() {
 	cfg := s.load()
 
-	s.Equal("https://tandoor.dev/api/v1", cfg.Tandoor.BaseURL)
+	s.Equal("https://tandoor.dev/api", cfg.Tandoor.BaseURL)
 	s.Empty(cfg.Tandoor.Token)
 	s.Equal(filepath.Join(DataDir, "tandoor_backups"), cfg.Tandoor.BackupDir)
 }
@@ -105,7 +105,19 @@ func (s *ConfigSuite) TestUnknownEnvVarsAreIgnored() {
 
 	cfg := s.load()
 
-	s.Equal("https://tandoor.dev/api/v1", cfg.Tandoor.BaseURL)
+	s.Equal("https://tandoor.dev/api", cfg.Tandoor.BaseURL)
+}
+
+func (s *ConfigSuite) TestFlagOptOutStillLoadsFromEnv() {
+	s.T().Setenv("MISE_TANDOOR_BACKUP_DIR", "/tmp/from-env")
+
+	cfg := s.load()
+
+	s.Equal("/tmp/from-env", cfg.Tandoor.BackupDir)
+
+	for _, flag := range Flags() {
+		s.NotContains(flag.Names(), "tandoor.backup_dir")
+	}
 }
 
 func TestConfigSuite(t *testing.T) {

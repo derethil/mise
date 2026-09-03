@@ -1,6 +1,6 @@
 module github.com/derethil/mise
 
-go 1.23.0
+go 1.26
 
 require (
 	github.com/adrg/xdg v0.5.3

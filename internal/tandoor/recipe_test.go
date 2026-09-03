@@ -2,8 +2,6 @@ package tandoor
 
 import (
 	"net/http"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,65 +32,52 @@ func TestParseRecipe(t *testing.T) {
 	})
 }
 
-func (s *ClientSuite) TestRecipeLoad() {
-	recipe := NewRecipe(s.client, 42)
-	err := recipe.Load()
+func (s *ClientSuite) TestRecipesGet() {
+	recipe, err := s.client.Recipes.Get(s.T().Context(), 42)
 
 	s.Require().NoError(err)
 	s.Equal(42, recipe.ID)
+	s.JSONEq(`{"id": 42, "name": "Tacos"}`, string(recipe.JSON()))
 	s.Equal(http.MethodGet, s.lastMethod)
 	s.Equal("/api/recipe/42/", s.lastPath)
 	s.Equal("Bearer test-token", s.lastAuth)
 }
 
-func (s *ClientSuite) TestRecipeLoad_HTTPError() {
+func (s *ClientSuite) TestRecipesGet_HTTPError() {
 	s.status = http.StatusForbidden
 
-	recipe := NewRecipe(s.client, 42)
-	err := recipe.Load()
+	_, err := s.client.Recipes.Get(s.T().Context(), 42)
 
 	s.Error(err)
 }
 
-func (s *ClientSuite) TestRecipeBackup() {
-	recipe := NewRecipe(s.client, 42)
-	err := recipe.Load()
-	s.Require().NoError(err)
+func (s *ClientSuite) TestRecipesGet_InvalidPayload() {
+	s.response = map[string]any{"name": "Tacos"}
 
-	err = recipe.Backup()
-	s.Require().NoError(err)
+	_, err := s.client.Recipes.Get(s.T().Context(), 42)
 
-	data, err := os.ReadFile(filepath.Join(s.backupDir, "42.json"))
-	s.Require().NoError(err)
-	s.JSONEq(`{"id": 42, "name": "Tacos"}`, string(data))
+	s.Error(err)
 }
 
-func (s *ClientSuite) TestRecipeRestore() {
-	err := os.WriteFile(filepath.Join(s.backupDir, "42.json"), []byte(`{"id": 42, "name": "Restored Tacos"}`), 0o644)
-	s.Require().NoError(err)
-
-	recipe := NewRecipe(s.client, 42)
-	err = recipe.Restore()
+func (s *ClientSuite) TestRecipesUpdate() {
+	err := s.client.Recipes.Update(s.T().Context(), 42, []byte(`{"id": 42, "name": "Restored Tacos"}`))
 
 	s.Require().NoError(err)
 	s.Equal(http.MethodPut, s.lastMethod)
 	s.Equal("/api/recipe/42/", s.lastPath)
 }
 
-func (s *ClientSuite) TestRecipeRestore_MissingBackupFile() {
-	recipe := NewRecipe(s.client, 999)
-
-	err := recipe.Restore()
+func (s *ClientSuite) TestRecipesUpdate_InvalidJSON() {
+	err := s.client.Recipes.Update(s.T().Context(), 42, []byte(`not json`))
 
 	s.Error(err)
+	s.Empty(s.lastMethod, "should not send a request")
 }
 
-func (s *ClientSuite) TestRecipeRestore_InvalidBackupFile() {
-	err := os.WriteFile(filepath.Join(s.backupDir, "999.json"), []byte(`not json`), 0o644)
-	s.Require().NoError(err)
+func (s *ClientSuite) TestRecipesUpdate_HTTPError() {
+	s.status = http.StatusForbidden
 
-	recipe := NewRecipe(s.client, 999)
-	err = recipe.Restore()
+	err := s.client.Recipes.Update(s.T().Context(), 42, []byte(`{"id": 42, "name": "Tacos"}`))
 
 	s.Error(err)
 }
