@@ -57,6 +57,11 @@ func (s *ConfigSuite) TestDefaults() {
 	s.Equal("https://tandoor.dev/api", cfg.Tandoor.BaseURL)
 	s.Empty(cfg.Tandoor.Token)
 	s.Equal(filepath.Join(DataDir, "tandoor_backups"), cfg.Tandoor.BackupDir)
+
+	s.Equal("http://localhost:11434", cfg.Providers.Ollama.BaseURL)
+	s.Empty(cfg.Providers.Ollama.APIKey)
+	s.Equal("ollama/qwen2.5:7b", cfg.Models.Small)
+	s.Equal("ollama/qwen2.5:14b", cfg.Models.Large)
 }
 
 func (s *ConfigSuite) TestConfigFileOverridesDefaults() {
@@ -117,6 +122,18 @@ func (s *ConfigSuite) TestFlagOptOutStillLoadsFromEnv() {
 
 	for _, flag := range Flags() {
 		s.NotContains(flag.Names(), "tandoor.backup_dir")
+	}
+}
+
+func (s *ConfigSuite) TestModelFlagOptOutStillLoadsFromEnv() {
+	s.T().Setenv("MISE_MODELS_SMALL", "ollama/from-env")
+
+	cfg := s.load()
+
+	s.Equal("ollama/from-env", cfg.Models.Small)
+
+	for _, flag := range Flags() {
+		s.NotContains(flag.Names(), "models.small")
 	}
 }
 
