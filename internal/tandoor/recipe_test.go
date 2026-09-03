@@ -32,50 +32,52 @@ func TestParseRecipe(t *testing.T) {
 	})
 }
 
-func (s *ClientSuite) TestRecipeLoad() {
-	recipe := NewRecipe(s.client, 42)
-	err := recipe.Load(s.T().Context())
+func (s *ClientSuite) TestRecipesGet() {
+	recipe, err := s.client.Recipes.Get(s.T().Context(), 42)
 
 	s.Require().NoError(err)
 	s.Equal(42, recipe.ID)
+	s.JSONEq(`{"id": 42, "name": "Tacos"}`, string(recipe.JSON()))
 	s.Equal(http.MethodGet, s.lastMethod)
 	s.Equal("/api/recipe/42/", s.lastPath)
 	s.Equal("Bearer test-token", s.lastAuth)
 }
 
-func (s *ClientSuite) TestRecipeLoad_HTTPError() {
+func (s *ClientSuite) TestRecipesGet_HTTPError() {
 	s.status = http.StatusForbidden
 
-	recipe := NewRecipe(s.client, 42)
-	err := recipe.Load(s.T().Context())
+	_, err := s.client.Recipes.Get(s.T().Context(), 42)
 
 	s.Error(err)
 }
 
-func (s *ClientSuite) TestRecipeUpdate() {
-	recipe := NewRecipe(s.client, 42)
+func (s *ClientSuite) TestRecipesGet_InvalidPayload() {
+	s.response = map[string]any{"name": "Tacos"}
 
-	err := recipe.Update(s.T().Context(), []byte(`{"id": 42, "name": "Restored Tacos"}`))
+	_, err := s.client.Recipes.Get(s.T().Context(), 42)
+
+	s.Error(err)
+}
+
+func (s *ClientSuite) TestRecipesUpdate() {
+	err := s.client.Recipes.Update(s.T().Context(), 42, []byte(`{"id": 42, "name": "Restored Tacos"}`))
 
 	s.Require().NoError(err)
 	s.Equal(http.MethodPut, s.lastMethod)
 	s.Equal("/api/recipe/42/", s.lastPath)
 }
 
-func (s *ClientSuite) TestRecipeUpdate_InvalidJSON() {
-	recipe := NewRecipe(s.client, 42)
-
-	err := recipe.Update(s.T().Context(), []byte(`not json`))
+func (s *ClientSuite) TestRecipesUpdate_InvalidJSON() {
+	err := s.client.Recipes.Update(s.T().Context(), 42, []byte(`not json`))
 
 	s.Error(err)
 	s.Empty(s.lastMethod, "should not send a request")
 }
 
-func (s *ClientSuite) TestRecipeUpdate_HTTPError() {
+func (s *ClientSuite) TestRecipesUpdate_HTTPError() {
 	s.status = http.StatusForbidden
 
-	recipe := NewRecipe(s.client, 42)
-	err := recipe.Update(s.T().Context(), []byte(`{"id": 42, "name": "Tacos"}`))
+	err := s.client.Recipes.Update(s.T().Context(), 42, []byte(`{"id": 42, "name": "Tacos"}`))
 
 	s.Error(err)
 }

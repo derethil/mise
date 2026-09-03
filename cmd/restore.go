@@ -27,6 +27,6 @@ var restoreCmd = &cli.Command{
 		}
 
 		client := tandoor.NewClient(cfg.Tandoor.BaseURL, cfg.Tandoor.Token)
-		return tandoor.NewRecipe(client, id).Update(ctx, data)
+		return client.Recipes.Update(ctx, id, data)
 	},
 }

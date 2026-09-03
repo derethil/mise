@@ -17,15 +17,21 @@ type Client struct {
 	token      string
 	timeout    time.Duration
 	httpClient *http.Client
+
+	Recipes *RecipeService
 }
 
 func NewClient(baseURL, token string) *Client {
-	return &Client{
+	c := &Client{
 		baseURL:    baseURL,
 		token:      token,
 		timeout:    defaultTimeout,
 		httpClient: &http.Client{},
 	}
+
+	c.Recipes = &RecipeService{client: c}
+
+	return c
 }
 
 func (c *Client) Request(ctx context.Context, method, endpoint string, payload []byte) ([]byte, error) {
@@ -52,7 +58,9 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -22,8 +22,8 @@ var backupCmd = &cli.Command{
 		cfg := config.FromContext(ctx)
 
 		client := tandoor.NewClient(cfg.Tandoor.BaseURL, cfg.Tandoor.Token)
-		recipe := tandoor.NewRecipe(client, id)
-		if err := recipe.Load(ctx); err != nil {
+		recipe, err := client.Recipes.Get(ctx, id)
+		if err != nil {
 			return err
 		}
 
