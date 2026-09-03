@@ -12,9 +12,11 @@ type schemaField struct {
 }
 
 func walkSchema(t reflect.Type, prefix string, visit func(schemaField)) {
-	for i := range t.NumField() {
-		field := t.Field(i)
+	walkFields(t, prefix, true, visit)
+}
 
+func walkFields(t reflect.Type, prefix string, flag bool, visit func(schemaField)) {
+	for field := range t.Fields() {
 		name := field.Tag.Get("key")
 		if name == "" {
 			continue
@@ -25,15 +27,17 @@ func walkSchema(t reflect.Type, prefix string, visit func(schemaField)) {
 			key = prefix + "." + name
 		}
 
+		enabled := flag && field.Tag.Get("flag") != "-"
+
 		if field.Type.Kind() == reflect.Struct {
-			walkSchema(field.Type, key, visit)
+			walkFields(field.Type, key, enabled, visit)
 			continue
 		}
 
 		visit(schemaField{
 			Key:   key,
 			Usage: field.Tag.Get("usage"),
-			Flag:  field.Tag.Get("flag") != "-",
+			Flag:  enabled,
 		})
 	}
 }
