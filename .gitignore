@@ -14,5 +14,8 @@ devenv.local.yaml
 # pre-commit
 .pre-commit-config.yaml
 
+# direnv local overrides
+.envrc.local
+
 # local scratch
 TODO.md
