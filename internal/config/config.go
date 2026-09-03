@@ -15,7 +15,7 @@ type Config struct {
 
 var defaultConfig = Config{
 	Tandoor: TandoorConfig{
-		BaseURL:   "https://tandoor.dev/api/v1",
+		BaseURL:   "https://tandoor.dev/api",
 		BackupDir: filepath.Join(DataDir, "tandoor_backups"),
 	},
 }

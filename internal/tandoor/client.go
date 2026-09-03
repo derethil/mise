@@ -37,7 +37,7 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 		body = bytes.NewReader(payload)
 	}
 
-	url := fmt.Sprintf("%s/api/%s", c.baseURL, endpoint)
+	url := fmt.Sprintf("%s/%s", c.baseURL, endpoint)
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err

@@ -52,7 +52,7 @@ func (s *ClientSuite) SetupTest() {
 		_ = json.NewEncoder(w).Encode(s.response)
 	}))
 
-	s.client = NewClient(s.server.URL, "test-token")
+	s.client = NewClient(s.server.URL+"/api", "test-token")
 }
 
 func (s *ClientSuite) TearDownTest() {
