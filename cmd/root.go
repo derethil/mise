@@ -29,6 +29,7 @@ var rootCmd = &cli.Command{
 		backupCmd,
 		restoreCmd,
 	},
+	EnableShellCompletion: true,
 }
 
 func Execute() {
