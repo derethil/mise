@@ -43,13 +43,10 @@ func (c *Client) Request(method, endpoint string, payload []byte) ([]byte, error
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := resp.Body.Close(); err != nil {
 		return nil, err
 	}
 
