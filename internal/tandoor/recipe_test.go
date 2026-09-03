@@ -2,8 +2,6 @@ package tandoor
 
 import (
 	"net/http"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -54,45 +52,30 @@ func (s *ClientSuite) TestRecipeLoad_HTTPError() {
 	s.Error(err)
 }
 
-func (s *ClientSuite) TestRecipeBackup() {
+func (s *ClientSuite) TestRecipeUpdate() {
 	recipe := NewRecipe(s.client, 42)
-	err := recipe.Load()
-	s.Require().NoError(err)
 
-	err = recipe.Backup()
-	s.Require().NoError(err)
-
-	data, err := os.ReadFile(filepath.Join(s.backupDir, "42.json"))
-	s.Require().NoError(err)
-	s.JSONEq(`{"id": 42, "name": "Tacos"}`, string(data))
-}
-
-func (s *ClientSuite) TestRecipeRestore() {
-	err := os.WriteFile(filepath.Join(s.backupDir, "42.json"), []byte(`{"id": 42, "name": "Restored Tacos"}`), 0o644)
-	s.Require().NoError(err)
-
-	recipe := NewRecipe(s.client, 42)
-	err = recipe.Restore()
+	err := recipe.Update([]byte(`{"id": 42, "name": "Restored Tacos"}`))
 
 	s.Require().NoError(err)
 	s.Equal(http.MethodPut, s.lastMethod)
 	s.Equal("/api/recipe/42/", s.lastPath)
 }
 
-func (s *ClientSuite) TestRecipeRestore_MissingBackupFile() {
-	recipe := NewRecipe(s.client, 999)
+func (s *ClientSuite) TestRecipeUpdate_InvalidJSON() {
+	recipe := NewRecipe(s.client, 42)
 
-	err := recipe.Restore()
+	err := recipe.Update([]byte(`not json`))
 
 	s.Error(err)
+	s.Empty(s.lastMethod, "should not send a request")
 }
 
-func (s *ClientSuite) TestRecipeRestore_InvalidBackupFile() {
-	err := os.WriteFile(filepath.Join(s.backupDir, "999.json"), []byte(`not json`), 0o644)
-	s.Require().NoError(err)
+func (s *ClientSuite) TestRecipeUpdate_HTTPError() {
+	s.status = http.StatusForbidden
 
-	recipe := NewRecipe(s.client, 999)
-	err = recipe.Restore()
+	recipe := NewRecipe(s.client, 42)
+	err := recipe.Update([]byte(`{"id": 42, "name": "Tacos"}`))
 
 	s.Error(err)
 }

@@ -12,9 +12,8 @@ import (
 type ClientSuite struct {
 	suite.Suite
 
-	server    *httptest.Server
-	client    *Client
-	backupDir string
+	server *httptest.Server
+	client *Client
 
 	lastMethod string
 	lastPath   string
@@ -24,6 +23,9 @@ type ClientSuite struct {
 }
 
 func (s *ClientSuite) SetupTest() {
+	s.lastMethod = ""
+	s.lastPath = ""
+	s.lastAuth = ""
 	s.status = http.StatusOK
 	s.response = map[string]any{"id": 42, "name": "Tacos"}
 
@@ -37,8 +39,7 @@ func (s *ClientSuite) SetupTest() {
 		_ = json.NewEncoder(w).Encode(s.response)
 	}))
 
-	s.backupDir = s.T().TempDir()
-	s.client = NewClient(s.server.URL, "test-token", s.backupDir)
+	s.client = NewClient(s.server.URL, "test-token")
 }
 
 func (s *ClientSuite) TearDownTest() {

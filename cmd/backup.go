@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/derethil/mise/internal/backup"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/tandoor"
 	"github.com/urfave/cli/v3"
@@ -19,12 +21,18 @@ var backupCmd = &cli.Command{
 
 		cfg := config.FromContext(ctx)
 
-		client := tandoor.NewClient(cfg.Tandoor.BaseURL, cfg.Tandoor.Token, cfg.Tandoor.BackupDir)
+		client := tandoor.NewClient(cfg.Tandoor.BaseURL, cfg.Tandoor.Token)
 		recipe := tandoor.NewRecipe(client, id)
 		if err := recipe.Load(); err != nil {
 			return err
 		}
 
-		return recipe.Backup()
+		entry, err := backup.NewStore(cfg.Tandoor.BackupDir).Save(id, recipe.JSON())
+		if err != nil {
+			return fmt.Errorf("recipe %d: %w", id, err)
+		}
+
+		fmt.Println(entry.Path)
+		return nil
 	},
 }

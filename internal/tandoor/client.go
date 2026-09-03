@@ -11,15 +11,13 @@ import (
 type Client struct {
 	baseURL    string
 	token      string
-	backupDir  string
 	httpClient *http.Client
 }
 
-func NewClient(baseURL, token, backupDir string) *Client {
+func NewClient(baseURL, token string) *Client {
 	return &Client{
 		baseURL:    baseURL,
 		token:      token,
-		backupDir:  backupDir,
 		httpClient: &http.Client{},
 	}
 }

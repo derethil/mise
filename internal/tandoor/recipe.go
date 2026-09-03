@@ -1,12 +1,8 @@
 package tandoor
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 
 	"github.com/tidwall/gjson"
 )
@@ -50,36 +46,14 @@ func (r Recipe) JSON() []byte {
 	return r.raw
 }
 
-func (r Recipe) Backup() error {
-	if err := os.MkdirAll(r.client.backupDir, 0o755); err != nil {
-		return err
-	}
-
-	var pretty bytes.Buffer
-	if err := json.Indent(&pretty, r.JSON(), "", "    "); err != nil {
-		return err
-	}
-
-	return os.WriteFile(r.backupPath(), pretty.Bytes(), 0o644)
-}
-
-func (r Recipe) Restore() error {
-	data, err := os.ReadFile(r.backupPath())
+func (r Recipe) Update(raw []byte) error {
+	parsed, err := parseRecipe(raw)
 	if err != nil {
-		return err
-	}
-
-	parsed, err := parseRecipe(data)
-	if err != nil {
-		return fmt.Errorf("invalid backup file for recipe %d: %w", r.ID, err)
+		return fmt.Errorf("cannot update recipe %d: %w", r.ID, err)
 	}
 
 	_, err = r.client.Request(http.MethodPut, fmt.Sprintf("recipe/%d/", r.ID), parsed.JSON())
 	return err
-}
-
-func (r Recipe) backupPath() string {
-	return filepath.Join(r.client.backupDir, fmt.Sprintf("%d.json", r.ID))
 }
 
 func parseRecipe(raw []byte) (Recipe, error) {

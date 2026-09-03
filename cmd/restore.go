@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/derethil/mise/internal/backup"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/tandoor"
 	"github.com/urfave/cli/v3"
@@ -10,7 +12,7 @@ import (
 
 var restoreCmd = &cli.Command{
 	Name:  "restore",
-	Usage: "Restore a recipe from the local backup directory",
+	Usage: "Restore a recipe from its most recent local backup",
 	Arguments: []cli.Argument{
 		&cli.IntArg{Name: "recipe_id", Required: true},
 	},
@@ -19,9 +21,12 @@ var restoreCmd = &cli.Command{
 
 		cfg := config.FromContext(ctx)
 
-		client := tandoor.NewClient(cfg.Tandoor.BaseURL, cfg.Tandoor.Token, cfg.Tandoor.BackupDir)
-		recipe := tandoor.NewRecipe(client, id)
+		data, err := backup.NewStore(cfg.Tandoor.BackupDir).Load(id)
+		if err != nil {
+			return fmt.Errorf("recipe %d: %w", id, err)
+		}
 
-		return recipe.Restore()
+		client := tandoor.NewClient(cfg.Tandoor.BaseURL, cfg.Tandoor.Token)
+		return tandoor.NewRecipe(client, id).Update(data)
 	},
 }
