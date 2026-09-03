@@ -56,6 +56,7 @@ func (s *ConfigSuite) TestDefaults() {
 
 	s.Equal("https://tandoor.dev/api/v1", cfg.Tandoor.BaseURL)
 	s.Empty(cfg.Tandoor.Token)
+	s.Equal(filepath.Join(DataDir, "tandoor_backups"), cfg.Tandoor.BackupDir)
 }
 
 func (s *ConfigSuite) TestConfigFileOverridesDefaults() {

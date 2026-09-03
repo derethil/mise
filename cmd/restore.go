@@ -16,9 +16,12 @@ var restoreCmd = &cli.Command{
 	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		id := cmd.IntArg("recipe_id")
+
 		cfg := config.FromContext(ctx)
-		client := tandoor.NewClient(cfg.Tandoor.BaseURL, cfg.Tandoor.Token, config.BackupDir)
+
+		client := tandoor.NewClient(cfg.Tandoor.BaseURL, cfg.Tandoor.Token, cfg.Tandoor.BackupDir)
 		recipe := tandoor.NewRecipe(client, id)
+
 		return recipe.Restore()
 	},
 }
