@@ -52,17 +52,22 @@ func (s *Store) Save(id int, data []byte) (Entry, error) {
 	return Entry{Path: path, Time: at}, nil
 }
 
-func (s *Store) Load(id int) ([]byte, error) {
+func (s *Store) Load(id int, n ...int) ([]byte, error) {
+	ago := 0
+	if len(n) > 0 {
+		ago = n[0]
+	}
+
 	entries, err := s.List(id)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(entries) == 0 {
+	if ago < 0 || ago >= len(entries) {
 		return nil, ErrNoBackups
 	}
 
-	return os.ReadFile(entries[0].Path)
+	return os.ReadFile(entries[ago].Path)
 }
 
 func (s *Store) List(id int) ([]Entry, error) {

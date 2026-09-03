@@ -83,6 +83,37 @@ func (s *StoreSuite) TestLoadWithNoBackups() {
 	s.ErrorIs(err, ErrNoBackups)
 }
 
+func (s *StoreSuite) TestLoadNBackupsAgo() {
+	for _, v := range []string{"oldest", "middle", "newest"} {
+		_, err := s.store.Save(42, []byte(`{"v":"`+v+`"}`))
+		s.Require().NoError(err)
+		s.advance(time.Hour)
+	}
+
+	data, err := s.store.Load(42, 0)
+	s.Require().NoError(err)
+	s.JSONEq(`{"v":"newest"}`, string(data))
+
+	data, err = s.store.Load(42, 1)
+	s.Require().NoError(err)
+	s.JSONEq(`{"v":"middle"}`, string(data))
+
+	data, err = s.store.Load(42, 2)
+	s.Require().NoError(err)
+	s.JSONEq(`{"v":"oldest"}`, string(data))
+}
+
+func (s *StoreSuite) TestLoadNBackupsAgoOutOfRange() {
+	_, err := s.store.Save(42, []byte(`{"v":"only"}`))
+	s.Require().NoError(err)
+
+	_, err = s.store.Load(42, 1)
+	s.ErrorIs(err, ErrNoBackups)
+
+	_, err = s.store.Load(42, -1)
+	s.ErrorIs(err, ErrNoBackups)
+}
+
 func (s *StoreSuite) TestListIsNewestFirst() {
 	for _, v := range []string{"first", "second", "third"} {
 		_, err := s.store.Save(42, []byte(`{"v":"`+v+`"}`))

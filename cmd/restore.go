@@ -12,16 +12,18 @@ import (
 
 var restoreCmd = &cli.Command{
 	Name:  "restore",
-	Usage: "Restore a recipe from its most recent local backup",
+	Usage: "Restore a recipe from a local backup",
 	Arguments: []cli.Argument{
 		&cli.IntArg{Name: "recipe_id", Required: true},
+		&cli.IntArg{Name: "n", Required: false},
 	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		id := cmd.IntArg("recipe_id")
+		n := cmd.IntArg("n")
 
 		cfg := config.FromContext(ctx)
 
-		data, err := backup.NewStore(cfg.Tandoor.BackupDir).Load(id)
+		data, err := backup.NewStore(cfg.Tandoor.BackupDir).Load(id, n)
 		if err != nil {
 			return fmt.Errorf("recipe %d: %w", id, err)
 		}
