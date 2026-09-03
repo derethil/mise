@@ -3,14 +3,19 @@ package tandoor
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
+
+const defaultTimeout = 30 * time.Second
 
 type Client struct {
 	baseURL    string
 	token      string
+	timeout    time.Duration
 	httpClient *http.Client
 }
 
@@ -18,18 +23,22 @@ func NewClient(baseURL, token string) *Client {
 	return &Client{
 		baseURL:    baseURL,
 		token:      token,
+		timeout:    defaultTimeout,
 		httpClient: &http.Client{},
 	}
 }
 
-func (c *Client) Request(method, endpoint string, payload []byte) ([]byte, error) {
+func (c *Client) Request(ctx context.Context, method, endpoint string, payload []byte) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
 	var body io.Reader
 	if payload != nil {
 		body = bytes.NewReader(payload)
 	}
 
 	url := fmt.Sprintf("%s/api/%s", c.baseURL, endpoint)
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
 	}

@@ -34,7 +34,7 @@ func TestParseRecipe(t *testing.T) {
 
 func (s *ClientSuite) TestRecipeLoad() {
 	recipe := NewRecipe(s.client, 42)
-	err := recipe.Load()
+	err := recipe.Load(s.T().Context())
 
 	s.Require().NoError(err)
 	s.Equal(42, recipe.ID)
@@ -47,7 +47,7 @@ func (s *ClientSuite) TestRecipeLoad_HTTPError() {
 	s.status = http.StatusForbidden
 
 	recipe := NewRecipe(s.client, 42)
-	err := recipe.Load()
+	err := recipe.Load(s.T().Context())
 
 	s.Error(err)
 }
@@ -55,7 +55,7 @@ func (s *ClientSuite) TestRecipeLoad_HTTPError() {
 func (s *ClientSuite) TestRecipeUpdate() {
 	recipe := NewRecipe(s.client, 42)
 
-	err := recipe.Update([]byte(`{"id": 42, "name": "Restored Tacos"}`))
+	err := recipe.Update(s.T().Context(), []byte(`{"id": 42, "name": "Restored Tacos"}`))
 
 	s.Require().NoError(err)
 	s.Equal(http.MethodPut, s.lastMethod)
@@ -65,7 +65,7 @@ func (s *ClientSuite) TestRecipeUpdate() {
 func (s *ClientSuite) TestRecipeUpdate_InvalidJSON() {
 	recipe := NewRecipe(s.client, 42)
 
-	err := recipe.Update([]byte(`not json`))
+	err := recipe.Update(s.T().Context(), []byte(`not json`))
 
 	s.Error(err)
 	s.Empty(s.lastMethod, "should not send a request")
@@ -75,7 +75,7 @@ func (s *ClientSuite) TestRecipeUpdate_HTTPError() {
 	s.status = http.StatusForbidden
 
 	recipe := NewRecipe(s.client, 42)
-	err := recipe.Update([]byte(`{"id": 42, "name": "Tacos"}`))
+	err := recipe.Update(s.T().Context(), []byte(`{"id": 42, "name": "Tacos"}`))
 
 	s.Error(err)
 }
