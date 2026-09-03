@@ -5,6 +5,10 @@ import "reflect"
 type schemaField struct {
 	Key   string
 	Usage string
+
+	// Flag determines whether this field is settable via command line flag. Fields with
+	// `flag:"-"` are ignored and only settable via config file or environment variable.
+	Flag bool
 }
 
 func walkSchema(t reflect.Type, prefix string, visit func(schemaField)) {
@@ -26,6 +30,10 @@ func walkSchema(t reflect.Type, prefix string, visit func(schemaField)) {
 			continue
 		}
 
-		visit(schemaField{Key: key, Usage: field.Tag.Get("usage")})
+		visit(schemaField{
+			Key:   key,
+			Usage: field.Tag.Get("usage"),
+			Flag:  field.Tag.Get("flag") != "-",
+		})
 	}
 }
