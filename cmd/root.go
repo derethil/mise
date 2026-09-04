@@ -40,8 +40,7 @@ var rootCmd = &cli.Command{
 		return config.NewContext(ctx, cfg), nil
 	},
 	Commands: []*cli.Command{
-		backupCmd,
-		restoreCmd,
+		recipeCmd,
 	},
 	EnableShellCompletion: true,
 }
