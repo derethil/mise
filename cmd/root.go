@@ -13,11 +13,25 @@ import (
 // version is set via -ldflags at release build time (see .goreleaser.yaml).
 var version = "dev"
 
+type GlobalFlag string
+
+const (
+	GlobalFlagModel GlobalFlag = "model"
+)
+
+var globalFlags = []cli.Flag{
+	&cli.StringFlag{
+		Name:    string(GlobalFlagModel),
+		Usage:   "Override the AI model to use for this command",
+		Aliases: []string{"m"},
+	},
+}
+
 var rootCmd = &cli.Command{
 	Name:    "mise",
 	Usage:   "mise is a CLI for managing Tandoor recipes",
 	Version: version,
-	Flags:   config.Flags(),
+	Flags:   append(config.Flags(), globalFlags...),
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		cfg, err := config.Load(cmd)
 		if err != nil {
@@ -26,8 +40,8 @@ var rootCmd = &cli.Command{
 		return config.NewContext(ctx, cfg), nil
 	},
 	Commands: []*cli.Command{
-		backupCmd,
-		restoreCmd,
+		recipeCmd,
+		modelsCmd,
 	},
 	EnableShellCompletion: true,
 }
@@ -37,4 +51,12 @@ func Execute() {
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
+}
+
+func resolveFlag(cmd *cli.Command, flag GlobalFlag, fallback string) string {
+	if v := cmd.String(string(flag)); v != "" {
+		return v
+	}
+
+	return fallback
 }
