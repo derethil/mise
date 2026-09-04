@@ -15,6 +15,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/tidwall/gjson v1.19.0
 	github.com/urfave/cli/v3 v3.11.1-0.20260824182051-1a4deb4f5a35
+	golang.org/x/term v0.41.0
 )
 
 require (
