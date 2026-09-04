@@ -39,7 +39,7 @@
               mise = pkg;
             };
 
-            packages = [pkgs.just];
+            packages = [pkgs.just ollama];
 
             processes.ollama = {
               exec = "${ollama}/bin/ollama serve";

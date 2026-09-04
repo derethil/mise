@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/derethil/mise/internal/config"
@@ -14,6 +15,7 @@ import (
 )
 
 var ErrPullDeclined = errors.New("model download declined")
+var ErrClearDeclined = errors.New("model deletion declined")
 
 type ConfirmFunc func(question string) (bool, error)
 
@@ -58,7 +60,7 @@ func NewOllamaProvisioner(baseURL string) (*OllamaProvisioner, error) {
 	return &OllamaProvisioner{client: c}, nil
 }
 
-func (c *OllamaProvisioner) Models(ctx context.Context) ([]ModelInfo, error) {
+func (c *OllamaProvisioner) models(ctx context.Context) ([]ModelInfo, error) {
 	response, err := c.client.List(ctx)
 	if err != nil {
 		return nil, err
@@ -86,8 +88,8 @@ func (c *OllamaProvisioner) Models(ctx context.Context) ([]ModelInfo, error) {
 	return models, nil
 }
 
-func (c *OllamaProvisioner) HasModel(ctx context.Context, model ModelRef) (bool, error) {
-	models, err := c.Models(ctx)
+func (c *OllamaProvisioner) hasModel(ctx context.Context, model ModelRef) (bool, error) {
+	models, err := c.models(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -97,7 +99,7 @@ func (c *OllamaProvisioner) HasModel(ctx context.Context, model ModelRef) (bool,
 	return slices.ContainsFunc(models, func(m ModelInfo) bool { return m.Name == name }), nil
 }
 
-func (c *OllamaProvisioner) PullModel(ctx context.Context, model ModelRef, onProgress PullProgressFunc) error {
+func (c *OllamaProvisioner) pullModel(ctx context.Context, model ModelRef, onProgress PullProgressFunc) error {
 	request := api.PullRequest{
 		Model: OllamaModelName(model),
 	}
@@ -112,6 +114,61 @@ func (c *OllamaProvisioner) PullModel(ctx context.Context, model ModelRef, onPro
 	}
 
 	return nil
+}
+
+func (c *OllamaProvisioner) deleteModel(ctx context.Context, name string) error {
+	return c.client.Delete(ctx, &api.DeleteRequest{Model: name})
+}
+
+func (c *OllamaProvisioner) installedModels(ctx context.Context, models []ModelRef) (map[string]ModelInfo, error) {
+	if !slices.ContainsFunc(models, func(m ModelRef) bool { return m.Provider == ProviderOllama }) {
+		return nil, nil
+	}
+
+	available, err := c.models(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	installed := make(map[string]ModelInfo, len(available))
+	for _, model := range available {
+		installed[model.Name] = model
+	}
+
+	return installed, nil
+}
+
+func (c *OllamaProvisioner) Clear(ctx context.Context, keep []ModelRef, confirm ConfirmFunc) ([]ModelInfo, error) {
+	installed, err := c.models(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	stale := staleModels(installed, keep)
+	if len(stale) == 0 {
+		return nil, nil
+	}
+
+	names := make([]string, len(stale))
+	for i, model := range stale {
+		names[i] = model.Name
+	}
+
+	ok, err := confirm(fmt.Sprintf("Delete %d unused model(s) (%s)?", len(stale), strings.Join(names, ", ")))
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, ErrClearDeclined
+	}
+
+	for _, model := range stale {
+		if err := c.deleteModel(ctx, model.Name); err != nil {
+			return nil, fmt.Errorf("failed to delete %s: %w", model.Name, err)
+		}
+	}
+
+	return stale, nil
 }
 
 func (c *OllamaProvisioner) Statuses(ctx context.Context, models []ModelRef) ([]ModelStatus, error) {
@@ -136,26 +193,8 @@ func (c *OllamaProvisioner) Statuses(ctx context.Context, models []ModelRef) ([]
 	return statuses, nil
 }
 
-func (c *OllamaProvisioner) installedModels(ctx context.Context, models []ModelRef) (map[string]ModelInfo, error) {
-	if !slices.ContainsFunc(models, func(m ModelRef) bool { return m.Provider == ProviderOllama }) {
-		return nil, nil
-	}
-
-	available, err := c.Models(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	installed := make(map[string]ModelInfo, len(available))
-	for _, model := range available {
-		installed[model.Name] = model
-	}
-
-	return installed, nil
-}
-
 func (c *OllamaProvisioner) Ensure(ctx context.Context, model ModelRef, confirm ConfirmFunc, onProgress PullProgressFunc) error {
-	has, err := c.HasModel(ctx, model)
+	has, err := c.hasModel(ctx, model)
 	if err != nil {
 		return err
 	}
@@ -171,7 +210,7 @@ func (c *OllamaProvisioner) Ensure(ctx context.Context, model ModelRef, confirm 
 		return fmt.Errorf("%w: %s", ErrPullDeclined, model)
 	}
 
-	return c.PullModel(ctx, model, onProgress)
+	return c.pullModel(ctx, model, onProgress)
 
 }
 
@@ -186,4 +225,23 @@ func OllamaModelName(model ModelRef) string {
 	}
 
 	return model.Name + ":" + tag
+}
+
+func staleModels(installed []ModelInfo, keep []ModelRef) []ModelInfo {
+	keepNames := make(map[string]bool, len(keep))
+	for _, model := range keep {
+		if model.Provider != ProviderOllama {
+			continue
+		}
+		keepNames[OllamaModelName(model)] = true
+	}
+
+	var stale []ModelInfo
+	for _, model := range installed {
+		if !keepNames[model.Name] {
+			stale = append(stale, model)
+		}
+	}
+
+	return stale
 }

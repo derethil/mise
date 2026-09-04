@@ -18,9 +18,10 @@ type OllamaProvisionerSuite struct {
 	server      *httptest.Server
 	provisioner *OllamaProvisioner
 
-	models        []map[string]any
-	pullStatuses  []string
-	lastPullModel string
+	models          []map[string]any
+	pullStatuses    []string
+	lastPullModel   string
+	lastDeleteModel string
 }
 
 func (s *OllamaProvisionerSuite) SetupTest() {
@@ -38,6 +39,7 @@ func (s *OllamaProvisionerSuite) SetupTest() {
 	}
 	s.pullStatuses = []string{"pulling manifest", "success"}
 	s.lastPullModel = ""
+	s.lastDeleteModel = ""
 
 	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -57,6 +59,13 @@ func (s *OllamaProvisionerSuite) SetupTest() {
 			for _, status := range s.pullStatuses {
 				_ = enc.Encode(map[string]any{"status": status})
 			}
+
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/delete":
+			var req struct {
+				Model string `json:"model"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&req)
+			s.lastDeleteModel = req.Model
 
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -84,7 +93,7 @@ func (s *OllamaProvisionerSuite) TestNewOllamaProvisionerRequiresBaseURL() {
 }
 
 func (s *OllamaProvisionerSuite) TestModels() {
-	models, err := s.provisioner.Models(s.T().Context())
+	models, err := s.provisioner.models(s.T().Context())
 
 	s.Require().NoError(err)
 	s.Require().Len(models, 1)
@@ -95,14 +104,14 @@ func (s *OllamaProvisionerSuite) TestModels() {
 }
 
 func (s *OllamaProvisionerSuite) TestHasModelTrue() {
-	has, err := s.provisioner.HasModel(s.T().Context(), ModelRef{Provider: ProviderOllama, Name: "qwen2.5", Tag: "7b"})
+	has, err := s.provisioner.hasModel(s.T().Context(), ModelRef{Provider: ProviderOllama, Name: "qwen2.5", Tag: "7b"})
 
 	s.Require().NoError(err)
 	s.True(has)
 }
 
 func (s *OllamaProvisionerSuite) TestHasModelFalse() {
-	has, err := s.provisioner.HasModel(s.T().Context(), ModelRef{Provider: ProviderOllama, Name: "llama3", Tag: "8b"})
+	has, err := s.provisioner.hasModel(s.T().Context(), ModelRef{Provider: ProviderOllama, Name: "llama3", Tag: "8b"})
 
 	s.Require().NoError(err)
 	s.False(has)
@@ -110,7 +119,7 @@ func (s *OllamaProvisionerSuite) TestHasModelFalse() {
 
 func (s *OllamaProvisionerSuite) TestPullModelReportsProgress() {
 	var statuses []string
-	err := s.provisioner.PullModel(s.T().Context(), ModelRef{Provider: ProviderOllama, Name: "llama3", Tag: "8b"}, func(p PullProgress) error {
+	err := s.provisioner.pullModel(s.T().Context(), ModelRef{Provider: ProviderOllama, Name: "llama3", Tag: "8b"}, func(p PullProgress) error {
 		statuses = append(statuses, p.Status)
 		return nil
 	})
@@ -175,6 +184,48 @@ func (s *OllamaProvisionerSuite) TestEnsureReturnsErrorWhenDeclined() {
 	s.Require().Error(err)
 	s.ErrorIs(err, ErrPullDeclined)
 	s.Empty(s.lastPullModel, "should not send a pull request")
+}
+
+func (s *OllamaProvisionerSuite) TestDeleteModel() {
+	err := s.provisioner.deleteModel(s.T().Context(), "qwen2.5:7b")
+
+	s.Require().NoError(err)
+	s.Equal("qwen2.5:7b", s.lastDeleteModel)
+}
+
+func (s *OllamaProvisionerSuite) TestClearSkipsWhenNothingStale() {
+	called := false
+	deleted, err := s.provisioner.Clear(s.T().Context(),
+		[]ModelRef{{Provider: ProviderOllama, Name: "qwen2.5", Tag: "7b"}},
+		func(string) (bool, error) { called = true; return true, nil },
+	)
+
+	s.Require().NoError(err)
+	s.Empty(deleted)
+	s.False(called, "should not ask for confirmation when nothing is stale")
+	s.Empty(s.lastDeleteModel)
+}
+
+func (s *OllamaProvisionerSuite) TestClearDeletesStaleModelsWhenConfirmed() {
+	deleted, err := s.provisioner.Clear(s.T().Context(), nil,
+		func(string) (bool, error) { return true, nil },
+	)
+
+	s.Require().NoError(err)
+	s.Require().Len(deleted, 1)
+	s.Equal("qwen2.5:7b", deleted[0].Name)
+	s.Equal("qwen2.5:7b", s.lastDeleteModel)
+}
+
+func (s *OllamaProvisionerSuite) TestClearReturnsErrorWhenDeclined() {
+	deleted, err := s.provisioner.Clear(s.T().Context(), nil,
+		func(string) (bool, error) { return false, nil },
+	)
+
+	s.Require().Error(err)
+	s.ErrorIs(err, ErrClearDeclined)
+	s.Empty(deleted)
+	s.Empty(s.lastDeleteModel, "should not send a delete request")
 }
 
 func TestOllamaModelName(t *testing.T) {

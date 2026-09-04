@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -67,6 +68,54 @@ var modelsCmd = &cli.Command{
 					if err := pullModel(ctx, provisioner, model.ref); err != nil {
 						return err
 					}
+				}
+
+				return nil
+			},
+		},
+		{
+			Name:  "clear",
+			Usage: "Delete Ollama models that are not configured for use by mise",
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:    "yes",
+					Aliases: []string{"y"},
+					Usage:   "Skip the confirmation prompt",
+				},
+			},
+			Action: func(ctx context.Context, cmd *cli.Command) error {
+				cfg := config.FromContext(ctx)
+
+				models, err := selectedModels(cmd, cfg)
+				if err != nil {
+					return err
+				}
+
+				provisioner, err := ai.NewOllamaProvisioner(cfg.Providers.Ollama.BaseURL)
+				if err != nil {
+					return err
+				}
+
+				confirmFunc := confirm
+				if cmd.Bool("yes") {
+					confirmFunc = autoConfirm
+				}
+
+				deleted, err := provisioner.Clear(ctx, modelRefs(models), confirmFunc)
+				if errors.Is(err, ai.ErrClearDeclined) {
+					return nil
+				}
+				if err != nil {
+					return err
+				}
+
+				if len(deleted) == 0 {
+					fmt.Println("No unused models to delete")
+					return nil
+				}
+
+				for _, model := range deleted {
+					fmt.Printf("deleted %s\n", model.Name)
 				}
 
 				return nil
