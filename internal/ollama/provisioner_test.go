@@ -1,4 +1,4 @@
-package ai
+package ollama
 
 import (
 	"encoding/json"
@@ -7,16 +7,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/derethil/mise/internal/ai"
 	"github.com/derethil/mise/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
-type OllamaProvisionerSuite struct {
+type ProvisionerSuite struct {
 	suite.Suite
 
 	server      *httptest.Server
-	provisioner *OllamaProvisioner
+	provisioner *Provisioner
 
 	models          []map[string]any
 	pullStatuses    []string
@@ -24,7 +25,7 @@ type OllamaProvisionerSuite struct {
 	lastDeleteModel string
 }
 
-func (s *OllamaProvisionerSuite) SetupTest() {
+func (s *ProvisionerSuite) SetupTest() {
 	s.models = []map[string]any{
 		{
 			"name":        "qwen2.5:7b",
@@ -73,26 +74,26 @@ func (s *OllamaProvisionerSuite) SetupTest() {
 	}))
 
 	var err error
-	s.provisioner, err = NewOllamaProvisioner(s.server.URL)
+	s.provisioner, err = NewProvisioner(s.server.URL)
 	s.Require().NoError(err)
 }
 
-func (s *OllamaProvisionerSuite) TearDownTest() {
+func (s *ProvisionerSuite) TearDownTest() {
 	s.server.Close()
 }
 
-func TestOllamaProvisionerSuite(t *testing.T) {
-	suite.Run(t, new(OllamaProvisionerSuite))
+func TestProvisionerSuite(t *testing.T) {
+	suite.Run(t, new(ProvisionerSuite))
 }
 
-func (s *OllamaProvisionerSuite) TestNewOllamaProvisionerRequiresBaseURL() {
-	_, err := NewOllamaProvisioner("")
+func (s *ProvisionerSuite) TestNewProvisionerRequiresBaseURL() {
+	_, err := NewProvisioner("")
 
 	s.Require().Error(err)
 	s.ErrorIs(err, config.ErrInvalidConfig)
 }
 
-func (s *OllamaProvisionerSuite) TestModels() {
+func (s *ProvisionerSuite) TestModels() {
 	models, err := s.provisioner.models(s.T().Context())
 
 	s.Require().NoError(err)
@@ -103,23 +104,23 @@ func (s *OllamaProvisionerSuite) TestModels() {
 	s.Equal("Q4_0", models[0].QuantizationLevel)
 }
 
-func (s *OllamaProvisionerSuite) TestHasModelTrue() {
-	has, err := s.provisioner.hasModel(s.T().Context(), ModelRef{Provider: ProviderOllama, Name: "qwen2.5", Tag: "7b"})
+func (s *ProvisionerSuite) TestHasModelTrue() {
+	has, err := s.provisioner.hasModel(s.T().Context(), ai.ModelRef{Provider: ai.ProviderOllama, Name: "qwen2.5", Tag: "7b"})
 
 	s.Require().NoError(err)
 	s.True(has)
 }
 
-func (s *OllamaProvisionerSuite) TestHasModelFalse() {
-	has, err := s.provisioner.hasModel(s.T().Context(), ModelRef{Provider: ProviderOllama, Name: "llama3", Tag: "8b"})
+func (s *ProvisionerSuite) TestHasModelFalse() {
+	has, err := s.provisioner.hasModel(s.T().Context(), ai.ModelRef{Provider: ai.ProviderOllama, Name: "llama3", Tag: "8b"})
 
 	s.Require().NoError(err)
 	s.False(has)
 }
 
-func (s *OllamaProvisionerSuite) TestPullModelReportsProgress() {
+func (s *ProvisionerSuite) TestPullModelReportsProgress() {
 	var statuses []string
-	err := s.provisioner.pullModel(s.T().Context(), ModelRef{Provider: ProviderOllama, Name: "llama3", Tag: "8b"}, func(p PullProgress) error {
+	err := s.provisioner.pullModel(s.T().Context(), ai.ModelRef{Provider: ai.ProviderOllama, Name: "llama3", Tag: "8b"}, func(p PullProgress) error {
 		statuses = append(statuses, p.Status)
 		return nil
 	})
@@ -129,10 +130,10 @@ func (s *OllamaProvisionerSuite) TestPullModelReportsProgress() {
 	s.Equal(s.pullStatuses, statuses)
 }
 
-func (s *OllamaProvisionerSuite) TestStatusesMarksInstalledModel() {
-	statuses, err := s.provisioner.Statuses(s.T().Context(), []ModelRef{
-		{Provider: ProviderOllama, Name: "qwen2.5", Tag: "7b"},
-		{Provider: ProviderOllama, Name: "llama3", Tag: "8b"},
+func (s *ProvisionerSuite) TestStatusesMarksInstalledModel() {
+	statuses, err := s.provisioner.Statuses(s.T().Context(), []ai.ModelRef{
+		{Provider: ai.ProviderOllama, Name: "qwen2.5", Tag: "7b"},
+		{Provider: ai.ProviderOllama, Name: "llama3", Tag: "8b"},
 	})
 
 	s.Require().NoError(err)
@@ -144,8 +145,8 @@ func (s *OllamaProvisionerSuite) TestStatusesMarksInstalledModel() {
 	s.Nil(statuses[1].Info)
 }
 
-func (s *OllamaProvisionerSuite) TestStatusesSkipsNonOllamaModels() {
-	statuses, err := s.provisioner.Statuses(s.T().Context(), []ModelRef{
+func (s *ProvisionerSuite) TestStatusesSkipsNonOllamaModels() {
+	statuses, err := s.provisioner.Statuses(s.T().Context(), []ai.ModelRef{
 		{Provider: "openai", Name: "gpt-4"},
 	})
 
@@ -154,9 +155,9 @@ func (s *OllamaProvisionerSuite) TestStatusesSkipsNonOllamaModels() {
 	s.Nil(statuses[0].Info)
 }
 
-func (s *OllamaProvisionerSuite) TestEnsureSkipsWhenAlreadyInstalled() {
+func (s *ProvisionerSuite) TestEnsureSkipsWhenAlreadyInstalled() {
 	called := false
-	err := s.provisioner.Ensure(s.T().Context(), ModelRef{Provider: ProviderOllama, Name: "qwen2.5", Tag: "7b"},
+	err := s.provisioner.Ensure(s.T().Context(), ai.ModelRef{Provider: ai.ProviderOllama, Name: "qwen2.5", Tag: "7b"},
 		func(string) (bool, error) { called = true; return true, nil },
 		func(PullProgress) error { return nil },
 	)
@@ -165,8 +166,8 @@ func (s *OllamaProvisionerSuite) TestEnsureSkipsWhenAlreadyInstalled() {
 	s.False(called, "should not ask for confirmation when the model is already installed")
 }
 
-func (s *OllamaProvisionerSuite) TestEnsurePullsWhenConfirmed() {
-	err := s.provisioner.Ensure(s.T().Context(), ModelRef{Provider: ProviderOllama, Name: "llama3", Tag: "8b"},
+func (s *ProvisionerSuite) TestEnsurePullsWhenConfirmed() {
+	err := s.provisioner.Ensure(s.T().Context(), ai.ModelRef{Provider: ai.ProviderOllama, Name: "llama3", Tag: "8b"},
 		func(string) (bool, error) { return true, nil },
 		func(PullProgress) error { return nil },
 	)
@@ -175,8 +176,8 @@ func (s *OllamaProvisionerSuite) TestEnsurePullsWhenConfirmed() {
 	s.Equal("llama3:8b", s.lastPullModel)
 }
 
-func (s *OllamaProvisionerSuite) TestEnsureReturnsErrorWhenDeclined() {
-	err := s.provisioner.Ensure(s.T().Context(), ModelRef{Provider: ProviderOllama, Name: "llama3", Tag: "8b"},
+func (s *ProvisionerSuite) TestEnsureReturnsErrorWhenDeclined() {
+	err := s.provisioner.Ensure(s.T().Context(), ai.ModelRef{Provider: ai.ProviderOllama, Name: "llama3", Tag: "8b"},
 		func(string) (bool, error) { return false, nil },
 		func(PullProgress) error { return nil },
 	)
@@ -186,17 +187,17 @@ func (s *OllamaProvisionerSuite) TestEnsureReturnsErrorWhenDeclined() {
 	s.Empty(s.lastPullModel, "should not send a pull request")
 }
 
-func (s *OllamaProvisionerSuite) TestDeleteModel() {
+func (s *ProvisionerSuite) TestDeleteModel() {
 	err := s.provisioner.deleteModel(s.T().Context(), "qwen2.5:7b")
 
 	s.Require().NoError(err)
 	s.Equal("qwen2.5:7b", s.lastDeleteModel)
 }
 
-func (s *OllamaProvisionerSuite) TestClearSkipsWhenNothingStale() {
+func (s *ProvisionerSuite) TestClearSkipsWhenNothingStale() {
 	called := false
 	deleted, err := s.provisioner.Clear(s.T().Context(),
-		[]ModelRef{{Provider: ProviderOllama, Name: "qwen2.5", Tag: "7b"}},
+		[]ai.ModelRef{{Provider: ai.ProviderOllama, Name: "qwen2.5", Tag: "7b"}},
 		func(string) (bool, error) { called = true; return true, nil },
 	)
 
@@ -206,7 +207,7 @@ func (s *OllamaProvisionerSuite) TestClearSkipsWhenNothingStale() {
 	s.Empty(s.lastDeleteModel)
 }
 
-func (s *OllamaProvisionerSuite) TestClearDeletesStaleModelsWhenConfirmed() {
+func (s *ProvisionerSuite) TestClearDeletesStaleModelsWhenConfirmed() {
 	deleted, err := s.provisioner.Clear(s.T().Context(), nil,
 		func(string) (bool, error) { return true, nil },
 	)
@@ -217,7 +218,7 @@ func (s *OllamaProvisionerSuite) TestClearDeletesStaleModelsWhenConfirmed() {
 	s.Equal("qwen2.5:7b", s.lastDeleteModel)
 }
 
-func (s *OllamaProvisionerSuite) TestClearReturnsErrorWhenDeclined() {
+func (s *ProvisionerSuite) TestClearReturnsErrorWhenDeclined() {
 	deleted, err := s.provisioner.Clear(s.T().Context(), nil,
 		func(string) (bool, error) { return false, nil },
 	)
@@ -228,14 +229,14 @@ func (s *OllamaProvisionerSuite) TestClearReturnsErrorWhenDeclined() {
 	s.Empty(s.lastDeleteModel, "should not send a delete request")
 }
 
-func TestOllamaModelName(t *testing.T) {
+func TestModelName(t *testing.T) {
 	t.Run("ollama model without tag defaults to latest", func(t *testing.T) {
-		name := OllamaModelName(ModelRef{Provider: ProviderOllama, Name: "qwen2.5"})
+		name := ModelName(ai.ModelRef{Provider: ai.ProviderOllama, Name: "qwen2.5"})
 		assert.Equal(t, "qwen2.5:latest", name)
 	})
 
 	t.Run("non-ollama model falls back to String", func(t *testing.T) {
-		ref := ModelRef{Provider: "openai", Name: "gpt-4"}
-		assert.Equal(t, ref.String(), OllamaModelName(ref))
+		ref := ai.ModelRef{Provider: "openai", Name: "gpt-4"}
+		assert.Equal(t, ref.String(), ModelName(ref))
 	})
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/derethil/mise/internal/ai"
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/ollama"
 	"github.com/ollama/ollama/format"
 	"github.com/urfave/cli/v3"
 )
@@ -27,7 +28,7 @@ var modelsCmd = &cli.Command{
 					return err
 				}
 
-				provisioner, err := ai.NewOllamaProvisioner(cfg.Providers.Ollama.BaseURL)
+				provisioner, err := ollama.NewProvisioner(cfg.Providers.Ollama.BaseURL)
 				if err != nil {
 					return err
 				}
@@ -55,7 +56,7 @@ var modelsCmd = &cli.Command{
 					return err
 				}
 
-				provisioner, err := ai.NewOllamaProvisioner(cfg.Providers.Ollama.BaseURL)
+				provisioner, err := ollama.NewProvisioner(cfg.Providers.Ollama.BaseURL)
 				if err != nil {
 					return err
 				}
@@ -91,7 +92,7 @@ var modelsCmd = &cli.Command{
 					return err
 				}
 
-				provisioner, err := ai.NewOllamaProvisioner(cfg.Providers.Ollama.BaseURL)
+				provisioner, err := ollama.NewProvisioner(cfg.Providers.Ollama.BaseURL)
 				if err != nil {
 					return err
 				}
@@ -102,7 +103,7 @@ var modelsCmd = &cli.Command{
 				}
 
 				deleted, err := provisioner.Clear(ctx, modelRefs(models), confirmFunc)
-				if errors.Is(err, ai.ErrClearDeclined) {
+				if errors.Is(err, ollama.ErrClearDeclined) {
 					return nil
 				}
 				if err != nil {
@@ -164,11 +165,11 @@ func modelRefs(models []labeledModel) []ai.ModelRef {
 	return refs
 }
 
-func pullModel(ctx context.Context, provisioner *ai.OllamaProvisioner, model ai.ModelRef) error {
+func pullModel(ctx context.Context, provisioner *ollama.Provisioner, model ai.ModelRef) error {
 	pulled := false
 	onProgress := printProgress()
 
-	err := provisioner.Ensure(ctx, model, autoConfirm, func(p ai.PullProgress) error {
+	err := provisioner.Ensure(ctx, model, autoConfirm, func(p ollama.PullProgress) error {
 		pulled = true
 		return onProgress(progress{Label: model.String(), Status: p.Status, Total: p.Total, Completed: p.Completed})
 	})
@@ -185,7 +186,7 @@ func pullModel(ctx context.Context, provisioner *ai.OllamaProvisioner, model ai.
 	return nil
 }
 
-func printModelStatus(label string, s ai.ModelStatus) {
+func printModelStatus(label string, s ollama.ModelStatus) {
 	if s.Model.Provider != ai.ProviderOllama {
 		fmt.Printf("[%s] %s: availability not tracked (%s is not an Ollama model)\n", label, s.Model, s.Model.Provider)
 		return
