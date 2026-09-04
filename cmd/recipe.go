@@ -32,7 +32,7 @@ var recipeBackupCmd = &cli.Command{
 
 		cfg := config.FromContext(ctx)
 
-		client := tandoor.NewClient(cfg.Tandoor.BaseURL, cfg.Tandoor.Token)
+		client := tandoor.FromConfig(cfg)
 		recipe, err := client.Recipes.Get(ctx, id)
 		if err != nil {
 			return err
@@ -66,7 +66,7 @@ var recipeRestoreCmd = &cli.Command{
 			return fmt.Errorf("recipe %d: %w", id, err)
 		}
 
-		client := tandoor.NewClient(cfg.Tandoor.BaseURL, cfg.Tandoor.Token)
+		client := tandoor.FromConfig(cfg)
 		return client.Recipes.Update(ctx, id, data)
 	},
 }

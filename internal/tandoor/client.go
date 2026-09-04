@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/derethil/mise/internal/config"
 )
 
 const defaultTimeout = 30 * time.Second
@@ -32,6 +34,10 @@ func NewClient(baseURL, token string) *Client {
 	c.Recipes = &RecipeService{client: c}
 
 	return c
+}
+
+func FromConfig(cfg config.Config) *Client {
+	return NewClient(cfg.Tandoor.BaseURL, cfg.Tandoor.Token)
 }
 
 func (c *Client) Request(ctx context.Context, method, endpoint string, payload []byte) ([]byte, error) {
