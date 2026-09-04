@@ -1,7 +1,10 @@
 // Package config provides configuration management for the application
 package config
 
-import "path/filepath"
+import (
+	"path/filepath"
+	"reflect"
+)
 
 type TandoorConfig struct {
 	Token     string `key:"token" usage:"Tandoor API token"`
@@ -16,6 +19,22 @@ type ProviderConfig struct {
 
 type ProvidersConfig struct {
 	Ollama ProviderConfig `key:"ollama"`
+}
+
+func (p ProvidersConfig) Get(name string) (ProviderConfig, bool) {
+	t := reflect.TypeOf(p)
+	v := reflect.ValueOf(p)
+
+	for field := range t.Fields() {
+		if field.Tag.Get("key") != name {
+			continue
+		}
+
+		cfg, ok := v.FieldByIndex(field.Index).Interface().(ProviderConfig)
+		return cfg, ok
+	}
+
+	return ProviderConfig{}, false
 }
 
 type ModelsConfig struct {

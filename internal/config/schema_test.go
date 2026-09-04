@@ -44,3 +44,16 @@ func TestWalkSchemaSkipsUntaggedFields(t *testing.T) {
 
 	assert.Equal(t, []string{"tagged"}, keys)
 }
+
+func TestProvidersConfigGet(t *testing.T) {
+	providers := ProvidersConfig{
+		Ollama: ProviderConfig{BaseURL: "http://localhost:11434", APIKey: "secret"},
+	}
+
+	cfg, ok := providers.Get("ollama")
+	assert.True(t, ok)
+	assert.Equal(t, providers.Ollama, cfg)
+
+	_, ok = providers.Get("openai")
+	assert.False(t, ok)
+}
