@@ -3,34 +3,31 @@ package ai
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 
 	"github.com/derethil/mise/internal/config"
+	"github.com/firebase/genkit/go/core/logger"
 	"github.com/firebase/genkit/go/genkit"
 )
 
-type AIClient struct {
-	g     *genkit.Genkit
-	model string
+type Client struct {
+	g *genkit.Genkit
 }
 
-type AIClientOption func(*AIClient)
+func New(ctx context.Context, providers config.ProvidersConfig, model ModelRef, extra ...ModelRef) (*Client, error) {
+	models := append([]ModelRef{model}, extra...)
 
-func NewAIClient(ctx context.Context, cfg config.Config, model string, opts ...AIClientOption) (*AIClient, error) {
-	c := &AIClient{model: model}
-	for _, opt := range opts {
-		opt(c)
-	}
-
-	plugins, err := getProviderPlugins(cfg.Providers, c.model)
+	plugins, err := getProviderPlugins(providers, models...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get providers: %w", err)
+		return nil, err
 	}
 
-	c.g = genkit.Init(ctx,
-		genkit.WithPlugins(plugins...),
-		genkit.WithDefaultModel(c.model),
-	)
+	logger.SetLevel(slog.LevelWarn)
 
-	return c, nil
+	return &Client{
+		g: genkit.Init(ctx,
+			genkit.WithPlugins(plugins...),
+			genkit.WithDefaultModel(model.String()),
+		),
+	}, nil
 }

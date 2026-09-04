@@ -79,9 +79,13 @@ var recipeCleanCmd = &cli.Command{
 	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		cfg := config.FromContext(ctx)
-		model := resolveFlag(cmd, GlobalFlagModel, cfg.Models.Small)
 
-		_, err := ai.NewAIClient(ctx, cfg, model)
+		model, err := ai.ParseModel(resolveFlag(cmd, GlobalFlagModel, cfg.Models.Small))
+		if err != nil {
+			return err
+		}
+
+		_, err = ai.New(ctx, cfg.Providers, model)
 		if err != nil {
 			return err
 		}
