@@ -19,7 +19,12 @@
       config.allowUnfree = true;
     };
 
-    pkg = pkgs.buildGoModule {
+    pkg = pkgs.buildGoModule rec {
+      ldflags = [
+        "-s"
+        "-w"
+        "-X github.com/derethil/mise/cmd.version=${version}"
+      ];
       meta.mainProgram = "mise";
       pname = "mise";
       src = ./.;
