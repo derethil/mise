@@ -23,6 +23,8 @@ type Client struct {
 	httpClient *http.Client
 
 	Recipes *RecipeService
+	Foods   *FoodService
+	Units   *UnitService
 }
 
 func NewClient(baseURL, token string) *Client {
@@ -34,6 +36,8 @@ func NewClient(baseURL, token string) *Client {
 	}
 
 	c.Recipes = &RecipeService{client: c}
+	c.Foods = &FoodService{client: c}
+	c.Units = &UnitService{client: c}
 
 	return c
 }
