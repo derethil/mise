@@ -2,10 +2,7 @@
 package backup
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -33,11 +30,6 @@ func NewStore(dir string) *Store {
 }
 
 func (s *Store) Save(id int, data []byte) (Entry, error) {
-	var pretty bytes.Buffer
-	if err := json.Indent(&pretty, data, "", "    "); err != nil {
-		return Entry{}, fmt.Errorf("invalid JSON: %w", err)
-	}
-
 	dir := s.subdir(id)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return Entry{}, err
@@ -45,7 +37,7 @@ func (s *Store) Save(id int, data []byte) (Entry, error) {
 
 	at := s.now().UTC()
 	path := filepath.Join(dir, at.Format(timeLayout)+".json")
-	if err := os.WriteFile(path, pretty.Bytes(), 0o644); err != nil {
+	if err := os.WriteFile(path, data, 0o644); err != nil {
 		return Entry{}, err
 	}
 
