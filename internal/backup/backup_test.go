@@ -33,7 +33,7 @@ func TestStoreSuite(t *testing.T) {
 	suite.Run(t, new(StoreSuite))
 }
 
-func (s *StoreSuite) TestSaveWritesPrettyPrintedJSON() {
+func (s *StoreSuite) TestSaveWritesDataAsIs() {
 	entry, err := s.store.Save(42, []byte(`{"a":1,"b":2}`))
 	s.Require().NoError(err)
 
@@ -42,13 +42,16 @@ func (s *StoreSuite) TestSaveWritesPrettyPrintedJSON() {
 
 	data, err := os.ReadFile(entry.Path)
 	s.Require().NoError(err)
-	s.Equal("{\n    \"a\": 1,\n    \"b\": 2\n}", string(data))
+	s.Equal(`{"a":1,"b":2}`, string(data))
 }
 
-func (s *StoreSuite) TestSaveRejectsInvalidJSON() {
-	_, err := s.store.Save(42, []byte(`not json`))
+func (s *StoreSuite) TestSaveAcceptsNonJSONBytes() {
+	entry, err := s.store.Save(42, []byte(`not json`))
+	s.Require().NoError(err)
 
-	s.Error(err)
+	data, err := os.ReadFile(entry.Path)
+	s.Require().NoError(err)
+	s.Equal("not json", string(data))
 }
 
 func (s *StoreSuite) TestSaveKeepsPreviousBackups() {

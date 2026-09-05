@@ -1,4 +1,4 @@
-// Package backup stores timestamped copies of JSON documents on disk.
+// Package backup stores timestamped copies of arbitrary byte data on disk.
 package backup
 
 import (
