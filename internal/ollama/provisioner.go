@@ -1,3 +1,4 @@
+// Package ollama provides an interface to manage Ollama models for the user.
 package ollama
 
 import (
@@ -164,7 +165,7 @@ func (c *Provisioner) Clear(ctx context.Context, keep []ai.ModelRef, confirm Con
 		names[i] = model.Name
 	}
 
-	ok, err := confirm(fmt.Sprintf("Delete %d stale model(s) (%s)?", len(stale), strings.Join(names, ", ")))
+	ok, err := confirm(fmt.Sprintf("Delete %d model(s) (%s)?", len(stale), strings.Join(names, ", ")))
 	if err != nil {
 		return nil, err
 	}
