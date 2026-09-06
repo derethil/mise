@@ -60,6 +60,7 @@ var rootCmd = &cli.Command{
 	Commands: []*cli.Command{
 		recipeCmd,
 		modelsCmd,
+		genkitDevCmd,
 	},
 	EnableShellCompletion: true,
 }

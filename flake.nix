@@ -49,11 +49,16 @@
 
             packages = [pkgs.just pkgs.nodejs pkgs.fblog ollama];
 
-            processes.ollama = {
-              exec = "${ollama}/bin/ollama serve";
-              ready.http.get = {
-                path = "/api/version";
-                port = 11434;
+            processes = {
+              genkit = {
+                exec = "genkit start -- mise genkit";
+              };
+              ollama = {
+                exec = "${ollama}/bin/ollama serve";
+                ready.http.get = {
+                  path = "/api/version";
+                  port = 11434;
+                };
               };
             };
 
