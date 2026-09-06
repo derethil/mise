@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/derethil/mise/internal/ai"
 	"github.com/derethil/mise/internal/backup"
@@ -43,7 +44,7 @@ var recipeBackupCmd = &cli.Command{
 			return fmt.Errorf("recipe %d: %w", id, err)
 		}
 
-		fmt.Println(entry.Path)
+		slog.InfoContext(ctx, entry.Path, slog.Int("recipe_id", id), slog.String("backup_path", entry.Path))
 		return nil
 	},
 }
@@ -90,7 +91,9 @@ var recipeCleanCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Println("Cleaning ingredients for recipe", cmd.IntArg("recipe_id"), "using model", model)
+		recipeID := cmd.IntArg("recipe_id")
+		slog.InfoContext(ctx, fmt.Sprintf("Cleaning ingredients for recipe %d using model %s", recipeID, model),
+			slog.Int("recipe_id", recipeID), slog.String("model", model.String()))
 
 		return nil
 	},

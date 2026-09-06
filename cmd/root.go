@@ -46,10 +46,14 @@ var rootCmd = &cli.Command{
 			return ctx, err
 		}
 
+		slog.DebugContext(ctx, "command started")
+
 		cfg, err := config.Load(cmd)
 		if err != nil {
 			return ctx, err
 		}
+
+		slog.DebugContext(ctx, "config loaded", slog.Any("config", cfg))
 
 		return config.NewContext(ctx, cfg), nil
 	},
@@ -69,6 +73,8 @@ func Execute() {
 		fmt.Fprintln(os.Stderr, "Error:", userMessage(err))
 		os.Exit(1)
 	}
+
+	slog.DebugContext(ctx, "command finished")
 }
 
 func commandPath(cmd *cli.Command, args []string) string {

@@ -1,7 +1,9 @@
 package ai
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/derethil/mise/internal/config"
 	"github.com/firebase/genkit/go/core/api"
@@ -20,7 +22,7 @@ var providerFactories = map[string]func(config.ProviderConfig) (api.Plugin, erro
 	},
 }
 
-func getProviderPlugins(providers config.ProvidersConfig, models ...ModelRef) ([]api.Plugin, error) {
+func getProviderPlugins(ctx context.Context, providers config.ProvidersConfig, models ...ModelRef) ([]api.Plugin, error) {
 	seen := make(map[string]bool, len(models))
 	plugins := make([]api.Plugin, 0, len(models))
 
@@ -44,6 +46,8 @@ func getProviderPlugins(providers config.ProvidersConfig, models ...ModelRef) ([
 		if err != nil {
 			return nil, fmt.Errorf("provider %s: %w", model.Provider, err)
 		}
+
+		slog.DebugContext(ctx, "provider plugin ready", slog.String("provider", model.Provider), slog.String("base_url", cfg.BaseURL))
 
 		plugins = append(plugins, plugin)
 	}
