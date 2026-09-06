@@ -91,3 +91,18 @@ func (s *ClientSuite) TestRequestHonoursCallerCancellation() {
 func TestClientSuite(t *testing.T) {
 	suite.Run(t, new(ClientSuite))
 }
+
+func (s *ClientSuite) TestRequestRejectsNonJSONResponse() {
+	s.server.Close()
+	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte("<html><body>Log in</body></html>"))
+	}))
+	s.client = NewClient(s.server.URL, "test-token")
+
+	_, err := s.client.Request(s.T().Context(), http.MethodGet, "recipe/31/", nil)
+
+	s.Require().Error(err)
+	s.ErrorIs(err, ErrTandoorRequestFailed)
+	s.Contains(err.Error(), "instead of JSON")
+}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/derethil/mise/internal/config"
@@ -84,6 +85,11 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 		default:
 			return nil, fmt.Errorf("%w: %w", ErrTandoorRequestFailed, err)
 		}
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType != "" && !strings.Contains(contentType, "application/json") {
+		return nil, fmt.Errorf("%w: %s returned %s instead of JSON", ErrTandoorRequestFailed, resp.Request.URL, contentType)
 	}
 
 	return respBody, nil
