@@ -47,7 +47,7 @@
               mise = pkg;
             };
 
-            packages = [pkgs.just ollama];
+            packages = [pkgs.just pkgs.nodejs ollama];
 
             processes.ollama = {
               exec = "${ollama}/bin/ollama serve";
@@ -57,9 +57,15 @@
               };
             };
 
-            scripts.mise.exec = ''
-              cd "$DEVENV_ROOT" && go run . "$@"
-            '';
+            scripts = {
+              genkit.exec = ''
+                npx --yes genkit-cli@latest "$@"
+              '';
+
+              mise.exec = ''
+                cd "$DEVENV_ROOT" && go run . "$@"
+              '';
+            };
           }
         ];
       };
