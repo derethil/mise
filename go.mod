@@ -14,6 +14,7 @@ require (
 	github.com/ollama/ollama v0.33.3
 	github.com/stretchr/testify v1.12.1
 	github.com/tidwall/gjson v1.19.0
+	github.com/tidwall/sjson v1.2.5
 	github.com/urfave/cli/v3 v3.11.1-0.20260824182051-1a4deb4f5a35
 	golang.org/x/term v0.41.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
