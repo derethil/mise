@@ -47,7 +47,7 @@
               mise = pkg;
             };
 
-            packages = [pkgs.just pkgs.nodejs ollama];
+            packages = [pkgs.just pkgs.nodejs pkgs.fblog ollama];
 
             processes.ollama = {
               exec = "${ollama}/bin/ollama serve";
@@ -64,6 +64,16 @@
 
               mise.exec = ''
                 cd "$DEVENV_ROOT" && go run . "$@"
+              '';
+
+              mlogs.exec = ''
+                log_file="''${XDG_STATE_HOME:-$HOME/.local/state}/mise/mise.log"
+
+                if [ "$1" = "--live" ] || [ "$1" = "-l" ]; then
+                  tail -f "$log_file"
+                else
+                  cat "$log_file"
+                fi | ${pkgs.fblog}/bin/fblog -d --main-line-format $'\n{{bold(fixed_size 19 fblog_timestamp)}} {{level_style (uppercase (fixed_size 5 fblog_level))}}:{{#if fblog_prefix}} {{bold(cyan fblog_prefix)}}{{/if}} {{fblog_message}}'
               '';
             };
           }
