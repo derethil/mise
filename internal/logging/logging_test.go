@@ -69,7 +69,10 @@ func (s *LoggingSuite) captureStdout(fn func()) string {
 }
 
 func (s *LoggingSuite) TestInitCreatesStateDirAndLogFile() {
-	s.Require().NoError(Init(false))
+	s.captureStdout(func() {
+		s.Require().NoError(Init(false))
+		slog.Info("hello")
+	})
 
 	info, err := os.Stat(s.logFilePath())
 	s.Require().NoError(err)
@@ -102,7 +105,7 @@ func (s *LoggingSuite) TestFileGetsStructuredAttrs() {
 	s.Equal("recipe clean", lines[0]["command"])
 	s.Equal([]any{"recipe", "clean", "5"}, lines[0]["args"])
 	s.NotEmpty(lines[0]["invocation_id"])
-	s.Contains(lines[0], "duration_ms")
+	s.Contains(lines[0], "elapsed_ms")
 }
 
 func (s *LoggingSuite) TestLogWithoutInvocationOmitsInvocationAttrs() {
