@@ -48,7 +48,7 @@ var rootCmd = &cli.Command{
 
 func Execute() {
 	if err := rootCmd.Run(context.Background(), os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
+		fmt.Fprintln(os.Stderr, "Error:", userMessage(err))
 		os.Exit(1)
 	}
 }
