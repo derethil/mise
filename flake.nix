@@ -4,17 +4,20 @@
   inputs = {
     devenv.url = "github:cachix/devenv";
     nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+    unstable.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
   outputs = {
     devenv,
     nixpkgs,
+    unstable,
     ...
   } @ inputs: let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
 
-    unfreePkgs = import nixpkgs {
+    unstabledPkgs = unstable.legacyPackages.${system};
+    unstabledFreePkgs = import unstable {
       inherit system;
       config.allowUnfree = true;
     };
@@ -63,10 +66,10 @@
   in {
     # Pick the ollama build to use by setting MISE_DEVSHELL in .envrc.local
     devShells.${system} = {
-      cpu = mkShell pkgs.ollama;
-      cuda = mkShell unfreePkgs.ollama-cuda;
-      default = mkShell pkgs.ollama;
-      rocm = mkShell pkgs.ollama-rocm;
+      cpu = mkShell unstabledPkgs.ollama;
+      cuda = mkShell unstabledFreePkgs.ollama-cuda;
+      default = mkShell unstabledPkgs.ollama;
+      rocm = mkShell unstabledPkgs.ollama-rocm;
     };
 
     packages.${system} = {
