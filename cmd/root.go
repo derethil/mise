@@ -4,9 +4,12 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/logging"
 	"github.com/urfave/cli/v3"
 )
 
@@ -16,7 +19,8 @@ var version = "dev"
 type GlobalFlag string
 
 const (
-	GlobalFlagModel GlobalFlag = "model"
+	GlobalFlagModel   GlobalFlag = "model"
+	GlobalFlagVerbose GlobalFlag = "verbose"
 )
 
 var globalFlags = []cli.Flag{
@@ -24,6 +28,11 @@ var globalFlags = []cli.Flag{
 		Name:    string(GlobalFlagModel),
 		Usage:   "Override the AI model to use for this command",
 		Aliases: []string{"m"},
+	},
+	&cli.BoolFlag{
+		Name:    string(GlobalFlagVerbose),
+		Usage:   "Enable verbose (debug) logging",
+		Aliases: []string{"v"},
 	},
 }
 
@@ -33,10 +42,15 @@ var rootCmd = &cli.Command{
 	Version: version,
 	Flags:   append(config.Flags(), globalFlags...),
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+		if err := logging.Init(cmd.Bool(string(GlobalFlagVerbose))); err != nil {
+			return ctx, err
+		}
+
 		cfg, err := config.Load(cmd)
 		if err != nil {
 			return ctx, err
 		}
+
 		return config.NewContext(ctx, cfg), nil
 	},
 	Commands: []*cli.Command{
@@ -47,10 +61,34 @@ var rootCmd = &cli.Command{
 }
 
 func Execute() {
-	if err := rootCmd.Run(context.Background(), os.Args); err != nil {
+	args := os.Args[1:]
+	ctx := logging.NewInvocation(context.Background(), commandPath(rootCmd, args), args)
+
+	if err := rootCmd.Run(ctx, os.Args); err != nil {
+		slog.ErrorContext(ctx, err.Error())
 		fmt.Fprintln(os.Stderr, "Error:", userMessage(err))
 		os.Exit(1)
 	}
+}
+
+func commandPath(cmd *cli.Command, args []string) string {
+	var parts []string
+
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-") {
+			continue
+		}
+
+		next := cmd.Command(arg)
+		if next == nil {
+			break
+		}
+
+		parts = append(parts, arg)
+		cmd = next
+	}
+
+	return strings.Join(parts, " ")
 }
 
 func resolveFlag(cmd *cli.Command, flag GlobalFlag, fallback string) string {
