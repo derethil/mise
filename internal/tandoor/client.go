@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -61,6 +62,8 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 		req.Header.Set("Content-Type", "application/json")
 	}
 
+	slog.DebugContext(ctx, "sending tandoor request", slog.String("method", method), slog.String("endpoint", endpoint))
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -73,6 +76,8 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 	if err != nil {
 		return nil, err
 	}
+
+	slog.DebugContext(ctx, "received tandoor response", slog.String("endpoint", endpoint), slog.Int("status", resp.StatusCode))
 
 	if resp.StatusCode >= 400 {
 		err := fmt.Errorf("request to %s failed: %s", endpoint, resp.Status)

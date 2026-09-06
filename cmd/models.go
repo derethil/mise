@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/derethil/mise/internal/ai"
@@ -39,7 +40,7 @@ var modelsCmd = &cli.Command{
 				}
 
 				for i, model := range models {
-					printModelStatus(model.label, statuses[i])
+					printModelStatus(ctx, model.label, statuses[i])
 				}
 
 				return nil
@@ -111,12 +112,12 @@ var modelsCmd = &cli.Command{
 				}
 
 				if len(deleted) == 0 {
-					fmt.Println("No unused models to delete")
+					slog.InfoContext(ctx, "No unused models to delete")
 					return nil
 				}
 
 				for _, model := range deleted {
-					fmt.Printf("deleted %s\n", model.Name)
+					slog.InfoContext(ctx, fmt.Sprintf("deleted %s", model.Name), slog.String("model", model.Name))
 				}
 
 				return nil
@@ -180,24 +181,26 @@ func pullModel(ctx context.Context, provisioner *ollama.Provisioner, model ai.Mo
 	if pulled {
 		fmt.Println()
 	} else {
-		fmt.Printf("%s: already available\n", model)
+		slog.InfoContext(ctx, fmt.Sprintf("%s: already available", model), slog.String("model", model.String()))
 	}
 
 	return nil
 }
 
-func printModelStatus(label string, s ollama.ModelStatus) {
+func printModelStatus(ctx context.Context, label string, s ollama.ModelStatus) {
 	if s.Model.Provider != ai.ProviderOllama {
-		fmt.Printf("[%s] %s: availability not tracked (%s is not an Ollama model)\n", label, s.Model, s.Model.Provider)
+		slog.InfoContext(ctx, fmt.Sprintf("[%s] %s: availability not tracked (%s is not an Ollama model)", label, s.Model, s.Model.Provider),
+			slog.String("label", label), slog.String("model", s.Model.String()), slog.String("provider", string(s.Model.Provider)))
 		return
 	}
 
 	if s.Info == nil {
-		fmt.Printf("[%s] %s: missing\n", label, s.Model)
+		slog.WarnContext(ctx, fmt.Sprintf("[%s] %s: missing", label, s.Model),
+			slog.String("label", label), slog.String("model", s.Model.String()))
 		return
 	}
 
-	fmt.Printf("[%s] %s: available (%s, %s, %s, %s, updated %s)\n",
+	message := fmt.Sprintf("[%s] %s: available (%s, %s, %s, %s, updated %s)",
 		label,
 		s.Model,
 		format.HumanBytes(s.Info.Size),
@@ -208,6 +211,8 @@ func printModelStatus(label string, s ollama.ModelStatus) {
 	)
 
 	if len(s.Info.Capabilities) > 0 {
-		fmt.Printf("  capabilities: %s\n", strings.Join(s.Info.Capabilities, ", "))
+		message += fmt.Sprintf("\n  capabilities: %s", strings.Join(s.Info.Capabilities, ", "))
 	}
+
+	slog.InfoContext(ctx, message, slog.String("label", label), slog.String("model", s.Model.String()), slog.Int64("size_bytes", s.Info.Size))
 }

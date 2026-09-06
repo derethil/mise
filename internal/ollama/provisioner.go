@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
@@ -109,15 +110,20 @@ func (c *Provisioner) pullModel(ctx context.Context, model ai.ModelRef, onProgre
 		return onProgress(PullProgress{Status: progress.Status, Total: progress.Total, Completed: progress.Completed})
 	}
 
+	slog.DebugContext(ctx, "pulling ollama model", slog.String("model", request.Model))
+
 	err := c.client.Pull(ctx, &request, pullProgress)
 	if err != nil {
 		return err
 	}
 
+	slog.DebugContext(ctx, "pulled ollama model", slog.String("model", request.Model))
+
 	return nil
 }
 
 func (c *Provisioner) deleteModel(ctx context.Context, name string) error {
+	slog.DebugContext(ctx, "deleting ollama model", slog.String("model", name))
 	return c.client.Delete(ctx, &api.DeleteRequest{Model: name})
 }
 
@@ -147,15 +153,18 @@ func (c *Provisioner) Clear(ctx context.Context, keep []ai.ModelRef, confirm Con
 
 	stale := staleModels(installed, keep)
 	if len(stale) == 0 {
+		slog.DebugContext(ctx, "no stale ollama models found")
 		return nil, nil
 	}
+
+	slog.DebugContext(ctx, "found stale ollama models", slog.Int("count", len(stale)))
 
 	names := make([]string, len(stale))
 	for i, model := range stale {
 		names[i] = model.Name
 	}
 
-	ok, err := confirm(fmt.Sprintf("Delete %d unused model(s) (%s)?", len(stale), strings.Join(names, ", ")))
+	ok, err := confirm(fmt.Sprintf("Delete %d stale model(s) (%s)?", len(stale), strings.Join(names, ", ")))
 	if err != nil {
 		return nil, err
 	}
@@ -202,6 +211,8 @@ func (c *Provisioner) Ensure(ctx context.Context, model ai.ModelRef, confirm Con
 	if has {
 		return nil
 	}
+
+	slog.DebugContext(ctx, "model not found locally", slog.String("model", model.String()))
 
 	ok, err := confirm(fmt.Sprintf("Model %q is not available on your Ollama instance. Download it now?", model))
 	if err != nil {

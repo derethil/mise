@@ -2,6 +2,17 @@
 default:
     @just --list
 
+check:
+    #!/usr/bin/env bash
+
+    echo "Running tests..."
+    go vet ./...
+    go test ./...
+
+    echo "Verifying build..."
+    go build -o mise 
+    rm -f mise
+
 # Recompute flake.nix's vendorHash after go.mod/go.sum change.
 update-vendor-hash:
     #!/usr/bin/env bash

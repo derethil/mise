@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"testing"
 
 	"github.com/derethil/mise/internal/config"
@@ -24,7 +25,7 @@ func TestProvidersSuite(t *testing.T) {
 }
 
 func (s *ProvidersSuite) TestBuildsAPluginPerDistinctProvider() {
-	plugins, err := getProviderPlugins(s.providers,
+	plugins, err := getProviderPlugins(context.Background(), s.providers,
 		ModelRef{Provider: ProviderOllama, Name: "qwen2.5"},
 		ModelRef{Provider: ProviderOllama, Name: "llama3"},
 	)
@@ -34,21 +35,21 @@ func (s *ProvidersSuite) TestBuildsAPluginPerDistinctProvider() {
 }
 
 func (s *ProvidersSuite) TestUnsupportedProvider() {
-	_, err := getProviderPlugins(s.providers, ModelRef{Provider: "openai", Name: "gpt-4"})
+	_, err := getProviderPlugins(context.Background(), s.providers, ModelRef{Provider: "openai", Name: "gpt-4"})
 
 	s.Require().Error(err)
 	s.ErrorIs(err, config.ErrInvalidConfig)
 }
 
 func (s *ProvidersSuite) TestProviderNotConfigured() {
-	_, err := getProviderPlugins(config.ProvidersConfig{}, ModelRef{Provider: ProviderOllama, Name: "qwen2.5"})
+	_, err := getProviderPlugins(context.Background(), config.ProvidersConfig{}, ModelRef{Provider: ProviderOllama, Name: "qwen2.5"})
 
 	s.Require().Error(err)
 	s.ErrorIs(err, config.ErrInvalidConfig)
 }
 
 func (s *ProvidersSuite) TestFactoryErrorPropagates() {
-	_, err := getProviderPlugins(config.ProvidersConfig{Ollama: config.ProviderConfig{}}, ModelRef{Provider: ProviderOllama, Name: "qwen2.5"})
+	_, err := getProviderPlugins(context.Background(), config.ProvidersConfig{Ollama: config.ProviderConfig{}}, ModelRef{Provider: ProviderOllama, Name: "qwen2.5"})
 
 	s.Error(err)
 }
