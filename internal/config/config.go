@@ -15,6 +15,7 @@ type TandoorConfig struct {
 type ProviderConfig struct {
 	BaseURL string `key:"base_url" usage:"Base URL of the provider's API"`
 	APIKey  string `key:"api_key" usage:"API key for the provider"`
+	Timeout int    `key:"timeout" flag:"-" usage:"Seconds to wait for a response from the provider"`
 }
 
 type ProvidersConfig struct {
@@ -56,6 +57,7 @@ var defaultConfig = Config{
 	Providers: ProvidersConfig{
 		Ollama: ProviderConfig{
 			BaseURL: "http://localhost:11434",
+			Timeout: 600,
 		},
 	},
 	Models: ModelsConfig{

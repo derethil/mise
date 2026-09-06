@@ -140,3 +140,25 @@ func (s *ConfigSuite) TestModelFlagOptOutStillLoadsFromEnv() {
 func TestConfigSuite(t *testing.T) {
 	suite.Run(t, new(ConfigSuite))
 }
+
+func (s *ConfigSuite) TestProviderTimeoutDefault() {
+	cfg := s.load()
+
+	s.Equal(600, cfg.Providers.Ollama.Timeout)
+}
+
+func (s *ConfigSuite) TestProviderTimeoutFromFile() {
+	s.writeConfigFile("[providers.ollama]\ntimeout = 900\n")
+
+	cfg := s.load()
+
+	s.Equal(900, cfg.Providers.Ollama.Timeout)
+}
+
+func (s *ConfigSuite) TestProviderTimeoutFromEnv() {
+	s.T().Setenv("MISE_PROVIDERS_OLLAMA_TIMEOUT", "120")
+
+	cfg := s.load()
+
+	s.Equal(120, cfg.Providers.Ollama.Timeout)
+}
