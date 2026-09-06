@@ -1,7 +1,9 @@
 package tandoor
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -19,7 +21,11 @@ type Recipe struct {
 }
 
 func (r *Recipe) JSON() []byte {
-	return r.raw
+	var pretty bytes.Buffer
+	if err := json.Indent(&pretty, r.raw, "", "    "); err != nil {
+		return r.raw
+	}
+	return pretty.Bytes()
 }
 
 func (s *RecipeService) Get(ctx context.Context, id int) (*Recipe, error) {

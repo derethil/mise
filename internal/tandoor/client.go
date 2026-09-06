@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/derethil/mise/internal/config"
@@ -74,7 +75,21 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("request to %s failed: %s", endpoint, resp.Status)
+		err := fmt.Errorf("request to %s failed: %s", endpoint, resp.Status)
+
+		switch resp.StatusCode {
+		case http.StatusUnauthorized, http.StatusForbidden:
+			return nil, fmt.Errorf("%w: %w", ErrTandoorUnauthorized, err)
+		case http.StatusNotFound:
+			return nil, fmt.Errorf("%w: %w", ErrTandoorNotFound, err)
+		default:
+			return nil, fmt.Errorf("%w: %w", ErrTandoorRequestFailed, err)
+		}
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType != "" && !strings.Contains(contentType, "application/json") {
+		return nil, fmt.Errorf("%w: %s returned %s instead of JSON", ErrTandoorRequestFailed, resp.Request.URL, contentType)
 	}
 
 	return respBody, nil
