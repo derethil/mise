@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/derethil/mise/internal/config"
+	genkitlogger "github.com/firebase/genkit/go/core/logger"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -70,7 +71,8 @@ func (s *LoggingSuite) captureStdout(fn func()) string {
 
 func (s *LoggingSuite) TestInitCreatesStateDirAndLogFile() {
 	s.captureStdout(func() {
-		s.Require().NoError(Init(false))
+		_, err := Init(context.Background(), 0)
+		s.Require().NoError(err)
 		slog.Info("hello")
 	})
 
@@ -81,7 +83,8 @@ func (s *LoggingSuite) TestInitCreatesStateDirAndLogFile() {
 
 func (s *LoggingSuite) TestStdoutGetsMessageOnly() {
 	stdout := s.captureStdout(func() {
-		s.Require().NoError(Init(false))
+		_, err := Init(context.Background(), 0)
+		s.Require().NoError(err)
 		ctx := NewInvocation(context.Background(), "recipe clean", []string{"recipe", "clean", "5"})
 		slog.InfoContext(ctx, "hello")
 	})
@@ -93,7 +96,8 @@ func (s *LoggingSuite) TestStdoutGetsMessageOnly() {
 
 func (s *LoggingSuite) TestFileGetsStructuredAttrs() {
 	s.captureStdout(func() {
-		s.Require().NoError(Init(false))
+		_, err := Init(context.Background(), 0)
+		s.Require().NoError(err)
 		ctx := NewInvocation(context.Background(), "recipe clean", []string{"recipe", "clean", "5"})
 		slog.InfoContext(ctx, "hello")
 	})
@@ -110,7 +114,8 @@ func (s *LoggingSuite) TestFileGetsStructuredAttrs() {
 
 func (s *LoggingSuite) TestLogWithoutInvocationOmitsInvocationAttrs() {
 	s.captureStdout(func() {
-		s.Require().NoError(Init(false))
+		_, err := Init(context.Background(), 0)
+		s.Require().NoError(err)
 		slog.Info("hello")
 	})
 
@@ -123,7 +128,8 @@ func (s *LoggingSuite) TestLogWithoutInvocationOmitsInvocationAttrs() {
 
 func (s *LoggingSuite) TestDebugAlwaysWrittenToFile() {
 	s.captureStdout(func() {
-		s.Require().NoError(Init(false))
+		_, err := Init(context.Background(), 0)
+		s.Require().NoError(err)
 		slog.Debug("should still be logged")
 	})
 
@@ -134,7 +140,8 @@ func (s *LoggingSuite) TestDebugAlwaysWrittenToFile() {
 
 func (s *LoggingSuite) TestDebugSuppressedOnStdoutWithoutVerbose() {
 	stdout := s.captureStdout(func() {
-		s.Require().NoError(Init(false))
+		_, err := Init(context.Background(), 0)
+		s.Require().NoError(err)
 		slog.Debug("should not appear on stdout")
 	})
 
@@ -143,13 +150,36 @@ func (s *LoggingSuite) TestDebugSuppressedOnStdoutWithoutVerbose() {
 
 func (s *LoggingSuite) TestVerboseEnablesDebug() {
 	s.captureStdout(func() {
-		s.Require().NoError(Init(true))
+		_, err := Init(context.Background(), 1)
+		s.Require().NoError(err)
 		slog.Debug("debug line")
 	})
 
 	lines := s.readLogLines()
 	s.Require().Len(lines, 1)
 	s.Equal("debug line", lines[0]["msg"])
+}
+
+func (s *LoggingSuite) TestSingleVerboseSuppressesGenkitDebugOnStdout() {
+	stdout := s.captureStdout(func() {
+		ctx, err := Init(context.Background(), 1)
+		s.Require().NoError(err)
+		slog.Debug("mise debug line")
+		genkitlogger.Debug(ctx, "genkit debug line")
+	})
+
+	s.Contains(stdout, "mise debug line")
+	s.NotContains(stdout, "genkit debug line")
+}
+
+func (s *LoggingSuite) TestDoubleVerboseIncludesGenkitDebug() {
+	stdout := s.captureStdout(func() {
+		ctx, err := Init(context.Background(), 2)
+		s.Require().NoError(err)
+		genkitlogger.Debug(ctx, "genkit debug line")
+	})
+
+	s.Contains(stdout, "genkit debug line")
 }
 
 func TestLoggingSuite(t *testing.T) {

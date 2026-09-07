@@ -2,17 +2,19 @@
 package logging
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/derethil/mise/internal/config"
+	genkitlogger "github.com/firebase/genkit/go/core/logger"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func Init(verbose bool) error {
+func Init(ctx context.Context, verbosity int) (context.Context, error) {
 	if err := os.MkdirAll(config.StateDir, 0o755); err != nil {
-		return err
+		return ctx, err
 	}
 
 	fileWriter := &lumberjack.Logger{
@@ -23,16 +25,24 @@ func Init(verbose bool) error {
 		Compress:   true,
 	}
 
-	stdoutLevel := slog.LevelInfo
-	if verbose {
-		stdoutLevel = slog.LevelDebug
+	newHandler := func(stdoutLevel slog.Level) contextHandler {
+		return contextHandler{next: slog.NewMultiHandler(
+			slog.NewJSONHandler(fileWriter, &slog.HandlerOptions{Level: slog.LevelDebug}),
+			newMessageHandler(os.Stdout, stdoutLevel),
+		)}
 	}
 
-	handler := contextHandler{next: slog.NewMultiHandler(
-		slog.NewJSONHandler(fileWriter, &slog.HandlerOptions{Level: slog.LevelDebug}),
-		newMessageHandler(os.Stdout, stdoutLevel),
-	)}
+	stdoutLevel := slog.LevelInfo
+	if verbosity >= 1 {
+		stdoutLevel = slog.LevelDebug
+	}
+	slog.SetDefault(slog.New(newHandler(stdoutLevel)))
 
-	slog.SetDefault(slog.New(handler))
-	return nil
+	genkitLevel := slog.LevelInfo
+	if verbosity >= 2 {
+		genkitLevel = slog.LevelDebug
+	}
+	ctx = genkitlogger.WithContext(ctx, slog.New(newHandler(genkitLevel)))
+
+	return ctx, nil
 }
