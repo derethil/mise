@@ -3,6 +3,8 @@ package backup
 
 import (
 	"errors"
+	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -41,6 +43,11 @@ func (s *Store) Save(id int, data []byte) (Entry, error) {
 		return Entry{}, err
 	}
 
+	err := s.clearStaleEntries(id, 5)
+	if err != nil {
+		return Entry{}, err
+	}
+
 	return Entry{Path: path, Time: at}, nil
 }
 
@@ -48,6 +55,10 @@ func (s *Store) Load(id int, n ...int) ([]byte, error) {
 	ago := 0
 	if len(n) > 0 {
 		ago = n[0]
+	}
+
+	if len(n) > 1 {
+		return nil, errors.New("too many arguments")
 	}
 
 	entries, err := s.List(id)
@@ -60,6 +71,31 @@ func (s *Store) Load(id int, n ...int) ([]byte, error) {
 	}
 
 	return os.ReadFile(entries[ago].Path)
+}
+
+func (s *Store) clearStaleEntries(id int, keep int) error {
+	entries, err := s.List(id)
+	if err != nil {
+		return err
+	}
+
+	var delete []Entry
+	if len(entries) > keep {
+		delete = entries[keep:]
+	} else {
+		return nil
+	}
+
+	slog.Warn(fmt.Sprintf("deleting %d stale backup entries for recipe %d", len(delete), id), slog.Int("count", len(delete)), slog.Int("recipe_id", id))
+
+	for _, e := range delete {
+		err = os.Remove(e.Path)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *Store) List(id int) ([]Entry, error) {
