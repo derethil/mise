@@ -1,9 +1,7 @@
 package cleaningredients
 
 import (
-	"context"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -20,43 +18,36 @@ type CleanedRecipe struct {
 	Ingredients []CleanedRow `json:"ingredients"`
 }
 
-func (c *CleanedRecipe) Apply(ctx context.Context, raw []byte) ([]byte, error) {
-	if err := c.validate(raw); err != nil {
-		return nil, err
+func (c *CleanedRecipe) Apply(rawBefore []byte) ([]byte, []Change, error) {
+	if err := c.validate(rawBefore); err != nil {
+		return nil, nil, err
 	}
 
-	out := raw
+	out := rawBefore
 	index := 0
-	for position, step := range gjson.GetBytes(raw, "steps").Array() {
+	changes := make([]Change, 0, len(c.Ingredients))
+
+	for position, step := range gjson.GetBytes(rawBefore, "steps").Array() {
 		var kept []string
 		for _, ingredient := range step.Get("ingredients").Array() {
-			fix := c.Ingredients[index]
+			patchInput := c.Ingredients[index]
 			index++
 
 			before := projectIngredient(ingredient)
+			changes = append(changes, Change{Before: before, Row: patchInput})
 
-			if fix.Kind == KindJunk {
-				slog.InfoContext(ctx, "dropped ingredient", slog.String("before", before))
+			if patchInput.Kind == KindJunk {
 				continue
 			}
 
-			slog.InfoContext(ctx, "cleaned ingredient",
-				slog.String("before", before),
-				slog.String("kind", fix.Kind),
-				slog.Float64("amount", fix.Amount),
-				slog.String("unit", fix.Unit),
-				slog.String("food", fix.Food),
-				slog.String("note", fix.Note),
-			)
-
-			patched, err := applyIngredientFix(ingredient.Raw, fix)
+			patched, err := patchIngredient(ingredient.Raw, patchInput)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			patched, err = sjson.Set(patched, "order", len(kept))
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			kept = append(kept, patched)
@@ -66,11 +57,11 @@ func (c *CleanedRecipe) Apply(ctx context.Context, raw []byte) ([]byte, error) {
 
 		out, err = sjson.SetRawBytes(out, fmt.Sprintf("steps.%d.ingredients", position), []byte("["+strings.Join(kept, ",")+"]"))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return out, nil
+	return out, changes, nil
 }
 
 func (c *CleanedRecipe) validate(raw []byte) error {
@@ -82,7 +73,7 @@ func (c *CleanedRecipe) validate(raw []byte) error {
 	return nil
 }
 
-func applyIngredientFix(raw string, fix CleanedRow) (string, error) {
+func patchIngredient(raw string, fix CleanedRow) (string, error) {
 	if fix.Kind == KindHeader {
 		fix = CleanedRow{Kind: KindHeader, Note: fix.Note}
 	}

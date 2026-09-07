@@ -115,7 +115,15 @@ var recipeCleanCmd = &cli.Command{
 			return err
 		}
 
-		cleaned, err := feature.CleanRecipe(ctx, recipe)
+		onProgress := printProgress()
+		cleaned, err := feature.CleanRecipe(ctx, recipe, func(p cleaningredients.Progress) error {
+			return onProgress(progress{
+				Label:     recipe.Name,
+				Status:    "cleaning ingredients",
+				Total:     int64(p.Total),
+				Completed: int64(p.Completed),
+			})
+		})
 		if errors.Is(err, status.ErrNotFound) {
 			return errWithUserMessage(err, "Unable to load model %s. Please ensure it is available for use by your provider.", model)
 		}
@@ -123,13 +131,20 @@ var recipeCleanCmd = &cli.Command{
 			return err
 		}
 
-		updated, err := cleaned.Apply(ctx, recipe.JSON())
+		updated, changes, err := cleaned.Apply(recipe.JSON())
 		if err != nil {
 			return err
 		}
 
+		fmt.Println("\nChanges:")
+		for _, change := range changes {
+			fmt.Println(change)
+		}
+
+		slog.DebugContext(ctx, "clean recipe finished with changes", slog.Any("changes", changes))
+
 		if cmd.Bool("dry-run") {
-			fmt.Println("\nDry run: nothing was written.")
+			slog.InfoContext(ctx, "Dry run complete. No changes were written.")
 			return nil
 		}
 
@@ -137,7 +152,6 @@ var recipeCleanCmd = &cli.Command{
 			return err
 		}
 
-		fmt.Printf("Updated recipe %d\n", recipe.ID)
 		return nil
 	},
 }
@@ -148,7 +162,11 @@ func backupAndUpdate(ctx context.Context, client *tandoor.Client, dir string, id
 		return err
 	}
 
-	fmt.Printf("\nBacked up to %s\n", entry.Path)
+	slog.InfoContext(ctx,
+		fmt.Sprintf("Pre-patched recipe backed up to %s", entry.Path),
+		slog.Int("recipe_id", id),
+		slog.String("backup_path", entry.Path),
+	)
 
 	return client.Recipes.Update(ctx, id, updated)
 }

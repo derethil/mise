@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	miseai "github.com/derethil/mise/internal/ai"
@@ -51,6 +50,32 @@ type Feature struct {
 	flow   *core.Flow[projectedRecipe, *CleanedRecipe, struct{}]
 }
 
+type Progress struct {
+	Completed int
+	Total     int
+}
+
+type ProgressFunc func(Progress) error
+
+type progressKey struct{}
+
+func withProgress(ctx context.Context, fn ProgressFunc) context.Context {
+	if fn == nil {
+		return ctx
+	}
+
+	return context.WithValue(ctx, progressKey{}, fn)
+}
+
+func reportProgress(ctx context.Context, completed, total int) error {
+	fn, ok := ctx.Value(progressKey{}).(ProgressFunc)
+	if !ok {
+		return nil
+	}
+
+	return fn(Progress{Completed: completed, Total: total})
+}
+
 func (c *Feature) Register(r miseai.Registry) error {
 	genkit.DefineSchemaFor[CleanedRow](r.Genkit)
 	genkit.DefineSchemaFor[CleanIngredientBatchInput](r.Genkit)
@@ -74,8 +99,8 @@ func (c *Feature) Register(r miseai.Registry) error {
 	return nil
 }
 
-func (c *Feature) CleanRecipe(ctx context.Context, recipe *tandoor.Recipe) (*CleanedRecipe, error) {
-	cleaned, err := c.flow.Run(ctx, projectRecipe(recipe.JSON()))
+func (c *Feature) CleanRecipe(ctx context.Context, recipe *tandoor.Recipe, onProgress ProgressFunc) (*CleanedRecipe, error) {
+	cleaned, err := c.flow.Run(withProgress(ctx, onProgress), projectRecipe(recipe.JSON()))
 	if err != nil {
 		return nil, fmt.Errorf("recipe %d: %w", recipe.ID, err)
 	}
@@ -100,7 +125,9 @@ func (c *Feature) cleanRecipe(ctx context.Context, projected projectedRecipe) (*
 
 		cleaned.Ingredients = append(cleaned.Ingredients, fixes...)
 
-		slog.InfoContext(ctx, "cleaned ingredient batch", "remaining", len(projected.Ingredients)-end)
+		if err := reportProgress(ctx, end, len(projected.Ingredients)); err != nil {
+			return nil, err
+		}
 	}
 
 	return cleaned, nil

@@ -15,7 +15,8 @@ type RecipeService struct {
 }
 
 type Recipe struct {
-	ID int
+	ID   int
+	Name string
 
 	raw []byte
 }
@@ -57,5 +58,7 @@ func parseRecipe(raw []byte) (*Recipe, error) {
 		return nil, fmt.Errorf("recipe is missing an id")
 	}
 
-	return &Recipe{ID: int(id.Int()), raw: raw}, nil
+	name := gjson.GetBytes(raw, "name")
+
+	return &Recipe{ID: int(id.Int()), Name: name.String(), raw: raw}, nil
 }
