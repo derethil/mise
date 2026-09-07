@@ -3,7 +3,6 @@ package cleaningredients
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -156,11 +155,11 @@ func (c *Feature) cleanRowBatch(ctx context.Context, rows []string) ([]CleanedRo
 
 func normalizeRows(batch *CleanedRowBatch, rows []string) ([]CleanedRow, error) {
 	if batch == nil {
-		return nil, errors.New("cleanRowBatch: model returned nil batch")
+		return nil, fmt.Errorf("%w: nil batch", miseai.ErrMalformedResponse)
 	}
 
 	if len(batch.Rows) != len(rows) {
-		return nil, fmt.Errorf("cleanRowBatch: want %d rows, got %d", len(rows), len(batch.Rows))
+		return nil, fmt.Errorf("%w: want %d rows, got %d", miseai.ErrMalformedResponse, len(rows), len(batch.Rows))
 	}
 
 	result := make([]CleanedRow, len(rows))

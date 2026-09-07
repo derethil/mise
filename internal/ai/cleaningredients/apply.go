@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/derethil/mise/internal/ai"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
@@ -67,7 +68,7 @@ func (c *CleanedRecipe) Apply(rawBefore []byte) ([]byte, []Change, error) {
 func (c *CleanedRecipe) validate(raw []byte) error {
 	rows := len(projectRecipe(raw).Ingredients)
 	if len(c.Ingredients) != rows {
-		return fmt.Errorf("have %d corrections for a recipe with %d rows", len(c.Ingredients), rows)
+		return fmt.Errorf("%w: have %d corrections for a recipe with %d rows", ai.ErrMalformedResponse, len(c.Ingredients), rows)
 	}
 
 	return nil

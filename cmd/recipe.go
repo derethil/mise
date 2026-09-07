@@ -11,7 +11,6 @@ import (
 	"github.com/derethil/mise/internal/backup"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/tandoor"
-	"github.com/firebase/genkit/go/core/status"
 	"github.com/urfave/cli/v3"
 )
 
@@ -39,15 +38,16 @@ var recipeBackupCmd = &cli.Command{
 		client := tandoor.FromConfig(cfg)
 		recipe, err := client.Recipes.Get(ctx, id)
 		if err != nil {
-			return err
+			return tandoorUserError(err)
 		}
 
 		entry, err := backup.NewStore(cfg.Tandoor.BackupDir).Save(id, recipe.JSON())
 		if err != nil {
-			return fmt.Errorf("recipe %d: %w", id, err)
+			return errWithUserMessage(err, "Could not write a backup to %s. Check that the directory is writable.", cfg.Tandoor.BackupDir)
 		}
 
 		slog.InfoContext(ctx, entry.Path, slog.Int("recipe_id", id), slog.String("backup_path", entry.Path))
+
 		return nil
 	},
 }
@@ -74,11 +74,12 @@ var recipeRestoreCmd = &cli.Command{
 
 		data, err := backup.NewStore(cfg.Tandoor.BackupDir).Load(id, n)
 		if err != nil {
-			return fmt.Errorf("recipe %d: %w", id, err)
+			return errWithUserMessage(err, "Could not load backup for recipe %d. Check that the backup directory is correct and contains backups for this recipe.", id)
 		}
 
 		client := tandoor.FromConfig(cfg)
-		return client.Recipes.Update(ctx, id, data)
+
+		return tandoorUserError(client.Recipes.Update(ctx, id, data))
 	},
 }
 
@@ -107,12 +108,12 @@ var recipeCleanCmd = &cli.Command{
 		tclient := tandoor.FromConfig(cfg)
 		recipe, err := tclient.Recipes.Get(ctx, id)
 		if err != nil {
-			return err
+			return tandoorUserError(err)
 		}
 
 		feature, model, err := aiFeature[*cleaningredients.Feature](ctx, cmd, ai.Deps{Tandoor: tclient})
 		if err != nil {
-			return err
+			return aiUserError(err, model.String())
 		}
 
 		onProgress := printProgress()
@@ -124,14 +125,14 @@ var recipeCleanCmd = &cli.Command{
 				Completed: int64(p.Completed),
 			})
 		})
-		if errors.Is(err, status.ErrNotFound) {
-			return errWithUserMessage(err, "Unable to load model %s. Please ensure it is available for use by your provider.", model)
-		}
 		if err != nil {
-			return err
+			return tandoorUserError(aiUserError(err, model.String()))
 		}
 
 		updated, changes, err := cleaned.Apply(recipe.JSON())
+		if errors.Is(err, ai.ErrMalformedResponse) {
+			return errWithUserMessage(err, "The model's corrections didn't match the recipe. Try running the command again.")
+		}
 		if err != nil {
 			return err
 		}
@@ -159,7 +160,7 @@ var recipeCleanCmd = &cli.Command{
 func backupAndUpdate(ctx context.Context, client *tandoor.Client, dir string, id int, before, updated []byte) error {
 	entry, err := backup.NewStore(dir).Save(id, before)
 	if err != nil {
-		return err
+		return errWithUserMessage(err, "Could not write a backup to %s. Check that the directory is writable.", dir)
 	}
 
 	slog.InfoContext(ctx,
@@ -168,5 +169,5 @@ func backupAndUpdate(ctx context.Context, client *tandoor.Client, dir string, id
 		slog.String("backup_path", entry.Path),
 	)
 
-	return client.Recipes.Update(ctx, id, updated)
+	return tandoorUserError(client.Recipes.Update(ctx, id, updated))
 }
