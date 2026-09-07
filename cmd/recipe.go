@@ -54,11 +54,18 @@ var recipeRestoreCmd = &cli.Command{
 	Usage: "Restore a recipe from a local backup",
 	Arguments: []cli.Argument{
 		&cli.IntArg{Name: "recipe_id", Required: true},
-		&cli.IntArg{Name: "n", Required: false},
+	},
+	Flags: []cli.Flag{
+		&cli.IntFlag{
+			Name:    "index",
+			Aliases: []string{"i"},
+			Usage:   "Which backup to restore (0 = most recent)",
+			Value:   0,
+		},
 	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		id := cmd.IntArg("recipe_id")
-		n := cmd.IntArg("n")
+		n := cmd.Int("index")
 
 		cfg := config.FromContext(ctx)
 
