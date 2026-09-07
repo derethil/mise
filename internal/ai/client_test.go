@@ -62,7 +62,7 @@ func TestClientSuite(t *testing.T) {
 func (s *ClientSuite) TestNewGenkitClientSucceedsWhenModelSupportsTools() {
 	s.withFakeOllamaModel("with-tools", &ai.ModelSupports{Tools: true})
 
-	client, err := NewGenkitClient(s.T().Context(), s.providers, ModelRef{Provider: ProviderOllama, Name: "with-tools"})
+	client, err := NewGenkitClient(s.T().Context(), s.providers, Deps{}, ModelRef{Provider: ProviderOllama, Name: "with-tools"})
 
 	s.Require().NoError(err)
 	s.NotNil(client)
@@ -71,7 +71,7 @@ func (s *ClientSuite) TestNewGenkitClientSucceedsWhenModelSupportsTools() {
 func (s *ClientSuite) TestNewGenkitClientErrorsWhenModelDoesNotSupportTools() {
 	s.withFakeOllamaModel("no-tools", &ai.ModelSupports{Tools: false})
 
-	client, err := NewGenkitClient(s.T().Context(), s.providers, ModelRef{Provider: ProviderOllama, Name: "no-tools"})
+	client, err := NewGenkitClient(s.T().Context(), s.providers, Deps{}, ModelRef{Provider: ProviderOllama, Name: "no-tools"})
 
 	s.Require().Error(err)
 	s.ErrorIs(err, ErrModelMissingTools)
@@ -81,7 +81,7 @@ func (s *ClientSuite) TestNewGenkitClientErrorsWhenModelDoesNotSupportTools() {
 func (s *ClientSuite) TestNewGenkitClientChecksExtraModelsToo() {
 	s.withFakeOllamaModel("no-tools", &ai.ModelSupports{Tools: false})
 
-	_, err := NewGenkitClient(s.T().Context(), s.providers,
+	_, err := NewGenkitClient(s.T().Context(), s.providers, Deps{},
 		ModelRef{Provider: ProviderOllama, Name: "no-tools"},
 		ModelRef{Provider: ProviderOllama, Name: "no-tools"},
 	)
@@ -91,7 +91,7 @@ func (s *ClientSuite) TestNewGenkitClientChecksExtraModelsToo() {
 }
 
 func (s *ClientSuite) TestNewGenkitClientPropagatesProviderConfigErrors() {
-	_, err := NewGenkitClient(s.T().Context(), config.ProvidersConfig{}, ModelRef{Provider: ProviderOllama, Name: "qwen2.5"})
+	_, err := NewGenkitClient(s.T().Context(), config.ProvidersConfig{}, Deps{}, ModelRef{Provider: ProviderOllama, Name: "qwen2.5"})
 
 	s.Require().Error(err)
 	s.ErrorIs(err, config.ErrInvalidConfig)

@@ -1,0 +1,50 @@
+---
+input:
+  schema: CleanIngredientBatchInput
+output:
+  format: json
+  schema: CleanedRowBatch
+config:
+  temperature: 0.1
+---
+{{role "system"}}
+Clean up a batch of ingredient rows scraped from a social media recipe. The scraper mislabels non-ingredient lines as ingredients and sometimes misplaces words within a row. Rebuild each row independently from its own original_text - return exactly one output row per input row, in the same order.
+
+Classify each row:
+- "ingredient": names a food, even if phrased as an instruction or if missing units and amounts completely ("Drizzle peri peri mayo", "2 cooked chicken thighs, sliced", "Extra salt").
+- "header": introduces a section, names no food of its own ("For the sauce:").
+- "junk": neither of the above - social-media filler like "Save this one for later!" or other non-relevant text.
+
+Each output row must have a "kind" field, which is either "ingredient", "header", or "junk" to indicate its classification.
+
+For "header" and "junk" rows, leave amount at 0 and unit/food/note empty.
+
+For "ingredient" rows, split original_text into:
+- amount: the number. A range ("400-600g") collapses to its midpoint (500).
+- unit: a measurement word only (g, cup, tbsp, tsp, etc.), never part of the food name. Counting words for the food itself, like "clove" in "garlic cloves", stay in the food name instead. Often empty. Normalize to whatever form is the standard in recipe writing - which is sometimes the full word ("cup"/"cups" -> "cup", since there's no shorter form in common use) and sometimes an abbreviation ("tablespoon"/"tablespoons" -> "tbsp", "ounce"/"ounces" -> "oz") - but never a bare single letter, since those are too easy to misread: lowercase "t" means teaspoon, write it as "tsp"; uppercase "T" means tablespoon, write it as "tbsp"; "c" means cup, write it as "cup". Always expand a single-letter unit to its full standard form rather than keeping (or introducing) one.
+- food: the ingredient itself, with no amount, unit, or preparation in it.
+- note: preparation or other detail ("sliced", "to taste").
+
+When both an imperial and a metric measurement are given for the same amount, use the imperial one for amount and unit. Leave the metric measurement out of the result entirely - it does not belong in note either.
+
+Examples (original_text -> amount, unit, food, note). These show how to split the text apart, before any searchFoods/searchUnits match is applied - if a search below returns a match, its spelling replaces the food/unit shown here, even for these exact rows:
+"400-600g chicken thighs" -> 500, "g", "chicken thighs", ""
+"3 garlic cloves" -> 3, "", "garlic cloves", ""
+"1/4 cup cooked sushi rice" -> 0.25, "cup", "sushi rice", "cooked"
+"Drizzle peri peri mayo" -> 0, "", "peri peri mayo", "drizzle"
+"2 tbsps (38g) oyster sauce" -> 2, "tbsp", "oyster sauce", ""
+
+If a row is already correct, return it unchanged.
+
+You have no way to know whether a matching food or unit already exists until you call its respective searchUnits or searchFoods tool - you cannot assume there is no existing entry, and you cannot skip the call because you're confident in your own spelling. For every "ingredient" row in the batch, call searchUnits and searchFoods exactly once each before finalizing that row's food or unit, even if you're sure your parse is already correct - that's up to two tool calls per ingredient row, not two total for the whole batch. Search using your parsed food/unit name as-is - the search ranks by fuzzy similarity, so there's no need to strip parenthetical, brand, or nationality words first. Do not call searchUnits or searchFoods again for a row once you have its result - use what it already gave you.
+
+The search ranks by similarity rather than filtering to real matches, so it always returns candidates as long as Tandoor has any food/unit at all - getting results back does NOT by itself mean a match exists. When judging the top result, the goal is avoiding a duplicate entry, not picking the most precise or best-written name - so match liberally. Nationality/origin, brand, and descriptive detail do not make it a different food: "Chinese black vinegar" and "black vinegar" are the same product, as are "Medjool dates" and "medjool dates" - prefer the existing entry over your own version even if yours reads better or is more specific.
+- Same real-world food/unit, however differently spelled, capitalized, worded, or (im)precisely it's described: that row's output food/unit field is the entry's name, verbatim - copied exactly as returned, character for character. This includes casing: if Tandoor has "medjool dates" (lowercase) and you'd naturally write "Medjool dates" (capitalized, since Medjool is a proper adjective), still output "medjool dates" - do not restore the capitalization you believe is grammatically correct. The tool result always wins over your own judgment about proper spelling, capitalization, or grammar.
+- A genuinely different product - something a shopper would pick up separately (e.g. "rice vinegar" is not "black vinegar"): ignore the result and use your own full parsed name instead.
+
+{{role "user"}}
+Return exactly one output row per input row below, in the same order, matching this row count exactly.
+
+{{#each rows}}
+Row {{@index}}: {{this}}
+{{/each}}

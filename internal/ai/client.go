@@ -3,27 +3,32 @@ package ai
 
 import (
 	"context"
-	"errors"
+	"embed"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"strings"
 
 	"github.com/derethil/mise/internal/config"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core/api"
 	"github.com/firebase/genkit/go/genkit"
+	"github.com/firebase/genkit/go/plugins/middleware"
 )
 
-var ErrModelMissingTools = errors.New("model does not support tool calling")
+//go:embed prompts
+var promptFS embed.FS
 
 type Client struct {
-	g *genkit.Genkit
+	features map[reflect.Type]Feature
 }
 
-func NewGenkitClient(ctx context.Context, providers config.ProvidersConfig, model ModelRef, extra ...ModelRef) (*Client, error) {
-	models := append([]ModelRef{model}, extra...)
+func NewGenkitClient(ctx context.Context, providers config.ProvidersConfig, deps Deps, models ...ModelRef) (*Client, error) {
+	if len(models) == 0 {
+		return nil, ErrNoModels
+	}
 
-	slog.DebugContext(ctx, "initializing ai client", slog.String("model", model.String()))
+	slog.DebugContext(ctx, "initializing ai client", slog.String("model", models[0].String()))
 
 	plugins, err := getProviderPlugins(ctx, providers, models...)
 	if err != nil {
@@ -33,8 +38,9 @@ func NewGenkitClient(ctx context.Context, providers config.ProvidersConfig, mode
 	slog.DebugContext(ctx, "using provider plugins", slog.String("plugins", pluginNames(plugins)))
 
 	g := genkit.Init(ctx,
-		genkit.WithPlugins(plugins...),
-		genkit.WithDefaultModel(model.String()),
+		genkit.WithPlugins(append(plugins, &middleware.Middleware{})...),
+		genkit.WithDefaultModel(models[0].String()),
+		genkit.WithPromptFS(promptFS),
 	)
 
 	for _, m := range models {
@@ -43,7 +49,31 @@ func NewGenkitClient(ctx context.Context, providers config.ProvidersConfig, mode
 		}
 	}
 
-	return &Client{g: g}, nil
+	client := &Client{features: make(map[reflect.Type]Feature, len(featureFactories))}
+	err = client.RegisterFeatures(ctx, g, models, deps)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+func (c *Client) RegisterFeatures(ctx context.Context, g *genkit.Genkit, models []ModelRef, deps Deps) error {
+	registry := Registry{Genkit: g, Provider: models[0].Provider, Deps: deps}
+
+	for _, newFeature := range featureFactories {
+		feature := newFeature()
+		if err := feature.Register(registry); err != nil {
+			return fmt.Errorf("register %T: %w", feature, err)
+		}
+
+		c.features[reflect.TypeOf(feature)] = feature
+	}
+
+	slog.DebugContext(ctx, "registered ai features", slog.Int("features", len(c.features)))
+
+	return nil
+
 }
 
 func supportsTools(g *genkit.Genkit, name string) bool {
