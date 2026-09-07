@@ -19,6 +19,7 @@ type ClientSuite struct {
 
 	lastMethod string
 	lastPath   string
+	lastQuery  string
 	lastAuth   string
 	status     int
 	response   map[string]any
@@ -28,6 +29,7 @@ type ClientSuite struct {
 func (s *ClientSuite) SetupTest() {
 	s.lastMethod = ""
 	s.lastPath = ""
+	s.lastQuery = ""
 	s.lastAuth = ""
 	s.status = http.StatusOK
 	s.response = map[string]any{"id": 42, "name": "Tacos"}
@@ -45,6 +47,7 @@ func (s *ClientSuite) SetupTest() {
 
 		s.lastMethod = r.Method
 		s.lastPath = r.URL.Path
+		s.lastQuery = r.URL.RawQuery
 		s.lastAuth = r.Header.Get("Authorization")
 
 		w.Header().Set("Content-Type", "application/json")

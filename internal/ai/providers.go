@@ -13,13 +13,7 @@ import (
 const ProviderOllama = "ollama"
 
 var providerFactories = map[string]func(config.ProviderConfig) (api.Plugin, error){
-	ProviderOllama: func(cfg config.ProviderConfig) (api.Plugin, error) {
-		if cfg.BaseURL == "" {
-			return nil, fmt.Errorf("%w: base_url is not set", config.ErrInvalidConfig)
-		}
-
-		return &ollama.Ollama{ServerAddress: cfg.BaseURL}, nil
-	},
+	ProviderOllama: getOllamaProviderPlugin,
 }
 
 func getProviderPlugins(ctx context.Context, providers config.ProvidersConfig, models ...ModelRef) ([]api.Plugin, error) {
@@ -53,4 +47,15 @@ func getProviderPlugins(ctx context.Context, providers config.ProvidersConfig, m
 	}
 
 	return plugins, nil
+}
+
+func getOllamaProviderPlugin(cfg config.ProviderConfig) (api.Plugin, error) {
+	if cfg.BaseURL == "" {
+		return nil, fmt.Errorf("%w: base_url is not set", config.ErrInvalidConfig)
+	}
+
+	return &ollama.Ollama{
+		ServerAddress: cfg.BaseURL,
+		Timeout:       cfg.Timeout,
+	}, nil
 }

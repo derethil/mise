@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -23,6 +24,8 @@ type Client struct {
 	httpClient *http.Client
 
 	Recipes *RecipeService
+	Foods   *FoodService
+	Units   *UnitService
 }
 
 func NewClient(baseURL, token string) *Client {
@@ -34,6 +37,8 @@ func NewClient(baseURL, token string) *Client {
 	}
 
 	c.Recipes = &RecipeService{client: c}
+	c.Foods = &FoodService{client: c}
+	c.Units = &UnitService{client: c}
 
 	return c
 }
@@ -98,4 +103,26 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 	}
 
 	return respBody, nil
+}
+
+func constructURL(endpoint string, params map[string]string) string {
+	qParams := url.Values{}
+
+	for k, v := range params {
+		qParams.Set(k, v)
+	}
+
+	if len(qParams) == 0 {
+		return endpoint
+	}
+
+	return fmt.Sprintf("%s?%s", endpoint, qParams.Encode())
+}
+
+func constructParams(defaults map[string]string, kv ...string) map[string]string {
+	for i := 0; i < len(kv)-1; i += 2 {
+		defaults[kv[i]] = kv[i+1]
+	}
+
+	return defaults
 }

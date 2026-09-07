@@ -84,6 +84,11 @@ var modelsCmd = &cli.Command{
 					Aliases: []string{"y"},
 					Usage:   "Skip the confirmation prompt",
 				},
+				&cli.BoolFlag{
+					Name:    "all",
+					Aliases: []string{"a"},
+					Usage:   "Delete all Ollama models, even those configured for use by mise",
+				},
 			},
 			Action: func(ctx context.Context, cmd *cli.Command) error {
 				cfg := config.FromContext(ctx)
@@ -103,7 +108,12 @@ var modelsCmd = &cli.Command{
 					confirmFunc = autoConfirm
 				}
 
-				deleted, err := provisioner.Clear(ctx, modelRefs(models), confirmFunc)
+				var keep []ai.ModelRef
+				if !cmd.Bool("all") {
+					keep = modelRefs(models)
+				}
+
+				deleted, err := provisioner.Clear(ctx, keep, confirmFunc)
 				if errors.Is(err, ollama.ErrClearDeclined) {
 					return nil
 				}

@@ -12,6 +12,10 @@ type TandoorConfig struct {
 	BackupDir string `key:"backup_dir" flag:"-" usage:"Directory to store recipe backups"`
 }
 
+type BackupConfig struct {
+	Keep int `key:"keep" flag:"-" usage:"Number of backups to keep per recipe (0 = keep all)"`
+}
+
 type ProviderConfig struct {
 	BaseURL string `key:"base_url" usage:"Base URL of the provider's API"`
 	APIKey  string `key:"api_key" usage:"API key for the provider"`
@@ -45,6 +49,7 @@ type ModelsConfig struct {
 
 type Config struct {
 	Tandoor   TandoorConfig   `key:"tandoor"`
+	Backup    BackupConfig    `key:"backup"`
 	Providers ProvidersConfig `key:"providers"`
 	Models    ModelsConfig    `key:"models"`
 }
@@ -53,6 +58,9 @@ var defaultConfig = Config{
 	Tandoor: TandoorConfig{
 		BaseURL:   "https://tandoor.dev/api",
 		BackupDir: filepath.Join(DataDir, "tandoor_backups"),
+	},
+	Backup: BackupConfig{
+		Keep: 0,
 	},
 	Providers: ProvidersConfig{
 		Ollama: ProviderConfig{

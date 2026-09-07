@@ -1,8 +1,10 @@
 package backup
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -21,7 +23,7 @@ func (s *StoreSuite) SetupTest() {
 	s.dir = s.T().TempDir()
 	s.clock = time.Date(2026, 9, 2, 10, 0, 0, 0, time.UTC)
 
-	s.store = NewStore(s.dir)
+	s.store = NewStore(s.dir, 0)
 	s.store.now = func() time.Time { return s.clock }
 }
 
@@ -65,6 +67,59 @@ func (s *StoreSuite) TestSaveKeepsPreviousBackups() {
 	s.NotEqual(first.Path, second.Path)
 	s.FileExists(first.Path)
 	s.FileExists(second.Path)
+}
+
+func (s *StoreSuite) TestSaveKeepsEverythingByDefault() {
+	for i := range 10 {
+		_, err := s.store.Save(42, []byte(`{"v":`+strconv.Itoa(i)+`}`))
+		s.Require().NoError(err)
+		s.advance(time.Hour)
+	}
+
+	entries, err := s.store.List(42)
+	s.Require().NoError(err)
+	s.Len(entries, 10)
+}
+
+func (s *StoreSuite) TestSaveDeletesOldestBeyondKeep() {
+	s.store.keep = 3
+
+	var paths []string
+	for i := range 5 {
+		entry, err := s.store.Save(42, []byte(`{"v":`+strconv.Itoa(i)+`}`))
+		s.Require().NoError(err)
+		paths = append(paths, entry.Path)
+		s.advance(time.Hour)
+	}
+
+	entries, err := s.store.List(42)
+	s.Require().NoError(err)
+	s.Len(entries, 3)
+
+	s.NoFileExists(paths[0])
+	s.NoFileExists(paths[1])
+	s.FileExists(paths[2])
+	s.FileExists(paths[3])
+	s.FileExists(paths[4])
+}
+
+func (s *StoreSuite) TestSaveSucceedsWhenStaleCleanupFails() {
+	s.store.keep = 1
+	s.store.remove = func(path string) error {
+		return errors.New("boom")
+	}
+
+	_, err := s.store.Save(42, []byte(`{"v":"first"}`))
+	s.Require().NoError(err)
+
+	s.advance(time.Hour)
+	entry, err := s.store.Save(42, []byte(`{"v":"second"}`))
+	s.Require().NoError(err)
+	s.FileExists(entry.Path)
+
+	entries, err := s.store.List(42)
+	s.Require().NoError(err)
+	s.Len(entries, 2, "stale entry should remain since removal failed")
 }
 
 func (s *StoreSuite) TestLoadReturnsMostRecent() {

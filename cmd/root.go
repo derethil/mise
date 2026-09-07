@@ -31,18 +31,20 @@ var globalFlags = []cli.Flag{
 	},
 	&cli.BoolFlag{
 		Name:    string(GlobalFlagVerbose),
-		Usage:   "Enable verbose (debug) logging",
+		Usage:   "Enable verbose (debug) logging; repeat (-vv) for even more verbose output",
 		Aliases: []string{"v"},
 	},
 }
 
 var rootCmd = &cli.Command{
-	Name:    "mise",
-	Usage:   "mise is a CLI for managing Tandoor recipes",
-	Version: version,
-	Flags:   append(config.Flags(), globalFlags...),
+	Name:                   "mise",
+	Usage:                  "mise is a CLI for managing Tandoor recipes",
+	Version:                version,
+	Flags:                  append(config.Flags(), globalFlags...),
+	UseShortOptionHandling: true,
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
-		if err := logging.Init(cmd.Bool(string(GlobalFlagVerbose))); err != nil {
+		ctx, err := logging.Init(ctx, cmd.Count(string(GlobalFlagVerbose)))
+		if err != nil {
 			return ctx, err
 		}
 
@@ -60,6 +62,7 @@ var rootCmd = &cli.Command{
 	Commands: []*cli.Command{
 		recipeCmd,
 		modelsCmd,
+		genkitDevCmd,
 	},
 	EnableShellCompletion: true,
 }
