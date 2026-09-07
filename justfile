@@ -10,8 +10,30 @@ check:
     go test ./...
 
     echo "Verifying build..."
-    go build -o mise 
+    go build -o mise
     rm -f mise
+
+# Run tests with coverage. Prints per-func % coverage, or opens an HTML report with --html/-h.
+coverage *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    go test ./... -coverprofile=coverage.out
+
+    html=""
+    for arg in {{ args }}; do
+        case "$arg" in
+            --html|-h) html=1 ;;
+        esac
+    done
+
+    if [ -n "$html" ]; then
+        go tool cover -html=coverage.out
+    else
+        go tool cover -func=coverage.out
+    fi
+
+    rm -f coverage.out
 
 # Recompute flake.nix's vendorHash after go.mod/go.sum change.
 update-vendor-hash:
