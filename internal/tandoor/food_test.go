@@ -9,13 +9,13 @@ func (s *ClientSuite) TestFoodsSearch() {
 		},
 	}
 
-	foods, err := s.client.Foods.SearchFoods(s.T().Context(), "chicken")
+	foods, err := s.client.Foods.SearchFoods(s.T().Context(), "chicken", "simple", "true", "page_size", "200")
 
 	s.Require().NoError(err)
 	s.Equal([]Food{{ID: 1, Name: "Chicken Thigh", PluralName: "Chicken Thighs"}}, foods)
 	s.Equal(http.MethodGet, s.lastMethod)
 	s.Equal("/api/food/", s.lastPath)
-	s.Equal("simple=true&page_size=200&query=chicken", s.lastQuery)
+	s.Equal("page_size=200&query=chicken&simple=true", s.lastQuery)
 }
 
 func (s *ClientSuite) TestFoodsSearch_EscapesQuery() {

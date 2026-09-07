@@ -16,8 +16,7 @@ type ToolsSuite struct {
 
 	server   *httptest.Server
 	response map[string]any
-	client   *Client
-	tandoor  *tandoor.Client
+	registry Registry
 }
 
 func (s *ToolsSuite) SetupTest() {
@@ -28,8 +27,10 @@ func (s *ToolsSuite) SetupTest() {
 		_ = json.NewEncoder(w).Encode(s.response)
 	}))
 
-	s.tandoor = tandoor.NewClient(s.server.URL+"/api", "test-token")
-	s.client = &Client{g: genkit.Init(s.T().Context())}
+	s.registry = Registry{
+		Genkit: genkit.Init(s.T().Context()),
+		Deps:   Deps{Tandoor: tandoor.NewClient(s.server.URL+"/api", "test-token")},
+	}
 }
 
 func (s *ToolsSuite) TearDownTest() {
@@ -40,16 +41,16 @@ func TestToolsSuite(t *testing.T) {
 	suite.Run(t, new(ToolsSuite))
 }
 
-func (s *ToolsSuite) TestTandoorGetFoodTool() {
+func (s *ToolsSuite) TestTandoorSearchFoodTool() {
 	s.response = map[string]any{
 		"results": []map[string]any{
 			{"id": 1, "name": "Chicken Thigh", "plural_name": "Chicken Thighs"},
 		},
 	}
 
-	tool := s.client.TandoorGetFoodTool(s.tandoor)
+	tool := SearchFoodsTool(s.registry)
 
-	s.Equal("getFoods", tool.Name())
+	s.Equal("searchFoods", tool.Name())
 
 	output, err := tool.RunRaw(s.T().Context(), map[string]any{"search": "chicken"})
 	s.Require().NoError(err)
@@ -59,29 +60,29 @@ func (s *ToolsSuite) TestTandoorGetFoodTool() {
 	s.JSONEq(`[{"id": 1, "name": "Chicken Thigh", "plural_name": "Chicken Thighs"}]`, string(data))
 }
 
-func (s *ToolsSuite) TestTandoorGetFoodTool_Error() {
+func (s *ToolsSuite) TestTandoorSearchFoodTool_Error() {
 	s.server.Close()
 	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 	}))
-	s.tandoor = tandoor.NewClient(s.server.URL+"/api", "test-token")
+	s.registry.Tandoor = tandoor.NewClient(s.server.URL+"/api", "test-token")
 
-	tool := s.client.TandoorGetFoodTool(s.tandoor)
+	tool := SearchFoodsTool(s.registry)
 
 	_, err := tool.RunRaw(s.T().Context(), map[string]any{"search": "chicken"})
 	s.Error(err)
 }
 
-func (s *ToolsSuite) TestTandoorGetUnitTool() {
+func (s *ToolsSuite) TestTandoorSearchUnitTool() {
 	s.response = map[string]any{
 		"results": []map[string]any{
 			{"id": 1, "name": "cup", "plural_name": "cups"},
 		},
 	}
 
-	tool := s.client.TandoorGetUnitTool(s.tandoor)
+	tool := SearchUnitsTool(s.registry)
 
-	s.Equal("getUnits", tool.Name())
+	s.Equal("searchUnits", tool.Name())
 
 	output, err := tool.RunRaw(s.T().Context(), map[string]any{"search": "cup"})
 	s.Require().NoError(err)

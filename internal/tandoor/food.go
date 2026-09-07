@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 )
 
 type FoodService struct {
@@ -22,8 +21,9 @@ type foodSearchResponse struct {
 	Results []Food `json:"results"`
 }
 
-func (s *FoodService) SearchFoods(ctx context.Context, query string) ([]Food, error) {
-	endpoint := fmt.Sprintf("food/?simple=true&page_size=200&query=%s", url.QueryEscape(query))
+func (s *FoodService) SearchFoods(ctx context.Context, query string, kv ...string) ([]Food, error) {
+	params := constructParams(map[string]string{"query": query}, kv...)
+	endpoint := constructURL("food/", params)
 
 	body, err := s.client.Request(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {

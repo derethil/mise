@@ -9,7 +9,7 @@ func (s *ClientSuite) TestUnitsSearch() {
 		},
 	}
 
-	units, err := s.client.Units.SearchUnits(s.T().Context(), "cup")
+	units, err := s.client.Units.SearchUnits(s.T().Context(), "cup", "page_size", "200")
 
 	s.Require().NoError(err)
 	s.Equal([]Unit{{ID: 1, Name: "cup", PluralName: "cups"}}, units)

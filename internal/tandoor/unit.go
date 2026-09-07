@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 )
 
 type UnitService struct {
@@ -22,8 +21,9 @@ type unitSearchResponse struct {
 	Results []Unit `json:"results"`
 }
 
-func (s *UnitService) SearchUnits(ctx context.Context, query string) ([]Unit, error) {
-	endpoint := fmt.Sprintf("unit/?page_size=200&query=%s", url.QueryEscape(query))
+func (s *UnitService) SearchUnits(ctx context.Context, query string, kv ...string) ([]Unit, error) {
+	params := constructParams(map[string]string{"query": query}, kv...)
+	endpoint := constructURL("unit/", params)
 
 	body, err := s.client.Request(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
