@@ -2,13 +2,16 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/cleaningredients"
 	"github.com/derethil/mise/internal/backup"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/tandoor"
+	"github.com/firebase/genkit/go/core/status"
 	"github.com/urfave/cli/v3"
 )
 
@@ -85,23 +88,67 @@ var recipeCleanCmd = &cli.Command{
 	Arguments: []cli.Argument{
 		&cli.IntArg{Name: "recipe_id", Required: true},
 	},
-	Action: func(ctx context.Context, cmd *cli.Command) error {
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:  "dry-run",
+			Usage: "Log the proposed changes without writing them",
+		},
+	},
+	Action: func(ctx context.Context, cmd *cli.Command) (err error) {
+		id := cmd.IntArg("recipe_id")
+		defer func() {
+			if err != nil {
+				err = fmt.Errorf("recipe %d: %w", id, err)
+			}
+		}()
+
 		cfg := config.FromContext(ctx)
 
-		model, err := ai.ParseModel(resolveFlag(cmd, GlobalFlagModel, cfg.Models.Small))
+		tclient := tandoor.FromConfig(cfg)
+		recipe, err := tclient.Recipes.Get(ctx, id)
 		if err != nil {
 			return err
 		}
 
-		_, err = ai.New(ctx, cfg.Providers, model)
+		feature, model, err := aiFeature[*cleaningredients.Feature](ctx, cmd, ai.Deps{Tandoor: tclient})
 		if err != nil {
 			return err
 		}
 
-		recipeID := cmd.IntArg("recipe_id")
-		slog.InfoContext(ctx, fmt.Sprintf("Cleaning ingredients for recipe %d using model %s", recipeID, model),
-			slog.Int("recipe_id", recipeID), slog.String("model", model.String()))
+		cleaned, err := feature.CleanRecipe(ctx, recipe)
+		if errors.Is(err, status.ErrNotFound) {
+			return errWithUserMessage(err, "Unable to load model %s. Please ensure it is available for use by your provider.", model)
+		}
+		if err != nil {
+			return err
+		}
 
+		updated, err := cleaned.Apply(ctx, recipe.JSON())
+		if err != nil {
+			return err
+		}
+
+		if cmd.Bool("dry-run") {
+			fmt.Println("\nDry run: nothing was written.")
+			return nil
+		}
+
+		if err := backupAndUpdate(ctx, tclient, cfg.Tandoor.BackupDir, recipe.ID, recipe.JSON(), updated); err != nil {
+			return err
+		}
+
+		fmt.Printf("Updated recipe %d\n", recipe.ID)
 		return nil
 	},
+}
+
+func backupAndUpdate(ctx context.Context, client *tandoor.Client, dir string, id int, before, updated []byte) error {
+	entry, err := backup.NewStore(dir).Save(id, before)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("\nBacked up to %s\n", entry.Path)
+
+	return client.Recipes.Update(ctx, id, updated)
 }

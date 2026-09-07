@@ -9,7 +9,11 @@ import (
 
 	miseai "github.com/derethil/mise/internal/ai"
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/tandoor"
 	"github.com/urfave/cli/v3"
+
+	// Features register themselves on import, so nameless import all features for dev tools
+	_ "github.com/derethil/mise/internal/ai/cleaningredients"
 )
 
 // Initializes the AI client and idles, for use with genkit's dev tooling
@@ -31,7 +35,9 @@ var genkitDevCmd = &cli.Command{
 			return err
 		}
 
-		if _, err := miseai.NewGenkitClient(ctx, cfg.Providers, models[0], models[1:]...); err != nil {
+		tclient := tandoor.FromConfig(cfg)
+
+		if _, err := miseai.NewGenkitClient(ctx, cfg.Providers, miseai.Deps{Tandoor: tclient}, models...); err != nil {
 			return err
 		}
 
