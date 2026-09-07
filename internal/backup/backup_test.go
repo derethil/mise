@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -100,6 +101,25 @@ func (s *StoreSuite) TestSaveDeletesOldestBeyondKeep() {
 	s.FileExists(paths[2])
 	s.FileExists(paths[3])
 	s.FileExists(paths[4])
+}
+
+func (s *StoreSuite) TestSaveSucceedsWhenStaleCleanupFails() {
+	s.store.keep = 1
+	s.store.remove = func(path string) error {
+		return errors.New("boom")
+	}
+
+	_, err := s.store.Save(42, []byte(`{"v":"first"}`))
+	s.Require().NoError(err)
+
+	s.advance(time.Hour)
+	entry, err := s.store.Save(42, []byte(`{"v":"second"}`))
+	s.Require().NoError(err)
+	s.FileExists(entry.Path)
+
+	entries, err := s.store.List(42)
+	s.Require().NoError(err)
+	s.Len(entries, 2, "stale entry should remain since removal failed")
 }
 
 func (s *StoreSuite) TestLoadReturnsMostRecent() {

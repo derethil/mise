@@ -23,13 +23,14 @@ type Entry struct {
 }
 
 type Store struct {
-	dir  string
-	keep int
-	now  func() time.Time
+	dir    string
+	keep   int
+	now    func() time.Time
+	remove func(string) error
 }
 
 func NewStore(dir string, keep int) *Store {
-	return &Store{dir: dir, keep: keep, now: time.Now}
+	return &Store{dir: dir, keep: keep, now: time.Now, remove: os.Remove}
 }
 
 func (s *Store) Save(id int, data []byte) (Entry, error) {
@@ -46,7 +47,7 @@ func (s *Store) Save(id int, data []byte) (Entry, error) {
 
 	if s.keep > 0 {
 		if err := s.clearStaleEntries(id, s.keep); err != nil {
-			return Entry{}, err
+			slog.Warn(fmt.Sprintf("failed to clear stale backup entries for recipe %d: %v", id, err), slog.Int("recipe_id", id), slog.Any("error", err))
 		}
 	}
 
@@ -91,7 +92,7 @@ func (s *Store) clearStaleEntries(id int, keep int) error {
 	slog.Warn(fmt.Sprintf("deleting %d stale backup entries for recipe %d", len(delete), id), slog.Int("count", len(delete)), slog.Int("recipe_id", id))
 
 	for _, e := range delete {
-		err = os.Remove(e.Path)
+		err = s.remove(e.Path)
 		if err != nil {
 			return err
 		}
