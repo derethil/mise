@@ -140,9 +140,12 @@ func (c *Feature) cleanRowBatch(ctx context.Context, rows []string) ([]CleanedRo
 
 	for attempt := 1; attempt <= cleanBatchMaxAttempts; attempt++ {
 		batch, _, err = c.prompt.Execute(ctx, input, c.opts...)
-		if err != nil {
-			return nil, fmt.Errorf("cleanRowBatch: %w", err)
+		if err == nil {
+			break
 		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("cleanRowBatch: %w", err)
 	}
 
 	normalized, err := normalizeRows(batch, rows)
