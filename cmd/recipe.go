@@ -41,7 +41,7 @@ var recipeBackupCmd = &cli.Command{
 			return tandoorUserError(err)
 		}
 
-		entry, err := backup.NewStore(cfg.Tandoor.BackupDir).Save(id, recipe.JSON())
+		entry, err := backup.NewStore(cfg.Tandoor.BackupDir, cfg.Backup.Keep).Save(id, recipe.JSON())
 		if err != nil {
 			return errWithUserMessage(err, "Could not write a backup to %s. Check that the directory is writable.", cfg.Tandoor.BackupDir)
 		}
@@ -72,7 +72,7 @@ var recipeRestoreCmd = &cli.Command{
 
 		cfg := config.FromContext(ctx)
 
-		data, err := backup.NewStore(cfg.Tandoor.BackupDir).Load(id, n)
+		data, err := backup.NewStore(cfg.Tandoor.BackupDir, cfg.Backup.Keep).Load(id, n)
 		if err != nil {
 			return errWithUserMessage(err, "Could not load backup for recipe %d. Check that the backup directory is correct and contains backups for this recipe.", id)
 		}
@@ -149,7 +149,7 @@ var recipeCleanCmd = &cli.Command{
 			return nil
 		}
 
-		if err := backupAndUpdate(ctx, tclient, cfg.Tandoor.BackupDir, recipe.ID, recipe.JSON(), updated); err != nil {
+		if err := backupAndUpdate(ctx, tclient, cfg.Tandoor.BackupDir, cfg.Backup.Keep, recipe.ID, recipe.JSON(), updated); err != nil {
 			return err
 		}
 
@@ -157,8 +157,8 @@ var recipeCleanCmd = &cli.Command{
 	},
 }
 
-func backupAndUpdate(ctx context.Context, client *tandoor.Client, dir string, id int, before, updated []byte) error {
-	entry, err := backup.NewStore(dir).Save(id, before)
+func backupAndUpdate(ctx context.Context, client *tandoor.Client, dir string, keep int, id int, before, updated []byte) error {
+	entry, err := backup.NewStore(dir, keep).Save(id, before)
 	if err != nil {
 		return errWithUserMessage(err, "Could not write a backup to %s. Check that the directory is writable.", dir)
 	}

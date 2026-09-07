@@ -23,12 +23,13 @@ type Entry struct {
 }
 
 type Store struct {
-	dir string
-	now func() time.Time
+	dir  string
+	keep int
+	now  func() time.Time
 }
 
-func NewStore(dir string) *Store {
-	return &Store{dir: dir, now: time.Now}
+func NewStore(dir string, keep int) *Store {
+	return &Store{dir: dir, keep: keep, now: time.Now}
 }
 
 func (s *Store) Save(id int, data []byte) (Entry, error) {
@@ -43,9 +44,10 @@ func (s *Store) Save(id int, data []byte) (Entry, error) {
 		return Entry{}, err
 	}
 
-	err := s.clearStaleEntries(id, 5)
-	if err != nil {
-		return Entry{}, err
+	if s.keep > 0 {
+		if err := s.clearStaleEntries(id, s.keep); err != nil {
+			return Entry{}, err
+		}
 	}
 
 	return Entry{Path: path, Time: at}, nil
