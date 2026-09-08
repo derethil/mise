@@ -43,6 +43,12 @@
           {
             languages.go.enable = true;
 
+            git-hooks.hooks = {
+              gofmt.enable = true;
+              govet.enable = true;
+              gotest.enable = true;
+            };
+
             outputs = {
               mise = pkg;
             };
