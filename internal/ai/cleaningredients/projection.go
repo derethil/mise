@@ -13,7 +13,7 @@ type projectedRecipe struct {
 }
 
 func projectRecipe(raw []byte) projectedRecipe {
-	var projected projectedRecipe
+	projected := projectedRecipe{Ingredients: []string{}}
 
 	gjson.GetBytes(raw, "steps").ForEach(func(_, step gjson.Result) bool {
 		step.Get("ingredients").ForEach(func(_, ingredient gjson.Result) bool {

@@ -62,4 +62,12 @@ func (s *ProjectionSuite) TestProjectRecipe_NoSteps() {
 	projected := projectRecipe([]byte(`{"steps": []}`))
 
 	s.Empty(projected.Ingredients)
+	s.NotNil(projected.Ingredients, "must serialize as [] rather than null for genkit's schema validation")
+}
+
+func (s *ProjectionSuite) TestProjectRecipe_MissingStepsField() {
+	projected := projectRecipe([]byte(`{}`))
+
+	s.Empty(projected.Ingredients)
+	s.NotNil(projected.Ingredients, "must serialize as [] rather than null for genkit's schema validation")
 }

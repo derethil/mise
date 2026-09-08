@@ -157,6 +157,10 @@ func cleanRecipe(ctx context.Context, tclient *tandoor.Client, feature *cleaning
 		return nil
 	}
 
+	if len(changes) == 0 {
+		return nil
+	}
+
 	return saveRecipe(ctx, tclient, store, cfg.Tandoor.BackupDir, recipe, updated)
 }
 
@@ -195,12 +199,16 @@ func runCleaning(ctx context.Context, feature *cleaningredients.Feature, model a
 }
 
 func printChanges(ctx context.Context, changes []cleaningredients.Change) {
+	slog.DebugContext(ctx, "clean recipe finished with changes", slog.Any("changes", changes))
+
+	if len(changes) == 0 {
+		return
+	}
+
 	fmt.Println("\nChanges:")
 	for _, change := range changes {
 		fmt.Println(change)
 	}
-
-	slog.DebugContext(ctx, "clean recipe finished with changes", slog.Any("changes", changes))
 }
 
 func saveRecipe(ctx context.Context, tclient *tandoor.Client, store *backup.Store, backupDir string, recipe *tandoor.Recipe, updated []byte) error {

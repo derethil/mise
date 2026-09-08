@@ -109,12 +109,22 @@ func (c *Feature) Register(r miseai.Registry) error {
 }
 
 func (c *Feature) CleanRecipe(ctx context.Context, recipe *tandoor.Recipe, onProgress ProgressFunc) (*CleanedRecipe, error) {
-	return c.flow.Run(withProgress(ctx, onProgress), projectRecipe(recipe.JSON()))
+	projected := projectRecipe(recipe.JSON())
+	if len(projected.Ingredients) == 0 {
+		slog.WarnContext(ctx,
+			fmt.Sprintf("recipe %d has no ingredients to clean", recipe.ID),
+			slog.Int("recipe_id", recipe.ID),
+			slog.String("recipe_name", recipe.Name),
+		)
+		return &CleanedRecipe{Ingredients: []CleanedRow{}}, nil
+	}
+
+	return c.flow.Run(withProgress(ctx, onProgress), projected)
 }
 
 func (c *Feature) cleanRecipe(ctx context.Context, projected projectedRecipe) (*CleanedRecipe, error) {
 	if len(projected.Ingredients) == 0 {
-		return &CleanedRecipe{}, nil
+		return &CleanedRecipe{Ingredients: []CleanedRow{}}, nil
 	}
 
 	cleaned := &CleanedRecipe{Ingredients: make([]CleanedRow, 0, len(projected.Ingredients))}
