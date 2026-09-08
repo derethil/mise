@@ -1,4 +1,4 @@
-package cmd
+package cliutil
 
 import (
 	"bufio"
@@ -11,11 +11,11 @@ import (
 	"golang.org/x/term"
 )
 
-var errNotInteractive = errors.New("cannot ask for confirmation: stdin is not a terminal")
+var ErrNotInteractive = errors.New("cannot ask for confirmation: stdin is not a terminal")
 
-func confirm(question string) (bool, error) {
+func Confirm(question string) (bool, error) {
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
-		return false, errNotInteractive
+		return false, ErrNotInteractive
 	}
 
 	fmt.Printf("%s [y/N] ", question)
@@ -23,7 +23,7 @@ func confirm(question string) (bool, error) {
 	line, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if errors.Is(err, io.EOF) {
 		fmt.Println()
-		return false, errNotInteractive
+		return false, ErrNotInteractive
 	}
 	if err != nil {
 		return false, err
@@ -33,23 +33,23 @@ func confirm(question string) (bool, error) {
 	return answer == "y" || answer == "yes", nil
 }
 
-func autoConfirm(string) (bool, error) {
+func AutoConfirm(string) (bool, error) {
 	return true, nil
 }
 
-type progress struct {
+type Progress struct {
 	Label     string
 	Status    string
 	Total     int64
 	Completed int64
 }
 
-type progressFunc func(progress) error
+type ProgressFunc func(Progress) error
 
-func printProgress() progressFunc {
+func PrintProgress() ProgressFunc {
 	lastStatus := ""
 
-	return func(p progress) error {
+	return func(p Progress) error {
 		if lastStatus != "" && p.Status != lastStatus {
 			fmt.Println()
 		}

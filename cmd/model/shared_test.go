@@ -1,22 +1,23 @@
-package cmd
+package model
 
 import (
 	"context"
 	"testing"
 
 	"github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
 	"github.com/stretchr/testify/suite"
 	"github.com/urfave/cli/v3"
 )
 
-type ModelsSuite struct {
+type SharedSuite struct {
 	suite.Suite
 
 	cfg config.Config
 }
 
-func (s *ModelsSuite) SetupTest() {
+func (s *SharedSuite) SetupTest() {
 	s.cfg = config.Config{
 		Models: config.ModelsConfig{
 			Small: "ollama/qwen2.5:7b",
@@ -25,19 +26,21 @@ func (s *ModelsSuite) SetupTest() {
 	}
 }
 
-func TestModelsSuite(t *testing.T) {
-	suite.Run(t, new(ModelsSuite))
+func TestSharedSuite(t *testing.T) {
+	suite.Run(t, new(SharedSuite))
 }
 
-func (s *ModelsSuite) selectedModels(args ...string) []labeledModel {
+func (s *SharedSuite) selectedModels(args ...string) []labeledModel {
 	var (
 		models []labeledModel
 		err    error
 	)
 
 	cmd := &cli.Command{
-		Name:  "mise",
-		Flags: globalFlags,
+		Name: "mise",
+		Flags: []cli.Flag{
+			&cli.StringFlag{Name: string(cliutil.GlobalFlagModel)},
+		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			models, err = selectedModels(cmd, s.cfg)
 			return err
@@ -51,7 +54,7 @@ func (s *ModelsSuite) selectedModels(args ...string) []labeledModel {
 	return models
 }
 
-func (s *ModelsSuite) TestReturnsConfiguredSmallAndLargeModels() {
+func (s *SharedSuite) TestReturnsConfiguredSmallAndLargeModels() {
 	models := s.selectedModels()
 
 	s.Require().Len(models, 2)
@@ -59,20 +62,22 @@ func (s *ModelsSuite) TestReturnsConfiguredSmallAndLargeModels() {
 	s.Equal(labeledModel{label: "large", ref: ai.ModelRef{Provider: "ollama", Name: "qwen2.5", Tag: "14b"}}, models[1])
 }
 
-func (s *ModelsSuite) TestModelFlagOverridesConfig() {
+func (s *SharedSuite) TestModelFlagOverridesConfig() {
 	models := s.selectedModels("--model", "ollama/llama3:8b")
 
 	s.Require().Len(models, 1)
 	s.Equal(labeledModel{label: "override", ref: ai.ModelRef{Provider: "ollama", Name: "llama3", Tag: "8b"}}, models[0])
 }
 
-func (s *ModelsSuite) TestInvalidConfiguredModel() {
+func (s *SharedSuite) TestInvalidConfiguredModel() {
 	s.cfg.Models.Small = "not-a-valid-model"
 
 	var err error
 	cmd := &cli.Command{
-		Name:  "mise",
-		Flags: globalFlags,
+		Name: "mise",
+		Flags: []cli.Flag{
+			&cli.StringFlag{Name: string(cliutil.GlobalFlagModel)},
+		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			_, err = selectedModels(cmd, s.cfg)
 			return nil
@@ -83,7 +88,7 @@ func (s *ModelsSuite) TestInvalidConfiguredModel() {
 	s.Error(err)
 }
 
-func (s *ModelsSuite) TestModelRefs() {
+func (s *SharedSuite) TestModelRefs() {
 	refs := modelRefs([]labeledModel{
 		{label: "small", ref: ai.ModelRef{Provider: "ollama", Name: "qwen2.5"}},
 		{label: "large", ref: ai.ModelRef{Provider: "ollama", Name: "llama3"}},

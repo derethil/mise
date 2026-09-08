@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	miseai "github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/tandoor"
 	"github.com/urfave/cli/v3"
@@ -50,7 +51,7 @@ var genkitDevCmd = &cli.Command{
 
 func genkitDevModels(cfg config.Config, cmd *cli.Command) ([]miseai.ModelRef, error) {
 	names := []string{cfg.Models.Small, cfg.Models.Large}
-	if override := cmd.String(string(GlobalFlagModel)); override != "" {
+	if override := cmd.String(string(cliutil.GlobalFlagModel)); override != "" {
 		names = append(names, override)
 	}
 
