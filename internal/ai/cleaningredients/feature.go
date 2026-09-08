@@ -4,6 +4,7 @@ package cleaningredients
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	miseai "github.com/derethil/mise/internal/ai"
@@ -108,12 +109,7 @@ func (c *Feature) Register(r miseai.Registry) error {
 }
 
 func (c *Feature) CleanRecipe(ctx context.Context, recipe *tandoor.Recipe, onProgress ProgressFunc) (*CleanedRecipe, error) {
-	cleaned, err := c.flow.Run(withProgress(ctx, onProgress), projectRecipe(recipe.JSON()))
-	if err != nil {
-		return nil, fmt.Errorf("recipe %d: %w", recipe.ID, err)
-	}
-
-	return cleaned, nil
+	return c.flow.Run(withProgress(ctx, onProgress), projectRecipe(recipe.JSON()))
 }
 
 func (c *Feature) cleanRecipe(ctx context.Context, projected projectedRecipe) (*CleanedRecipe, error) {
@@ -161,6 +157,7 @@ func (c *Feature) cleanRowBatch(ctx context.Context, rows []string) ([]CleanedRo
 
 	normalized, err := normalizeRows(batch, rows)
 	if err != nil {
+		slog.DebugContext(ctx, fmt.Sprintf("model returned a malformed response for input rows: %q", rows), slog.Any("error", err))
 		return nil, err
 	}
 
