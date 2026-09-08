@@ -50,7 +50,7 @@ var cleanCmd = &cli.Command{
 		if cmd.Bool("all") && cmd.Bool("failed") {
 			return cliutil.ErrWithUserMessage(cliutil.ErrIncorrectUsage, "Pass either --all or --failed, not both.")
 		}
-		if cmd.NArg() == 0 && !cmd.Bool("all") && !cmd.Bool("failed") {
+		if cmd.IntArg("id") == 0 && !cmd.Bool("all") && !cmd.Bool("failed") {
 			return cliutil.ErrWithUserMessage(cliutil.ErrIncorrectUsage, "Provide a recipe id, or pass --all or --failed.")
 		}
 
@@ -86,18 +86,16 @@ var cleanCmd = &cli.Command{
 
 func cleanAll(ctx context.Context, tclient *tandoor.Client, feature *cleaningredients.Feature, model ai.ModelRef, cfg config.Config, ids []int, dryRun, ignoreCleaned bool) error {
 	var failed []int
-	defer func() {
-		if saveErr := saveFailedIDs(failedIDsPath, failed); saveErr != nil {
-			slog.WarnContext(ctx, "Could not write failed-recipe-ids file", slog.String("path", failedIDsPath), slog.Any("error", saveErr))
-		}
-	}()
-
 	var errs []error
 	for _, id := range ids {
 		if err := cleanRecipe(ctx, tclient, feature, model, cfg, id, dryRun, ignoreCleaned); err != nil {
 			slog.ErrorContext(ctx, err.Error(), slog.Int("recipe_id", id))
 			errs = append(errs, err)
 			failed = append(failed, id)
+
+			if saveErr := saveFailedIDs(failedIDsPath, failed); saveErr != nil {
+				slog.WarnContext(ctx, "Could not write failed-recipe-ids file", slog.String("path", failedIDsPath), slog.Any("error", saveErr))
+			}
 		}
 	}
 
