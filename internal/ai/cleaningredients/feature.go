@@ -18,8 +18,8 @@ func init() {
 }
 
 const (
-	cleanBatchMaxAttempts = 2
-	ingredientBatchSize   = 2
+	cleanBatchMaxAttempts      = 2
+	defaultIngredientBatchSize = 2
 )
 
 var cleanIngredientsConfig = miseai.GenerateConfig{
@@ -44,9 +44,19 @@ type CleanedRowBatch struct {
 }
 
 type Feature struct {
+	BatchSize int
+
 	opts   []ai.PromptExecuteOption
 	prompt *ai.DataPrompt[CleanIngredientBatchInput, *CleanedRowBatch]
 	flow   *core.Flow[projectedRecipe, *CleanedRecipe, struct{}]
+}
+
+func (c *Feature) batchSize() int {
+	if c.BatchSize > 0 {
+		return c.BatchSize
+	}
+
+	return defaultIngredientBatchSize
 }
 
 type Progress struct {
@@ -90,7 +100,6 @@ func (c *Feature) Register(r miseai.Registry) error {
 			miseai.SearchFoodsTool(r),
 			miseai.SearchUnitsTool(r),
 		),
-		ai.WithMaxTurns(2*ingredientBatchSize+2),
 	)
 
 	c.flow = genkit.DefineFlow(r.Genkit, "cleanRecipeIngredients", c.cleanRecipe)
@@ -114,8 +123,9 @@ func (c *Feature) cleanRecipe(ctx context.Context, projected projectedRecipe) (*
 
 	cleaned := &CleanedRecipe{Ingredients: make([]CleanedRow, 0, len(projected.Ingredients))}
 
-	for start := 0; start < len(projected.Ingredients); start += ingredientBatchSize {
-		end := min(start+ingredientBatchSize, len(projected.Ingredients))
+	batchSize := c.batchSize()
+	for start := 0; start < len(projected.Ingredients); start += batchSize {
+		end := min(start+batchSize, len(projected.Ingredients))
 
 		fixes, err := c.cleanRowBatch(ctx, projected.Ingredients[start:end])
 		if err != nil {
@@ -134,12 +144,13 @@ func (c *Feature) cleanRecipe(ctx context.Context, projected projectedRecipe) (*
 
 func (c *Feature) cleanRowBatch(ctx context.Context, rows []string) ([]CleanedRow, error) {
 	input := CleanIngredientBatchInput{Rows: rows}
+	opts := append(c.opts, ai.WithMaxTurns(2*len(rows)+2))
 
 	var batch *CleanedRowBatch
 	var err error
 
 	for attempt := 1; attempt <= cleanBatchMaxAttempts; attempt++ {
-		batch, _, err = c.prompt.Execute(ctx, input, c.opts...)
+		batch, _, err = c.prompt.Execute(ctx, input, opts...)
 		if err == nil {
 			break
 		}

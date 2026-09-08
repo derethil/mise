@@ -40,6 +40,11 @@ var cleanCmd = &cli.Command{
 			Name:  "failed",
 			Usage: "Re-run only the recipes that failed during the previous --all or --failed run",
 		},
+		&cli.IntFlag{
+			Name:  "batch-size",
+			Usage: "How many ingredient rows to send to the model per call",
+			Value: 2,
+		},
 	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		if cmd.Bool("all") && cmd.Bool("failed") {
@@ -56,6 +61,7 @@ var cleanCmd = &cli.Command{
 		if err != nil {
 			return cliutil.AIUserError(err, model.String())
 		}
+		feature.BatchSize = cmd.Int("batch-size")
 
 		dryRun := cmd.Bool("dry-run")
 		ignoreCleaned := cmd.Bool("ignore-cleaned")
