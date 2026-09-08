@@ -4,6 +4,7 @@ package tandoor
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -103,6 +104,35 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 	}
 
 	return respBody, nil
+}
+
+type paginatedResponse[T any] struct {
+	Results []T     `json:"results"`
+	Next    *string `json:"next"`
+}
+
+func RequestAllPages[T any](ctx context.Context, c *Client, endpoint string) ([]T, error) {
+	var all []T
+
+	for endpoint != "" {
+		body, err := c.Request(ctx, http.MethodGet, endpoint, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		var page paginatedResponse[T]
+		if err := json.Unmarshal(body, &page); err != nil {
+			return nil, fmt.Errorf("invalid paginated response from %s: %w", endpoint, err)
+		}
+		all = append(all, page.Results...)
+
+		endpoint = ""
+		if page.Next != nil {
+			endpoint = strings.TrimPrefix(*page.Next, c.baseURL+"/")
+		}
+	}
+
+	return all, nil
 }
 
 func constructURL(endpoint string, params map[string]string) string {

@@ -8,6 +8,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/derethil/mise/cmd/model"
+	"github.com/derethil/mise/cmd/recipe"
+	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/logging"
 	"github.com/urfave/cli/v3"
@@ -16,21 +19,14 @@ import (
 // version is set via -ldflags at release build time (see .goreleaser.yaml).
 var version = "dev"
 
-type GlobalFlag string
-
-const (
-	GlobalFlagModel   GlobalFlag = "model"
-	GlobalFlagVerbose GlobalFlag = "verbose"
-)
-
 var globalFlags = []cli.Flag{
 	&cli.StringFlag{
-		Name:    string(GlobalFlagModel),
+		Name:    string(cliutil.GlobalFlagModel),
 		Usage:   "Override the AI model to use for this command",
 		Aliases: []string{"m"},
 	},
 	&cli.BoolFlag{
-		Name:    string(GlobalFlagVerbose),
+		Name:    string(cliutil.GlobalFlagVerbose),
 		Usage:   "Enable verbose (debug) logging; repeat (-vv) for even more verbose output",
 		Aliases: []string{"v"},
 	},
@@ -43,7 +39,7 @@ var rootCmd = &cli.Command{
 	Flags:                  append(config.Flags(), globalFlags...),
 	UseShortOptionHandling: true,
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
-		ctx, err := logging.Init(ctx, cmd.Count(string(GlobalFlagVerbose)))
+		ctx, err := logging.Init(ctx, cmd.Count(string(cliutil.GlobalFlagVerbose)))
 		if err != nil {
 			return ctx, err
 		}
@@ -60,8 +56,8 @@ var rootCmd = &cli.Command{
 		return config.NewContext(ctx, cfg), nil
 	},
 	Commands: []*cli.Command{
-		recipeCmd,
-		modelsCmd,
+		recipe.Command,
+		model.Command,
 		genkitDevCmd,
 	},
 	EnableShellCompletion: true,
@@ -73,7 +69,7 @@ func Execute() {
 
 	if err := rootCmd.Run(ctx, os.Args); err != nil {
 		slog.ErrorContext(ctx, err.Error())
-		fmt.Fprintln(os.Stderr, "Error:", userMessage(err))
+		fmt.Fprintln(os.Stderr, "Error:", cliutil.UserMessage(err))
 		os.Exit(1)
 	}
 
@@ -98,12 +94,4 @@ func commandPath(cmd *cli.Command, args []string) string {
 	}
 
 	return strings.Join(parts, " ")
-}
-
-func resolveFlag(cmd *cli.Command, flag GlobalFlag, fallback string) string {
-	if v := cmd.String(string(flag)); v != "" {
-		return v
-	}
-
-	return fallback
 }
