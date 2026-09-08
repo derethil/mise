@@ -68,7 +68,11 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	slog.DebugContext(ctx, "sending tandoor request", slog.String("method", method), slog.String("endpoint", endpoint))
+	slog.DebugContext(ctx, "sending tandoor request",
+		slog.String("method", method),
+		slog.String("endpoint", endpoint),
+		slog.String("request_body", string(payload)),
+	)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -83,7 +87,11 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 		return nil, err
 	}
 
-	slog.DebugContext(ctx, "received tandoor response", slog.String("endpoint", endpoint), slog.Int("status", resp.StatusCode))
+	slog.DebugContext(ctx, "received tandoor response",
+		slog.String("endpoint", endpoint),
+		slog.Int("status", resp.StatusCode),
+		slog.String("response_body", string(respBody)),
+	)
 
 	if resp.StatusCode >= 400 {
 		err := fmt.Errorf("request to %s failed: %s", endpoint, resp.Status)
