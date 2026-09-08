@@ -12,12 +12,14 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var LogPath = filepath.Join(config.StateDir, "mise.log")
+var LogPath string
 
 func Init(ctx context.Context, verbosity int) (context.Context, error) {
 	if err := os.MkdirAll(config.StateDir, 0o755); err != nil {
 		return ctx, err
 	}
+
+	LogPath = filepath.Join(config.StateDir, "mise.log")
 
 	fileWriter := &lumberjack.Logger{
 		Filename:   LogPath,
