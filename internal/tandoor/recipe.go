@@ -38,6 +38,25 @@ func (s *RecipeService) Get(ctx context.Context, id int) (*Recipe, error) {
 	return parseRecipe(body)
 }
 
+func (s *RecipeService) GetAllRecipeIDs(ctx context.Context) ([]int, error) {
+	type recipeStub struct {
+		ID int `json:"id"`
+	}
+
+	endpoint := constructURL("recipe/", map[string]string{"page_size": "100"})
+	stubs, err := RequestAllPages[recipeStub](ctx, s.client, endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]int, len(stubs))
+	for i, stub := range stubs {
+		ids[i] = stub.ID
+	}
+
+	return ids, nil
+}
+
 func (s *RecipeService) Update(ctx context.Context, id int, raw []byte) error {
 	recipe, err := parseRecipe(raw)
 	if err != nil {

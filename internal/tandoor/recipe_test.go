@@ -1,7 +1,9 @@
 package tandoor
 
 import (
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,6 +57,53 @@ func (s *ClientSuite) TestRecipesGet_InvalidPayload() {
 	s.response = map[string]any{"name": "Tacos"}
 
 	_, err := s.client.Recipes.Get(s.T().Context(), 42)
+
+	s.Error(err)
+}
+
+func (s *ClientSuite) TestRecipesGetAllRecipeIDs() {
+	s.server.Close()
+	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.lastPath = r.URL.Path
+		s.lastQuery = r.URL.RawQuery
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"results":[{"id":1},{"id":2},{"id":3}],"next":null}`))
+	}))
+	s.client = NewClient(s.server.URL+"/api", "test-token")
+
+	ids, err := s.client.Recipes.GetAllRecipeIDs(s.T().Context())
+
+	s.Require().NoError(err)
+	s.Equal([]int{1, 2, 3}, ids)
+	s.Equal("/api/recipe/", s.lastPath)
+	s.Equal("page_size=100", s.lastQuery)
+}
+
+func (s *ClientSuite) TestRecipesGetAllRecipeIDs_MultiplePages() {
+	s.server.Close()
+
+	var page2URL string
+	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("page") == "2" {
+			_, _ = w.Write([]byte(`{"results":[{"id":3}],"next":null}`))
+			return
+		}
+		_, _ = fmt.Fprintf(w, `{"results":[{"id":1},{"id":2}],"next":%q}`, page2URL)
+	}))
+	page2URL = s.server.URL + "/api/recipe/?page_size=100&page=2"
+	s.client = NewClient(s.server.URL+"/api", "test-token")
+
+	ids, err := s.client.Recipes.GetAllRecipeIDs(s.T().Context())
+
+	s.Require().NoError(err)
+	s.Equal([]int{1, 2, 3}, ids)
+}
+
+func (s *ClientSuite) TestRecipesGetAllRecipeIDs_HTTPError() {
+	s.status = http.StatusForbidden
+
+	_, err := s.client.Recipes.GetAllRecipeIDs(s.T().Context())
 
 	s.Error(err)
 }

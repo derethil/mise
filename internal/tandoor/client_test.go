@@ -3,6 +3,7 @@ package tandoor
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -93,6 +94,66 @@ func (s *ClientSuite) TestRequestHonoursCallerCancellation() {
 
 func TestClientSuite(t *testing.T) {
 	suite.Run(t, new(ClientSuite))
+}
+
+type paginatedItem struct {
+	N int `json:"n"`
+}
+
+func (s *ClientSuite) TestRequestAllPagesFollowsNextLink() {
+	s.server.Close()
+
+	var page2URL string
+	requests := 0
+
+	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "application/json")
+
+		if r.URL.Query().Get("page") == "2" {
+			_, _ = w.Write([]byte(`{"results":[{"n":3}],"next":null}`))
+			return
+		}
+		_, _ = fmt.Fprintf(w, `{"results":[{"n":1},{"n":2}],"next":%q}`, page2URL)
+	}))
+	page2URL = s.server.URL + "/api/items/?page=2"
+	s.client = NewClient(s.server.URL+"/api", "test-token")
+
+	items, err := RequestAllPages[paginatedItem](s.T().Context(), s.client, "items/")
+
+	s.Require().NoError(err)
+	s.Equal([]paginatedItem{{N: 1}, {N: 2}, {N: 3}}, items)
+	s.Equal(2, requests)
+}
+
+func (s *ClientSuite) TestRequestAllPagesStopsWhenNextIsNil() {
+	s.response = map[string]any{"results": []map[string]any{{"n": 1}}, "next": nil}
+
+	items, err := RequestAllPages[paginatedItem](s.T().Context(), s.client, "items/")
+
+	s.Require().NoError(err)
+	s.Equal([]paginatedItem{{N: 1}}, items)
+}
+
+func (s *ClientSuite) TestRequestAllPages_HTTPError() {
+	s.status = http.StatusForbidden
+
+	_, err := RequestAllPages[paginatedItem](s.T().Context(), s.client, "items/")
+
+	s.Error(err)
+}
+
+func (s *ClientSuite) TestRequestAllPages_InvalidJSON() {
+	s.server.Close()
+	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`not json`))
+	}))
+	s.client = NewClient(s.server.URL+"/api", "test-token")
+
+	_, err := RequestAllPages[paginatedItem](s.T().Context(), s.client, "items/")
+
+	s.Error(err)
 }
 
 func (s *ClientSuite) TestRequestRejectsNonJSONResponse() {
