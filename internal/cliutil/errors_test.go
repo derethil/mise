@@ -1,6 +1,7 @@
 package cliutil
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -56,4 +57,14 @@ func (s *ErrorsSuite) TestUserMessage_UnwrapsToOriginalError() {
 
 	s.True(errors.Is(err, tandoor.ErrTandoorNotFound))
 	s.Equal("friendly message", UserMessage(err))
+}
+
+func (s *ErrorsSuite) TestUserMessage_ContextCanceled() {
+	s.Equal("Cancelled.", UserMessage(context.Canceled))
+}
+
+func (s *ErrorsSuite) TestUserMessage_WrappedContextCanceled() {
+	err := fmt.Errorf("recipe 42: %w", context.Canceled)
+
+	s.Equal("Cancelled.", UserMessage(err))
 }

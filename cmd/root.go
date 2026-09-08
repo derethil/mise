@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/derethil/mise/cmd/model"
 	"github.com/derethil/mise/cmd/recipe"
@@ -65,11 +67,21 @@ var rootCmd = &cli.Command{
 
 func Execute() {
 	args := os.Args[1:]
-	ctx := logging.NewInvocation(context.Background(), commandPath(rootCmd, args), args)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	ctx = logging.NewInvocation(ctx, commandPath(rootCmd, args), args)
 
 	if err := rootCmd.Run(ctx, os.Args); err != nil {
 		slog.ErrorContext(ctx, err.Error())
-		fmt.Fprintln(os.Stderr, "Error:", cliutil.UserMessage(err))
+
+		message := cliutil.UserMessage(err)
+		if ctx.Err() != nil {
+			message = "Cancelled."
+		}
+
+		fmt.Fprintln(os.Stderr, "Error:", message)
 		os.Exit(1)
 	}
 

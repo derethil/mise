@@ -4,6 +4,7 @@
 package cliutil
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -21,6 +22,10 @@ type userError interface {
 }
 
 func UserMessage(err error) string {
+	if errors.Is(err, context.Canceled) {
+		return "Cancelled."
+	}
+
 	if ue, ok := errors.AsType[userError](err); ok {
 		return ue.UserMessage()
 	}
