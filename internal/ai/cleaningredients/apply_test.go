@@ -21,9 +21,9 @@ func (s *ApplySuite) recipe() []byte {
 		"id": 1,
 		"steps": [
 			{"ingredients": [
-				{"original_text": "2 cups chopped onion", "order": 0},
-				{"original_text": "some junk row", "order": 1},
-				{"original_text": "For the sauce", "order": 2}
+				{"amount": 2, "unit": {"name": "cups"}, "food": {"name": "chopped onion"}, "order": 0},
+				{"food": {"name": "some junk row"}, "order": 1},
+				{"food": {"name": "For the sauce"}, "order": 2}
 			]}
 		]
 	}`)

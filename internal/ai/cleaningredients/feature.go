@@ -37,7 +37,7 @@ type CleanedRow struct {
 }
 
 type CleanIngredientBatchInput struct {
-	Rows []string `json:"rows" jsonschema_description:"Each element is one ingredient row's original_text, in original order."`
+	Rows []string `json:"rows" jsonschema_description:"Each element is one ingredient row's text, in original order."`
 }
 
 type CleanedRowBatch struct {

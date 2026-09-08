@@ -28,10 +28,6 @@ func projectRecipe(raw []byte) projectedRecipe {
 }
 
 func projectIngredient(ingredient gjson.Result) string {
-	if text := cleaned(ingredient.Get("original_text").String()); text != "" {
-		return text
-	}
-
 	parts := make([]string, 0, 4)
 	if amount := ingredient.Get("amount").Float(); amount != 0 {
 		parts = append(parts, strconv.FormatFloat(amount, 'g', -1, 64))
