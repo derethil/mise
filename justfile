@@ -94,8 +94,12 @@ release version:
 
     echo "Bumping version to {{ version }} in flake.nix..."
     sed -i 's/version = "[0-9][0-9.]*";/version = "{{ version }}";/' flake.nix
-    git add flake.nix
-    git commit -m "chore: bump version to {{ version }}"
+    if git diff --quiet -- flake.nix; then
+        echo "flake.nix is already at version {{ version }}, skipping commit."
+    else
+        git add flake.nix
+        git commit -m "chore: bump version to {{ version }}"
+    fi
 
     echo "Tagging $tag..."
     git tag -a "$tag" -m "Release $tag"
