@@ -54,7 +54,39 @@ func (s *CleanSuite) TestCleanCmd_RequiresIDOrAll() {
 	err := cleanCmd.Run(context.Background(), []string{"clean"})
 
 	s.Require().Error(err)
-	s.Equal("Provide a recipe id or pass --all.", cliutil.UserMessage(err))
+	s.Equal("Provide a recipe id, or pass --all or --failed.", cliutil.UserMessage(err))
+}
+
+func (s *CleanSuite) TestCleanCmd_RejectsAllAndFailedTogether() {
+	err := cleanCmd.Run(context.Background(), []string{"clean", "--all", "--failed"})
+
+	s.Require().Error(err)
+	s.Equal("Pass either --all or --failed, not both.", cliutil.UserMessage(err))
+}
+
+func (s *CleanSuite) TestFailedIDs_RoundTrip() {
+	path := filepath.Join(s.T().TempDir(), "failed.json")
+
+	ids, err := loadFailedIDs(path)
+	s.Require().NoError(err, "missing file should not be an error")
+	s.Empty(ids)
+
+	s.Require().NoError(saveFailedIDs(path, []int{3, 7, 9}))
+
+	ids, err = loadFailedIDs(path)
+	s.Require().NoError(err)
+	s.Equal([]int{3, 7, 9}, ids)
+}
+
+func (s *CleanSuite) TestFailedIDs_SaveEmptyClearsFile() {
+	path := filepath.Join(s.T().TempDir(), "failed.json")
+
+	s.Require().NoError(saveFailedIDs(path, []int{3, 7}))
+	s.Require().NoError(saveFailedIDs(path, nil))
+
+	ids, err := loadFailedIDs(path)
+	s.Require().NoError(err)
+	s.Empty(ids)
 }
 
 func (s *CleanSuite) TestAlreadyCleaned_NoBackups() {

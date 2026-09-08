@@ -28,19 +28,25 @@ var cleanCmd = &cli.Command{
 			Aliases: []string{"d"},
 		},
 		&cli.BoolFlag{
-			Name:    "all",
-			Usage:   "Run on all recipes in the Tandoor instance. Overrides id argument.",
-			Aliases: []string{"a"},
-		},
-		&cli.BoolFlag{
 			Name:    "ignore-cleaned",
 			Usage:   "Skip recipes that already have a backup, since that indicates they've already been cleaned",
 			Aliases: []string{"i"},
 		},
+		&cli.BoolFlag{
+			Name:  "all",
+			Usage: "Run on all recipes in the Tandoor instance. Overrides id argument.",
+		},
+		&cli.BoolFlag{
+			Name:  "failed",
+			Usage: "Re-run only the recipes that failed during the previous --all or --failed run",
+		},
 	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		if cmd.NArg() == 0 && !cmd.Bool("all") {
-			return cliutil.ErrWithUserMessage(cliutil.ErrIncorrectUsage, "Provide a recipe id or pass --all.")
+		if cmd.Bool("all") && cmd.Bool("failed") {
+			return cliutil.ErrWithUserMessage(cliutil.ErrIncorrectUsage, "Pass either --all or --failed, not both.")
+		}
+		if cmd.NArg() == 0 && !cmd.Bool("all") && !cmd.Bool("failed") {
+			return cliutil.ErrWithUserMessage(cliutil.ErrIncorrectUsage, "Provide a recipe id, or pass --all or --failed.")
 		}
 
 		cfg := config.FromContext(ctx)
@@ -54,25 +60,60 @@ var cleanCmd = &cli.Command{
 		dryRun := cmd.Bool("dry-run")
 		ignoreCleaned := cmd.Bool("ignore-cleaned")
 
-		if !cmd.Bool("all") {
+		if !cmd.Bool("all") && !cmd.Bool("failed") {
 			return cleanRecipe(ctx, tclient, feature, model, cfg, cmd.IntArg("id"), dryRun, ignoreCleaned)
 		}
 
-		ids, err := tclient.Recipes.GetAllRecipeIDs(ctx)
+		ids, err := recipeIDsToRun(ctx, cmd, tclient)
 		if err != nil {
-			return cliutil.TandoorUserError(err)
+			return err
 		}
 
-		var errs []error
-		for _, id := range ids {
-			if err := cleanRecipe(ctx, tclient, feature, model, cfg, id, dryRun, ignoreCleaned); err != nil {
-				slog.ErrorContext(ctx, err.Error(), slog.Int("recipe_id", id))
-				errs = append(errs, err)
-			}
+		if len(ids) == 0 {
+			slog.InfoContext(ctx, "No recipes to clean")
+			return nil
 		}
 
-		return errors.Join(errs...)
+		return cleanAll(ctx, tclient, feature, model, cfg, ids, dryRun, ignoreCleaned)
 	},
+}
+
+func cleanAll(ctx context.Context, tclient *tandoor.Client, feature *cleaningredients.Feature, model ai.ModelRef, cfg config.Config, ids []int, dryRun, ignoreCleaned bool) error {
+	var failed []int
+	defer func() {
+		if saveErr := saveFailedIDs(failedIDsPath, failed); saveErr != nil {
+			slog.WarnContext(ctx, "Could not write failed-recipe-ids file", slog.String("path", failedIDsPath), slog.Any("error", saveErr))
+		}
+	}()
+
+	var errs []error
+	for _, id := range ids {
+		if err := cleanRecipe(ctx, tclient, feature, model, cfg, id, dryRun, ignoreCleaned); err != nil {
+			slog.ErrorContext(ctx, err.Error(), slog.Int("recipe_id", id))
+			errs = append(errs, err)
+			failed = append(failed, id)
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+func recipeIDsToRun(ctx context.Context, cmd *cli.Command, tclient *tandoor.Client) ([]int, error) {
+	if cmd.Bool("failed") {
+		ids, err := loadFailedIDs(failedIDsPath)
+		if err != nil {
+			return nil, cliutil.ErrWithUserMessage(err, "Could not read the failed-recipe-ids file at %s.", failedIDsPath)
+		}
+
+		return ids, nil
+	}
+
+	ids, err := tclient.Recipes.GetAllRecipeIDs(ctx)
+	if err != nil {
+		return nil, cliutil.TandoorUserError(err)
+	}
+
+	return ids, nil
 }
 
 func cleanRecipe(ctx context.Context, tclient *tandoor.Client, feature *cleaningredients.Feature, model ai.ModelRef, cfg config.Config, id int, dryRun, ignoreCleaned bool) (err error) {
