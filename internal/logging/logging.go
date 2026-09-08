@@ -12,13 +12,15 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+var LogPath = filepath.Join(config.StateDir, "mise.log")
+
 func Init(ctx context.Context, verbosity int) (context.Context, error) {
 	if err := os.MkdirAll(config.StateDir, 0o755); err != nil {
 		return ctx, err
 	}
 
 	fileWriter := &lumberjack.Logger{
-		Filename:   filepath.Join(config.StateDir, "mise.log"),
+		Filename:   LogPath,
 		MaxSize:    10, // megabytes
 		MaxBackups: 5,
 		MaxAge:     30, // days

@@ -3,6 +3,11 @@
 A CLI that provides a suite of AI-assisted tools to help you manage your
 [Tandoor](https://tandoor.dev) recipes.
 
+## Features
+
+- Cleans up messy ingredient rows so amount, unit, and food land in the right
+  fields.
+
 ## Install
 
 ```sh
@@ -52,6 +57,8 @@ mise using env vars e.g. `MISE_TANDOOR_TOKEN`.
   but aren't, and splits amount/unit/food when they've landed in the wrong
   field.
 - `mise models` - list, pull, or clear the Ollama models mise uses.
+- `mise logs` - print the path to the mise log file, useful when a model or
+  command misbehaves.
 
 Global flags:
 

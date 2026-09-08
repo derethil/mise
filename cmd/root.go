@@ -61,6 +61,7 @@ var rootCmd = &cli.Command{
 		recipe.Command,
 		model.Command,
 		genkitDevCmd,
+		logsCmd,
 	},
 	EnableShellCompletion: true,
 }
