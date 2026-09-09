@@ -103,7 +103,7 @@ func (s *ConfigureSuite) TestLoadConfigFromFile_LoadsDefaultsWhenMissing() {
 func (s *ConfigureSuite) TestConfigureCmd_WrapsLoadErrorWhenPathIsDirectory() {
 	dir := s.T().TempDir()
 
-	err := configureCmd.Run(context.Background(), []string{"configure", "--path", dir})
+	err := runConfigureCmd(s.T(), "--config", dir)
 
 	s.Require().Error(err)
 	s.Equal("failed to load existing configuration", cliutil.UserMessage(err))
@@ -112,11 +112,26 @@ func (s *ConfigureSuite) TestConfigureCmd_WrapsLoadErrorWhenPathIsDirectory() {
 func (s *ConfigureSuite) TestConfigureCmd_DoesNotWriteConfigWithoutInteractiveInput() {
 	path := filepath.Join(s.T().TempDir(), "config.toml")
 
-	err := configureCmd.Run(context.Background(), []string{"configure", "--path", path})
+	err := runConfigureCmd(s.T(), "--config", path)
 
 	s.Require().Error(err)
 	s.True(cliutil.IsUserAbort(err))
 
 	_, statErr := os.Stat(path)
 	s.True(os.IsNotExist(statErr), "config file should not be written when configuration is incomplete")
+}
+
+// runConfigureCmd runs configureCmd as a subcommand of a root command, the
+// same way it's invoked in production, so persistent global flags like
+// --config (declared only on the root) resolve correctly.
+func runConfigureCmd(t *testing.T, args ...string) error {
+	t.Helper()
+
+	root := &cli.Command{
+		Name:     "mise",
+		Flags:    globalFlags,
+		Commands: []*cli.Command{configureCmd},
+	}
+
+	return root.Run(context.Background(), append([]string{"mise", "configure"}, args...))
 }

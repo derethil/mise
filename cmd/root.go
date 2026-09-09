@@ -33,9 +33,10 @@ var globalFlags = []cli.Flag{
 		Aliases: []string{"v"},
 	},
 	&cli.StringFlag{
-		Name:    string(cliutil.GlobalFlagConfig),
-		Usage:   "Path to the configuration file",
-		Aliases: []string{"c"},
+		Name:        string(cliutil.GlobalFlagConfig),
+		Usage:       "Path to the configuration file",
+		Aliases:     []string{"c"},
+		DefaultText: config.DefaultConfigPath(),
 	},
 }
 

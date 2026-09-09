@@ -19,19 +19,8 @@ import (
 var configureCmd = &cli.Command{
 	Name:  "configure",
 	Usage: "Provide configuration values for mise",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:        "path",
-			Usage:       "Path to write the configuration file to",
-			Aliases:     []string{"p"},
-			DefaultText: "$HOME/.config/mise/config.yaml",
-		},
-	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		path := cmd.String("path")
-		if path == "" {
-			path = config.DefaultConfigPath()
-		}
+		path := cliutil.ResolveFlag(cmd, cliutil.GlobalFlagConfig, config.DefaultConfigPath())
 
 		cfg, err := loadConfigFromFile(cmd, path)
 		if err != nil {

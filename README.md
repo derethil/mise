@@ -63,9 +63,10 @@ mise using env vars e.g. `MISE_TANDOOR_TOKEN`.
 
 Global flags:
 
-- `-m, --model` - override the AI model to use for a command.
+- `-m, --model` - override the AI model to use for a single command.
 - `-v, --verbose` - enable debug logging (repeat as `-vv` for verbose output
   from the underlying AI library too).
+- `-c, --config` - override config file path
 
 ## License
 
