@@ -39,7 +39,7 @@ func (s *ConfigSuite) load(args ...string) Config {
 		Name:  "mise",
 		Flags: Flags(),
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			cfg, err = Load(cmd)
+			cfg, err = Load(cmd, DefaultConfigPath())
 			return err
 		},
 	}

@@ -15,14 +15,17 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func Load(cmd *cli.Command) (Config, error) {
+func DefaultConfigPath() string {
+	return filepath.Join(ConfigDir, "config.toml")
+}
+
+func Load(cmd *cli.Command, configPath string) (Config, error) {
 	k := koanf.New(".")
 
 	if err := k.Load(structs.Provider(defaultConfig, "key"), nil); err != nil {
 		return Config{}, err
 	}
 
-	configPath := filepath.Join(ConfigDir, "config.toml")
 	if _, err := os.Stat(configPath); err == nil {
 		if err := k.Load(file.Provider(configPath), toml.Parser()); err != nil {
 			return Config{}, err
@@ -43,6 +46,24 @@ func Load(cmd *cli.Command) (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func Save(cfg Config, configPath string) error {
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		return err
+	}
+
+	k := koanf.New(".")
+	if err := k.Load(structs.Provider(cfg, "key"), nil); err != nil {
+		return err
+	}
+
+	b, err := k.Marshal(toml.Parser())
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(configPath, b, 0o644)
 }
 
 func envKeyLookup() func(string) string {

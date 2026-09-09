@@ -42,6 +42,22 @@ func (p ProvidersConfig) Get(name string) (ProviderConfig, bool) {
 	return ProviderConfig{}, false
 }
 
+func (p *ProvidersConfig) Set(name string, cfg ProviderConfig) bool {
+	t := reflect.TypeOf(p).Elem()
+	v := reflect.ValueOf(p).Elem()
+
+	for field := range t.Fields() {
+		if field.Tag.Get("key") != name {
+			continue
+		}
+
+		v.FieldByIndex(field.Index).Set(reflect.ValueOf(cfg))
+		return true
+	}
+
+	return false
+}
+
 type ModelsConfig struct {
 	Small string `key:"small" flag:"-" usage:"Model for simpler tasks, as provider/model"`
 	Large string `key:"large" flag:"-" usage:"Model for harder tasks, as provider/model"`
