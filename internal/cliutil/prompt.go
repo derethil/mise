@@ -42,6 +42,44 @@ func SelectOption(question string, options []string) (string, error) {
 	return result, nil
 }
 
+type PromptValidator func(input string) error
+
+func PromptForInput(question, preset string, validators ...PromptValidator) (string, error) {
+	return promptForInput(question, preset, false, validators...)
+}
+
+func PromptForHiddenInput(question, preset string, validators ...PromptValidator) (string, error) {
+	return promptForInput(question, preset, true, validators...)
+}
+
+func promptForInput(question, preset string, hidden bool, validators ...PromptValidator) (string, error) {
+	var mask rune
+	if hidden {
+		mask = '*'
+	}
+
+	prompt := promptui.Prompt{
+		Default:   preset,
+		Label:     question,
+		Mask:      mask,
+		AllowEdit: true,
+		Validate: func(input string) (err error) {
+			if len(validators) > 0 {
+				for _, validator := range validators {
+					err = validator(input)
+				}
+			}
+
+			return err
+		},
+	}
+
+	userInput, err := prompt.Run()
+	err = handlePromptError(err)
+
+	return userInput, err
+}
+
 func requestConfirmation(question string) (bool, error) {
 	prompt := promptui.Prompt{
 		Label:     question,
@@ -49,14 +87,24 @@ func requestConfirmation(question string) (bool, error) {
 	}
 
 	_, err := prompt.Run()
+	err = handlePromptError(err)
+
+	return err == nil, err
+}
+
+func IsUserAbort(err error) bool {
+	return errors.Is(err, promptui.ErrInterrupt) || errors.Is(err, promptui.ErrEOF) || errors.Is(err, promptui.ErrAbort)
+}
+
+func handlePromptError(err error) error {
 	switch {
 	case err == nil:
-		return true, nil
+		return nil
 	case errors.Is(err, promptui.ErrAbort):
-		return false, nil
+		return err
 	case errors.Is(err, promptui.ErrEOF):
-		return false, fmt.Errorf("cannot request user input: stdin is not an interactive terminal: %w", err)
+		return fmt.Errorf("cannot request user input: stdin is not an interactive terminal: %w", err)
 	default:
-		return false, err
+		return err
 	}
 }

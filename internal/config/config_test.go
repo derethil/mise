@@ -54,14 +54,14 @@ func (s *ConfigSuite) load(args ...string) Config {
 func (s *ConfigSuite) TestDefaults() {
 	cfg := s.load()
 
-	s.Equal("https://tandoor.dev/api", cfg.Tandoor.BaseURL)
+	s.Equal("https://tandoor.dev", cfg.Tandoor.BaseURL)
 	s.Empty(cfg.Tandoor.Token)
 	s.Equal(filepath.Join(DataDir, "tandoor_backups"), cfg.Tandoor.BackupDir)
 
 	s.Equal("http://localhost:11434", cfg.Providers.Ollama.BaseURL)
 	s.Empty(cfg.Providers.Ollama.APIKey)
-	s.Equal("ollama/qwen2.5:7b", cfg.Models.Small)
-	s.Equal("ollama/qwen2.5:14b", cfg.Models.Large)
+	s.Empty(cfg.Models.Small)
+	s.Empty(cfg.Models.Large)
 }
 
 func (s *ConfigSuite) TestConfigFileOverridesDefaults() {
@@ -110,7 +110,7 @@ func (s *ConfigSuite) TestUnknownEnvVarsAreIgnored() {
 
 	cfg := s.load()
 
-	s.Equal("https://tandoor.dev/api", cfg.Tandoor.BaseURL)
+	s.Equal("https://tandoor.dev", cfg.Tandoor.BaseURL)
 }
 
 func (s *ConfigSuite) TestFlagOptOutStillLoadsFromEnv() {

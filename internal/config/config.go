@@ -72,7 +72,7 @@ type Config struct {
 
 var defaultConfig = Config{
 	Tandoor: TandoorConfig{
-		BaseURL:   "https://tandoor.dev/api",
+		BaseURL:   "https://tandoor.dev",
 		BackupDir: filepath.Join(DataDir, "tandoor_backups"),
 	},
 	Backup: BackupConfig{
@@ -83,9 +83,5 @@ var defaultConfig = Config{
 			BaseURL: "http://localhost:11434",
 			Timeout: 600,
 		},
-	},
-	Models: ModelsConfig{
-		Small: "ollama/qwen2.5:7b",
-		Large: "ollama/qwen2.5:14b",
 	},
 }

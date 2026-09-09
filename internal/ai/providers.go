@@ -16,6 +16,14 @@ var providerFactories = map[string]func(config.ProviderConfig) (api.Plugin, erro
 	ProviderOllama: getOllamaProviderPlugin,
 }
 
+func SupportedProviders() []string {
+	res := make([]string, 0, len(providerFactories))
+	for provider := range providerFactories {
+		res = append(res, provider)
+	}
+	return res
+}
+
 func getProviderPlugins(ctx context.Context, providers config.ProvidersConfig, models ...ModelRef) ([]api.Plugin, error) {
 	seen := make(map[string]bool, len(models))
 	plugins := make([]api.Plugin, 0, len(models))

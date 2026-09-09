@@ -65,6 +65,7 @@ var rootCmd = &cli.Command{
 	},
 	Commands: []*cli.Command{
 		genkitDevCmd,
+		configureCmd,
 		logsCmd,
 		recipe.Command,
 		model.Command,

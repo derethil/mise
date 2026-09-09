@@ -56,7 +56,7 @@ func (s *ClientSuite) SetupTest() {
 		_ = json.NewEncoder(w).Encode(s.response)
 	}))
 
-	s.client = NewClient(s.server.URL+"/api", "test-token")
+	s.client = NewClient(s.server.URL, "test-token")
 }
 
 func (s *ClientSuite) TearDownTest() {
@@ -117,7 +117,7 @@ func (s *ClientSuite) TestRequestAllPagesFollowsNextLink() {
 		_, _ = fmt.Fprintf(w, `{"results":[{"n":1},{"n":2}],"next":%q}`, page2URL)
 	}))
 	page2URL = s.server.URL + "/api/items/?page=2"
-	s.client = NewClient(s.server.URL+"/api", "test-token")
+	s.client = NewClient(s.server.URL, "test-token")
 
 	items, err := RequestAllPages[paginatedItem](s.T().Context(), s.client, "items/")
 
@@ -149,7 +149,7 @@ func (s *ClientSuite) TestRequestAllPages_InvalidJSON() {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`not json`))
 	}))
-	s.client = NewClient(s.server.URL+"/api", "test-token")
+	s.client = NewClient(s.server.URL, "test-token")
 
 	_, err := RequestAllPages[paginatedItem](s.T().Context(), s.client, "items/")
 
