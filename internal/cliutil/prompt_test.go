@@ -1,8 +1,11 @@
 package cliutil
 
 import (
+	"os"
+	"os/exec"
 	"testing"
 
+	"github.com/manifoldco/promptui"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -15,11 +18,10 @@ func TestPromptSuite(t *testing.T) {
 }
 
 func (s *PromptSuite) TestConfirmErrorsWhenNotInteractive() {
-	// go test's stdin is never a terminal, so Confirm should refuse to prompt.
 	ok, err := Confirm("proceed?")
 
 	s.False(ok)
-	s.ErrorIs(err, ErrNotInteractive)
+	s.ErrorIs(err, promptui.ErrEOF)
 }
 
 func (s *PromptSuite) TestAutoConfirmAlwaysAccepts() {
@@ -29,26 +31,28 @@ func (s *PromptSuite) TestAutoConfirmAlwaysAccepts() {
 	s.True(ok)
 }
 
-func (s *PromptSuite) TestPrintProgressWithTotal() {
-	onProgress := PrintProgress()
+func (s *PromptSuite) TestConfirmOrDieExitsWhenNotInteractive() {
+	cmd := exec.Command(os.Args[0], "-test.run=TestConfirmOrDieHelperProcess")
+	cmd.Env = append(os.Environ(), "GO_WANT_CONFIRM_OR_DIE_HELPER=1")
 
-	err := onProgress(Progress{Label: "qwen2.5", Status: "pulling", Total: 200, Completed: 100})
+	err := cmd.Run()
 
-	s.Require().NoError(err)
+	var exitErr *exec.ExitError
+	s.Require().ErrorAs(err, &exitErr)
+	s.Equal(1, exitErr.ExitCode())
 }
 
-func (s *PromptSuite) TestPrintProgressWithoutTotal() {
-	onProgress := PrintProgress()
+func TestConfirmOrDieHelperProcess(t *testing.T) {
+	if os.Getenv("GO_WANT_CONFIRM_OR_DIE_HELPER") != "1" {
+		t.Skip("not invoked as a helper process")
+	}
 
-	err := onProgress(Progress{Label: "qwen2.5", Status: "verifying"})
-
-	s.Require().NoError(err)
+	ConfirmOrDie("proceed?")
 }
 
-func (s *PromptSuite) TestPrintProgressTracksStatusChanges() {
-	onProgress := PrintProgress()
+func (s *PromptSuite) TestSelectOptionErrorsWhenNotInteractive() {
+	result, err := SelectOption("pick one", []string{"a", "b"})
 
-	s.Require().NoError(onProgress(Progress{Label: "qwen2.5", Status: "pulling", Total: 10, Completed: 1}))
-	s.Require().NoError(onProgress(Progress{Label: "qwen2.5", Status: "pulling", Total: 10, Completed: 5}))
-	s.Require().NoError(onProgress(Progress{Label: "qwen2.5", Status: "verifying"}))
+	s.Empty(result)
+	s.Error(err)
 }
