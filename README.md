@@ -32,7 +32,7 @@ A Nix flake is also provided (`nix build .#mise`).
 ```toml
 [tandoor]
 token    = "your-tandoor-api-token"
-base_url = "https://your-tandoor-instance/api"
+base_url = "https://your-tandoor-instance"
 
 [providers.ollama]
 base_url = "http://localhost:11434"
@@ -51,6 +51,7 @@ mise using env vars e.g. `MISE_TANDOOR_TOKEN`.
 
 ## Commands
 
+- `mise configure` - create or edit configuration file
 - `mise recipe backup` / `restore` - snapshot a recipe's JSON before you mess
   with it, or roll back to a snapshot later.
 - `mise recipe clean` - fixes ingredient rows that got imported as ingredients

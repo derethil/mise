@@ -31,7 +31,7 @@ type Client struct {
 
 func NewClient(baseURL, token string) *Client {
 	c := &Client{
-		baseURL:    baseURL,
+		baseURL:    fmt.Sprintf("%s/api", strings.TrimRight(baseURL, "/")),
 		token:      token,
 		timeout:    defaultTimeout,
 		httpClient: &http.Client{},
@@ -70,7 +70,7 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 
 	slog.DebugContext(ctx, "sending tandoor request",
 		slog.String("method", method),
-		slog.String("endpoint", endpoint),
+		slog.String("url", url),
 		slog.String("request_body", string(payload)),
 	)
 
@@ -112,6 +112,16 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 	}
 
 	return respBody, nil
+}
+
+func (c *Client) TestConnection(ctx context.Context) error {
+	endpoint := constructURL("meal-type/", map[string]string{"page_size": "1"})
+	_, err := c.Request(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type paginatedResponse[T any] struct {

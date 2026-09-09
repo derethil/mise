@@ -1,67 +1,110 @@
 package cliutil
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
-	"io"
+	"log/slog"
 	"os"
-	"strings"
 
-	"golang.org/x/term"
+	"github.com/manifoldco/promptui"
 )
-
-var ErrNotInteractive = errors.New("cannot ask for confirmation: stdin is not a terminal")
-
-func Confirm(question string) (bool, error) {
-	if !term.IsTerminal(int(os.Stdin.Fd())) {
-		return false, ErrNotInteractive
-	}
-
-	fmt.Printf("%s [y/N] ", question)
-
-	line, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	if errors.Is(err, io.EOF) {
-		fmt.Println()
-		return false, ErrNotInteractive
-	}
-	if err != nil {
-		return false, err
-	}
-
-	answer := strings.ToLower(strings.TrimSpace(line))
-	return answer == "y" || answer == "yes", nil
-}
 
 func AutoConfirm(string) (bool, error) {
 	return true, nil
 }
 
-type Progress struct {
-	Label     string
-	Status    string
-	Total     int64
-	Completed int64
+func Confirm(question string) (bool, error) {
+	return requestConfirmation(question)
 }
 
-type ProgressFunc func(Progress) error
+func ConfirmOrDie(question string) {
+	confirmed, err := requestConfirmation(question)
+	if err == nil && confirmed {
+		return
+	}
 
-func PrintProgress() ProgressFunc {
-	lastStatus := ""
+	slog.Info("Aborted.", "question", question, "error", err)
+	os.Exit(1)
+}
 
-	return func(p Progress) error {
-		if lastStatus != "" && p.Status != lastStatus {
-			fmt.Println()
-		}
-		lastStatus = p.Status
+func SelectOption(question string, options []string) (string, error) {
+	prompt := promptui.Select{
+		Label: question,
+		Items: options,
+	}
 
-		if p.Total > 0 {
-			pct := float64(p.Completed) / float64(p.Total) * 100
-			fmt.Printf("\r%s: %s %.1f%%", p.Label, p.Status, pct)
-		} else {
-			fmt.Printf("\r%s: %s", p.Label, p.Status)
-		}
+	_, result, err := prompt.Run()
+	if err != nil {
+		slog.Error("select option failed", "error", err)
+		return "", err
+	}
 
+	return result, nil
+}
+
+type PromptValidator func(input string) error
+
+func PromptForInput(question, preset string, validators ...PromptValidator) (string, error) {
+	return promptForInput(question, preset, false, validators...)
+}
+
+func PromptForHiddenInput(question, preset string, validators ...PromptValidator) (string, error) {
+	return promptForInput(question, preset, true, validators...)
+}
+
+func promptForInput(question, preset string, hidden bool, validators ...PromptValidator) (string, error) {
+	var mask rune
+	if hidden {
+		mask = '*'
+	}
+
+	prompt := promptui.Prompt{
+		Default:   preset,
+		Label:     question,
+		Mask:      mask,
+		AllowEdit: true,
+		Validate: func(input string) (err error) {
+			if len(validators) > 0 {
+				for _, validator := range validators {
+					err = validator(input)
+				}
+			}
+
+			return err
+		},
+	}
+
+	userInput, err := prompt.Run()
+	err = handlePromptError(err)
+
+	return userInput, err
+}
+
+func requestConfirmation(question string) (bool, error) {
+	prompt := promptui.Prompt{
+		Label:     question,
+		IsConfirm: true,
+	}
+
+	_, err := prompt.Run()
+	err = handlePromptError(err)
+
+	return err == nil, err
+}
+
+func IsUserAbort(err error) bool {
+	return errors.Is(err, promptui.ErrInterrupt) || errors.Is(err, promptui.ErrEOF) || errors.Is(err, promptui.ErrAbort)
+}
+
+func handlePromptError(err error) error {
+	switch {
+	case err == nil:
 		return nil
+	case errors.Is(err, promptui.ErrAbort):
+		return err
+	case errors.Is(err, promptui.ErrEOF):
+		return fmt.Errorf("cannot request user input: stdin is not an interactive terminal: %w", err)
+	default:
+		return err
 	}
 }

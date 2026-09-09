@@ -120,7 +120,7 @@ func (s *CleanSuite) TestSaveRecipe() {
 	s.Require().NoError(err)
 
 	s.Equal(http.MethodPut, s.lastMethod)
-	s.Equal("/recipe/42/", s.lastPath)
+	s.Equal("/api/recipe/42/", s.lastPath)
 
 	entries, err := store.List(42)
 	s.Require().NoError(err)

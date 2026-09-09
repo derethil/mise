@@ -42,6 +42,22 @@ func (p ProvidersConfig) Get(name string) (ProviderConfig, bool) {
 	return ProviderConfig{}, false
 }
 
+func (p *ProvidersConfig) Set(name string, cfg ProviderConfig) bool {
+	t := reflect.TypeOf(p).Elem()
+	v := reflect.ValueOf(p).Elem()
+
+	for field := range t.Fields() {
+		if field.Tag.Get("key") != name {
+			continue
+		}
+
+		v.FieldByIndex(field.Index).Set(reflect.ValueOf(cfg))
+		return true
+	}
+
+	return false
+}
+
 type ModelsConfig struct {
 	Small string `key:"small" flag:"-" usage:"Model for simpler tasks, as provider/model"`
 	Large string `key:"large" flag:"-" usage:"Model for harder tasks, as provider/model"`
@@ -56,7 +72,7 @@ type Config struct {
 
 var defaultConfig = Config{
 	Tandoor: TandoorConfig{
-		BaseURL:   "https://tandoor.dev/api",
+		BaseURL:   "https://tandoor.dev",
 		BackupDir: filepath.Join(DataDir, "tandoor_backups"),
 	},
 	Backup: BackupConfig{
@@ -67,9 +83,5 @@ var defaultConfig = Config{
 			BaseURL: "http://localhost:11434",
 			Timeout: 600,
 		},
-	},
-	Models: ModelsConfig{
-		Small: "ollama/qwen2.5:7b",
-		Large: "ollama/qwen2.5:14b",
 	},
 }

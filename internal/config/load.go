@@ -15,14 +15,17 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func Load(cmd *cli.Command) (Config, error) {
+func DefaultConfigPath() string {
+	return filepath.Join(ConfigDir, "config.toml")
+}
+
+func Load(cmd *cli.Command, configPath string) (Config, error) {
 	k := koanf.New(".")
 
 	if err := k.Load(structs.Provider(defaultConfig, "key"), nil); err != nil {
 		return Config{}, err
 	}
 
-	configPath := filepath.Join(ConfigDir, "config.toml")
 	if _, err := os.Stat(configPath); err == nil {
 		if err := k.Load(file.Provider(configPath), toml.Parser()); err != nil {
 			return Config{}, err

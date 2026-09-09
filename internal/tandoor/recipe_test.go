@@ -69,7 +69,7 @@ func (s *ClientSuite) TestRecipesGetAllRecipeIDs() {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"results":[{"id":1},{"id":2},{"id":3}],"next":null}`))
 	}))
-	s.client = NewClient(s.server.URL+"/api", "test-token")
+	s.client = NewClient(s.server.URL, "test-token")
 
 	ids, err := s.client.Recipes.GetAllRecipeIDs(s.T().Context())
 
@@ -92,7 +92,7 @@ func (s *ClientSuite) TestRecipesGetAllRecipeIDs_MultiplePages() {
 		_, _ = fmt.Fprintf(w, `{"results":[{"id":1},{"id":2}],"next":%q}`, page2URL)
 	}))
 	page2URL = s.server.URL + "/api/recipe/?page_size=100&page=2"
-	s.client = NewClient(s.server.URL+"/api", "test-token")
+	s.client = NewClient(s.server.URL, "test-token")
 
 	ids, err := s.client.Recipes.GetAllRecipeIDs(s.T().Context())
 

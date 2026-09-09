@@ -31,7 +31,7 @@
       meta.mainProgram = "mise";
       pname = "mise";
       src = ./.;
-      vendorHash = "sha256-xSVtxIohwVcDFkV5BgyqwAASsAwM4HNvwwYkTlSUd5A=";
+      vendorHash = "sha256-7ziKWtC0GhGXeE7DiPfI8aAOSch/Scrv5Hcc/KyO7jI=";
       version = "0.2.1";
     };
 

@@ -32,6 +32,11 @@ var globalFlags = []cli.Flag{
 		Usage:   "Enable verbose (debug) logging; repeat (-vv) for even more verbose output",
 		Aliases: []string{"v"},
 	},
+	&cli.StringFlag{
+		Name:    string(cliutil.GlobalFlagConfig),
+		Usage:   "Path to the configuration file",
+		Aliases: []string{"c"},
+	},
 }
 
 var rootCmd = &cli.Command{
@@ -48,7 +53,8 @@ var rootCmd = &cli.Command{
 
 		slog.DebugContext(ctx, "command started")
 
-		cfg, err := config.Load(cmd)
+		configPath := cliutil.ResolveFlag(cmd, cliutil.GlobalFlagConfig, config.DefaultConfigPath())
+		cfg, err := config.Load(cmd, configPath)
 		if err != nil {
 			return ctx, err
 		}
@@ -58,10 +64,11 @@ var rootCmd = &cli.Command{
 		return config.NewContext(ctx, cfg), nil
 	},
 	Commands: []*cli.Command{
+		genkitDevCmd,
+		configureCmd,
+		logsCmd,
 		recipe.Command,
 		model.Command,
-		genkitDevCmd,
-		logsCmd,
 	},
 	EnableShellCompletion: true,
 }

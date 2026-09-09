@@ -7,6 +7,7 @@ type GlobalFlag string
 const (
 	GlobalFlagModel   GlobalFlag = "model"
 	GlobalFlagVerbose GlobalFlag = "verbose"
+	GlobalFlagConfig  GlobalFlag = "config"
 )
 
 func ResolveFlag(cmd *cli.Command, flag GlobalFlag, fallback string) string {
