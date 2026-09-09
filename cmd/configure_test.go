@@ -69,46 +69,6 @@ func (s *ConfigureSuite) TestConfigureProviders_ErrorsWithoutInteractiveInput() 
 	s.True(cliutil.IsUserAbort(err))
 }
 
-func (s *ConfigureSuite) TestLoadConfigFromFile_RejectsDirectoryPath() {
-	dir := s.T().TempDir()
-
-	_, err := loadConfigFromFile(&cli.Command{}, dir)
-
-	s.Require().Error(err)
-	s.Contains(err.Error(), "is a directory")
-}
-
-func (s *ConfigureSuite) TestLoadConfigFromFile_LoadsDefaultsWhenMissing() {
-	path := filepath.Join(s.T().TempDir(), "config.toml")
-
-	var (
-		cfg config.Config
-		err error
-	)
-
-	cmd := &cli.Command{
-		Name:  "mise",
-		Flags: config.Flags(),
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			cfg, err = loadConfigFromFile(cmd, path)
-			return err
-		},
-	}
-
-	s.Require().NoError(cmd.Run(context.Background(), []string{"mise"}))
-	s.Require().NoError(err)
-	s.Equal("http://localhost:11434", cfg.Providers.Ollama.BaseURL)
-}
-
-func (s *ConfigureSuite) TestConfigureCmd_WrapsLoadErrorWhenPathIsDirectory() {
-	dir := s.T().TempDir()
-
-	err := runConfigureCmd(s.T(), "--config", dir)
-
-	s.Require().Error(err)
-	s.Equal("failed to load existing configuration", cliutil.UserMessage(err))
-}
-
 func (s *ConfigureSuite) TestConfigureCmd_DoesNotWriteConfigWithoutInteractiveInput() {
 	path := filepath.Join(s.T().TempDir(), "config.toml")
 
@@ -121,15 +81,22 @@ func (s *ConfigureSuite) TestConfigureCmd_DoesNotWriteConfigWithoutInteractiveIn
 	s.True(os.IsNotExist(statErr), "config file should not be written when configuration is incomplete")
 }
 
-// runConfigureCmd runs configureCmd as a subcommand of a root command, the
-// same way it's invoked in production, so persistent global flags like
-// --config (declared only on the root) resolve correctly.
 func runConfigureCmd(t *testing.T, args ...string) error {
 	t.Helper()
 
 	root := &cli.Command{
-		Name:     "mise",
-		Flags:    globalFlags,
+		Name:  "mise",
+		Flags: globalFlags,
+		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+			configPath := cliutil.ResolveFlag(cmd, cliutil.GlobalFlagConfig, config.DefaultConfigPath())
+
+			cfg, err := config.Load(cmd, configPath)
+			if err != nil {
+				return ctx, err
+			}
+
+			return config.NewContext(ctx, cfg), nil
+		},
 		Commands: []*cli.Command{configureCmd},
 	}
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"os"
 	"slices"
 	"strings"
 
@@ -20,14 +19,9 @@ var configureCmd = &cli.Command{
 	Name:  "configure",
 	Usage: "Provide configuration values for mise",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		path := cliutil.ResolveFlag(cmd, cliutil.GlobalFlagConfig, config.DefaultConfigPath())
+		cfg := config.FromContext(ctx)
 
-		cfg, err := loadConfigFromFile(cmd, path)
-		if err != nil {
-			return cliutil.ErrWithUserMessage(err, "failed to load existing configuration")
-		}
-
-		err = configureTandoor(ctx, &cfg)
+		err := configureTandoor(ctx, &cfg)
 		if err != nil {
 			return err
 		}
@@ -37,24 +31,13 @@ var configureCmd = &cli.Command{
 			return err
 		}
 
+		path := cliutil.ResolveFlag(cmd, cliutil.GlobalFlagConfig, config.DefaultConfigPath())
 		if err := config.Save(cfg, path); err != nil {
 			return cliutil.ErrWithUserMessage(err, "failed to save configuration")
 		}
 
 		return nil
 	},
-}
-
-func loadConfigFromFile(cmd *cli.Command, path string) (config.Config, error) {
-	exists, err := os.Stat(path)
-	if err == nil && exists.IsDir() {
-		return config.Config{}, fmt.Errorf("path %s is a directory, please provide a file path", path)
-	}
-	if err != nil && !os.IsNotExist(err) {
-		return config.Config{}, fmt.Errorf("error checking path %s: %w", path, err)
-	}
-
-	return config.Load(cmd, path)
 }
 
 func validateBaseURL(input string) error {
