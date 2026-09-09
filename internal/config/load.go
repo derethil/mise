@@ -48,24 +48,6 @@ func Load(cmd *cli.Command, configPath string) (Config, error) {
 	return cfg, nil
 }
 
-func Save(cfg Config, configPath string) error {
-	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
-		return err
-	}
-
-	k := koanf.New(".")
-	if err := k.Load(structs.Provider(cfg, "key"), nil); err != nil {
-		return err
-	}
-
-	b, err := k.Marshal(toml.Parser())
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(configPath, b, 0o644)
-}
-
 func envKeyLookup() func(string) string {
 	names := map[string]string{}
 
