@@ -18,8 +18,19 @@ import (
 var configureCmd = &cli.Command{
 	Name:  "configure",
 	Usage: "Provide configuration values for mise",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:    "print",
+			Usage:   "Print the current configuration instead of prompting for new values",
+			Aliases: []string{"p"},
+		},
+	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		cfg := config.FromContext(ctx)
+
+		if cmd.Bool("print") {
+			return config.Print(cfg)
+		}
 
 		err := configureTandoor(ctx, &cfg)
 		if err != nil {
