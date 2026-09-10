@@ -43,6 +43,9 @@ var configureCmd = &cli.Command{
 		}
 
 		path := cliutil.ResolveFlag(cmd, cliutil.GlobalFlagConfig, config.DefaultConfigPath())
+
+		cliutil.ConfirmOrDie(fmt.Sprintf("This will overwrite any existing configuration file at %s. Are you sure?", path))
+
 		if err := config.Save(cfg, path); err != nil {
 			return cliutil.ErrWithUserMessage(err, "failed to save configuration")
 		}
