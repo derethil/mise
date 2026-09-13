@@ -1,0 +1,21 @@
+[tandoor]
+# token = "your-tandoor-api-token" 
+base_url = "https://tandoor.dev" 
+# backup_dir = "$XDG_DATA_HOME/mise/tandoor_backups" 
+
+[backup]
+keep = 0 # Number of backups to keep per recipe (0 = keep all)
+
+# All providers have the same configuration keys
+[providers.ollama]
+base_url = "http://localhost:11434" 
+timeout = 600 
+# api_key = "your-api-key" (optional)
+
+[models]
+# small = "ollama/qwen3:8b" # Model for simpler tasks, as provider/model
+# large = "ollama/qwen3:14b" # Model for harder tasks, as provider/model
+
+[keywords]
+ignore = [] # Keywords that don't count as tagged when using --untagged
+# schema_file = "$XDG_CONFIG_HOME/mise/keyword_schema.md" 
