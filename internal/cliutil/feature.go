@@ -9,12 +9,12 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func LoadFeature[T ai.Feature](ctx context.Context, cmd *cli.Command, deps ai.Deps) (T, ai.ModelRef, error) {
+func LoadFeature[T ai.Feature](ctx context.Context, cmd *cli.Command, size config.ModelSize, deps ai.Deps) (T, ai.ModelRef, error) {
 	var zero T
 
 	cfg := config.FromContext(ctx)
 
-	model, err := ai.ParseModel(ResolveFlag(cmd, GlobalFlagModel, cfg.Models.Small))
+	model, err := ai.ParseModel(ResolveFlag(cmd, GlobalFlagModel, cfg.Models.Get(size)))
 	if err != nil {
 		return zero, model, err
 	}

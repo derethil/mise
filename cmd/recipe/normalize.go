@@ -57,7 +57,7 @@ var normalizeCmd = &cli.Command{
 		cfg := config.FromContext(ctx)
 		tclient := tandoor.FromConfig(cfg)
 
-		feature, model, err := cliutil.LoadFeature[*cleaningredients.Feature](ctx, cmd, ai.Deps{Tandoor: tclient})
+		feature, model, err := cliutil.LoadFeature[*cleaningredients.Feature](ctx, cmd, config.ModelSmall, ai.Deps{Tandoor: tclient})
 		if err != nil {
 			return cliutil.AIUserError(err, model.String())
 		}
