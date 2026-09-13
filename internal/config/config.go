@@ -78,11 +78,17 @@ func (m ModelsConfig) Get(size ModelSize) string {
 	return m.Small
 }
 
+type KeywordsConfig struct {
+	SchemaFile string   `key:"schema_file" usage:"Path to the file describing your keyword schema"`
+	Ignore     []string `key:"ignore" usage:"Keywords that don't count as tagged when using --untagged"`
+}
+
 type Config struct {
 	Tandoor   TandoorConfig   `key:"tandoor"`
 	Backup    BackupConfig    `key:"backup"`
 	Providers ProvidersConfig `key:"providers"`
 	Models    ModelsConfig    `key:"models"`
+	Keywords  KeywordsConfig  `key:"keywords"`
 }
 
 var defaultConfig = Config{
@@ -98,5 +104,8 @@ var defaultConfig = Config{
 			BaseURL: "http://localhost:11434",
 			Timeout: 600,
 		},
+	},
+	Keywords: KeywordsConfig{
+		SchemaFile: filepath.Join(ConfigDir, "keyword_schema.md"),
 	},
 }
