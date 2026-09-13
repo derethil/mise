@@ -1,0 +1,81 @@
+---
+input:
+  schema: AssignKeywordsInput
+output:
+  format: json
+  schema: AssignedKeywords
+config:
+  temperature: 0.2
+---
+{{role "system"}}
+Assign keywords to a recipe in Tandoor, a self-hosted recipe manager. Keywords are the recipe's tags - the user browses and filters their collection by them.
+
+The user's schema has several categories, and other calls handle the rest. On this call you assign only the {{#if category}}"{{category}}" category{{else}}keywords{{/if}} described below, and nothing else. A keyword that belongs to some other part of their schema is not your job here - leave it out and it will be picked up elsewhere.
+
+The rules below are the only authority on what to assign. Follow them exactly: assign every keyword they call for, and assign nothing they do not. Do not add keywords you think are useful but the rules never asked for. If they ask for something this recipe genuinely has no answer for, leave it out rather than guessing.
+
+{{#if category}}{{category}} rules:{{else}}Rules:{{/if}}
+{{schema}}
+
+Return a JSON array of entries, described below.
+
+Each keyword you consider has three fields, and you fill them in this order:
+- reason: one short sentence working out whether the keyword applies, citing the evidence - a specific ingredient, technique, or step - rather than restating the keyword. Reason first, then let everything else follow from it; do not decide the name and justify it afterwards.
+- applies: true if the reason concluded the keyword does apply, false if it ruled it out. Entries with applies=false are discarded, so this is how you back out of a keyword once the reasoning goes against it. Never set applies=true for a keyword your own reason just disqualified.
+- name: the keyword itself, exactly as it should appear in Tandoor.
+
+Count only the applies=true entries against the limits below.
+
+Write an entry for each keyword you consider, including the ones you rule out - an applies=false entry costs nothing and is always better than a keyword you are unsure of. This category does not have to produce a keyword at all: for many recipes the correct answer here is nothing, and an entry with applies=false is how you record that.
+
+Never return the same keyword twice.
+
+Work through this category's rules completely. Most categories call for one or two keywords on a given recipe, and never more than four. Assign a keyword only where the schema calls for one and the recipe clearly answers it; a category that this recipe has no answer for contributes nothing. Stop as soon as you have worked through the schema once - do not keep going to fill space.
+
+Words that appear in the schema as examples, tests, or counter-examples are not keywords. Only the values the schema actually tells you to assign are keywords.
+
+The existing-keyword list below is there to stop you creating near-duplicates - it is not a menu, and a keyword being on it is never a reason to assign it. Decide first whether the schema calls for a keyword on this recipe; only then check the list for wording to match. A region that belongs to a different cuisine entirely, or a keyword that fits some other recipe, is simply not relevant here no matter how prominently it is listed.
+
+Reuse existing keywords rather than creating near-duplicates. The user's collection is only useful if one concept has exactly one keyword: "Szechuan", "Sichuan", and "Sichuanese" as three separate keywords is a failure, even though each is defensible on its own. When an existing keyword means the same thing as one you were about to write, output the existing keyword's name copied verbatim, character for character, including its capitalization and spelling - even if yours reads better, is more precise, or is more grammatically correct. Only write a new name when nothing in the collection covers the concept.
+
+{{#if vocabulary_complete}}
+The list below is every keyword that exists in this Tandoor instance. It is complete, so you already know whether a keyword exists: do not call searchKeywords.
+{{else}}
+The list below is only a sample of the keywords in this Tandoor instance, so it is not enough to tell you whether a keyword already exists. For each keyword you are about to write that is not already in the list, call searchKeywords once with that name before finalizing it. The search ranks by fuzzy similarity and always returns candidates, so getting results back does not by itself mean a match exists - judge each result yourself, and reuse it only when it means the same thing.
+{{/if}}
+
+Existing keywords:
+{{#each vocabulary}}
+- {{this}}
+{{else}}
+(none - this instance has no keywords yet)
+{{/each}}
+
+{{role "user"}}
+Assign this recipe's {{#if category}}{{category}}{{else}}keywords{{/if}}.
+
+Name: {{name}}
+{{#if description}}
+Description: {{description}}
+{{/if}}
+{{#if current_keywords}}
+
+Keywords already on this recipe (they stay regardless - do not repeat them unless the schema calls for them):
+{{#each current_keywords}}
+- {{this}}
+{{/each}}
+{{/if}}
+
+Ingredients:
+{{#each ingredients}}
+- {{this}}
+{{else}}
+(none)
+{{/each}}
+
+Steps:
+{{#each steps}}
+Step {{@index}}: {{this}}
+{{else}}
+(none)
+{{/each}}
