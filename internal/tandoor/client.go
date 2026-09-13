@@ -24,9 +24,10 @@ type Client struct {
 	timeout    time.Duration
 	httpClient *http.Client
 
-	Recipes *RecipeService
-	Foods   *FoodService
-	Units   *UnitService
+	Recipes  *RecipeService
+	Foods    *FoodService
+	Units    *UnitService
+	Keywords *KeywordService
 }
 
 func NewClient(baseURL, token string) *Client {
@@ -38,8 +39,9 @@ func NewClient(baseURL, token string) *Client {
 	}
 
 	c.Recipes = &RecipeService{client: c}
-	c.Foods = &FoodService{client: c}
-	c.Units = &UnitService{client: c}
+	c.Foods = &FoodService{ResourceService[Food]{client: c, endpoint: "food/"}}
+	c.Units = &UnitService{ResourceService[Unit]{client: c, endpoint: "unit/"}}
+	c.Keywords = &KeywordService{ResourceService[Keyword]{client: c, endpoint: "keyword/"}}
 
 	return c
 }
