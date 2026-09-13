@@ -30,3 +30,10 @@ func (s *ResourceService[T]) Search(ctx context.Context, query string, kv ...str
 
 	return resp.Results, nil
 }
+
+func (s *ResourceService[T]) All(ctx context.Context, kv ...string) ([]T, error) {
+	params := constructParams(map[string]string{"page_size": "100"}, kv...)
+	endpoint := constructURL(s.endpoint, params)
+
+	return RequestAllPages[T](ctx, s.client, endpoint)
+}

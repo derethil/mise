@@ -12,3 +12,7 @@ type Keyword struct {
 func (s *KeywordService) SearchKeywords(ctx context.Context, query string, kv ...string) ([]Keyword, error) {
 	return s.Search(ctx, query, kv...)
 }
+
+func (s *KeywordService) ListKeywords(ctx context.Context, kv ...string) ([]Keyword, error) {
+	return s.All(ctx, kv...)
+}
