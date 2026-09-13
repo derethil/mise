@@ -5,11 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-
-	"github.com/derethil/mise/internal/config"
 )
-
-var failedIDsPath = filepath.Join(config.DataDir, "recipe-clean-failed.json")
 
 func loadFailedIDs(path string) ([]int, error) {
 	data, err := os.ReadFile(path)

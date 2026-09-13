@@ -66,58 +66,16 @@ var normalizeCmd = &cli.Command{
 		dryRun := cmd.Bool("dry-run")
 		untouchedOnly := cmd.Bool("untouched")
 
+		run := func(ctx context.Context, id int) error {
+			return normalizeRecipe(ctx, tclient, feature, model, cfg, id, dryRun, untouchedOnly)
+		}
+
 		if !cmd.Bool("all") && !cmd.Bool("failed") {
-			return normalizeRecipe(ctx, tclient, feature, model, cfg, cmd.IntArg("id"), dryRun, untouchedOnly)
+			return run(ctx, cmd.IntArg("id"))
 		}
 
-		ids, err := recipeIDsToRun(ctx, cmd, tclient)
-		if err != nil {
-			return err
-		}
-
-		if len(ids) == 0 {
-			slog.InfoContext(ctx, "No recipes to normalize")
-			return nil
-		}
-
-		return normalizeAll(ctx, tclient, feature, model, cfg, ids, dryRun, untouchedOnly)
+		return runBulk(ctx, cmd, tclient, "normalize", run)
 	},
-}
-
-func normalizeAll(ctx context.Context, tclient *tandoor.Client, feature *cleaningredients.Feature, model ai.ModelRef, cfg config.Config, ids []int, dryRun, untouchedOnly bool) error {
-	var failed []int
-	var errs []error
-	for _, id := range ids {
-		if err := normalizeRecipe(ctx, tclient, feature, model, cfg, id, dryRun, untouchedOnly); err != nil {
-			slog.ErrorContext(ctx, err.Error(), slog.Int("recipe_id", id))
-			errs = append(errs, err)
-			failed = append(failed, id)
-
-			if saveErr := saveFailedIDs(failedIDsPath, failed); saveErr != nil {
-				slog.WarnContext(ctx, "Could not write failed-recipe-ids file", slog.String("path", failedIDsPath), slog.Any("error", saveErr))
-			}
-		}
-	}
-
-	return errors.Join(errs...)
-}
-
-func recipeIDsToRun(ctx context.Context, cmd *cli.Command, tclient *tandoor.Client) ([]int, error) {
-	if cmd.Bool("failed") {
-		ids, err := loadFailedIDs(failedIDsPath)
-		if err != nil {
-			return nil, cliutil.ErrWithUserMessage(err, "Could not read the failed-recipe-ids file at %s.", failedIDsPath)
-		}
-
-		return ids, nil
-	}
-
-	ids, err := tclient.Recipes.GetAllRecipeIDs(ctx)
-	if err != nil {
-		return nil, cliutil.TandoorUserError(err)
-	}
-
-	return ids, nil
 }
 
 func normalizeRecipe(ctx context.Context, tclient *tandoor.Client, feature *cleaningredients.Feature, model ai.ModelRef, cfg config.Config, id int, dryRun, untouchedOnly bool) (err error) {
