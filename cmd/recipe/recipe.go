@@ -10,6 +10,6 @@ var Command = &cli.Command{
 	Commands: []*cli.Command{
 		backupCmd,
 		restoreCmd,
-		cleanCmd,
+		normalizeCmd,
 	},
 }

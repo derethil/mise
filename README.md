@@ -5,8 +5,8 @@ A CLI that provides a suite of AI-assisted tools to help you manage your
 
 ## Features
 
-- Cleans up messy ingredient rows so amount, unit, and food land in the right
-  fields.
+- Normalize messy ingredient rows so amount, unit, and food land in the right
+  fields, reusing Tandoor's existing foods and units.
 
 ## Install
 
@@ -52,11 +52,10 @@ mise using env vars e.g. `MISE_TANDOOR_TOKEN`.
 ## Commands
 
 - `mise configure` - create or edit configuration file
+- `mise recipe normalize` - cleans up a recipe's ingredients by ensuring each
+  amount/unit/food lands in the correct Tandoor field
 - `mise recipe backup` / `restore` - snapshot a recipe's JSON before you mess
   with it, or roll back to a snapshot later.
-- `mise recipe clean` - fixes ingredient rows that got imported as ingredients
-  but aren't, and splits amount/unit/food when they've landed in the wrong
-  field.
 - `mise models` - list, pull, or clear the Ollama models mise uses.
 - `mise logs` - print the path to the mise log file, useful when a model or
   command misbehaves.

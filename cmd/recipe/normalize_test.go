@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type CleanSuite struct {
+type NormalizeSuite struct {
 	suite.Suite
 
 	server *httptest.Server
@@ -26,7 +26,7 @@ type CleanSuite struct {
 	response   map[string]any
 }
 
-func (s *CleanSuite) SetupTest() {
+func (s *NormalizeSuite) SetupTest() {
 	s.lastMethod = ""
 	s.lastPath = ""
 	s.response = map[string]any{"id": 42, "name": "Tacos"}
@@ -42,29 +42,29 @@ func (s *CleanSuite) SetupTest() {
 	s.client = tandoor.NewClient(s.server.URL, "test-token")
 }
 
-func (s *CleanSuite) TearDownTest() {
+func (s *NormalizeSuite) TearDownTest() {
 	s.server.Close()
 }
 
-func TestCleanSuite(t *testing.T) {
-	suite.Run(t, new(CleanSuite))
+func TestNormalizeSuite(t *testing.T) {
+	suite.Run(t, new(NormalizeSuite))
 }
 
-func (s *CleanSuite) TestCleanCmd_RequiresIDOrAll() {
-	err := cleanCmd.Run(context.Background(), []string{"clean"})
+func (s *NormalizeSuite) TestNormalizeCmd_RequiresIDOrAll() {
+	err := normalizeCmd.Run(context.Background(), []string{"normalize"})
 
 	s.Require().Error(err)
 	s.Equal("Provide a recipe id, or pass --all or --failed.", cliutil.UserMessage(err))
 }
 
-func (s *CleanSuite) TestCleanCmd_RejectsAllAndFailedTogether() {
-	err := cleanCmd.Run(context.Background(), []string{"clean", "--all", "--failed"})
+func (s *NormalizeSuite) TestNormalizeCmd_RejectsAllAndFailedTogether() {
+	err := normalizeCmd.Run(context.Background(), []string{"normalize", "--all", "--failed"})
 
 	s.Require().Error(err)
 	s.Equal("Pass either --all or --failed, not both.", cliutil.UserMessage(err))
 }
 
-func (s *CleanSuite) TestFailedIDs_RoundTrip() {
+func (s *NormalizeSuite) TestFailedIDs_RoundTrip() {
 	path := filepath.Join(s.T().TempDir(), "failed.json")
 
 	ids, err := loadFailedIDs(path)
@@ -78,7 +78,7 @@ func (s *CleanSuite) TestFailedIDs_RoundTrip() {
 	s.Equal([]int{3, 7, 9}, ids)
 }
 
-func (s *CleanSuite) TestFailedIDs_SaveEmptyClearsFile() {
+func (s *NormalizeSuite) TestFailedIDs_SaveEmptyClearsFile() {
 	path := filepath.Join(s.T().TempDir(), "failed.json")
 
 	s.Require().NoError(saveFailedIDs(path, []int{3, 7}))
@@ -89,27 +89,27 @@ func (s *CleanSuite) TestFailedIDs_SaveEmptyClearsFile() {
 	s.Empty(ids)
 }
 
-func (s *CleanSuite) TestAlreadyCleaned_NoBackups() {
+func (s *NormalizeSuite) TestAlreadyNormalized_NoBackups() {
 	store := backup.NewStore(s.T().TempDir(), 0)
 
-	skip, err := alreadyCleaned(store, 42)
+	skip, err := alreadyNormalized(store, 42)
 
 	s.Require().NoError(err)
 	s.False(skip)
 }
 
-func (s *CleanSuite) TestAlreadyCleaned_HasBackup() {
+func (s *NormalizeSuite) TestAlreadyNormalized_HasBackup() {
 	store := backup.NewStore(s.T().TempDir(), 0)
 	_, err := store.Save(42, []byte(`{"id":42}`))
 	s.Require().NoError(err)
 
-	skip, err := alreadyCleaned(store, 42)
+	skip, err := alreadyNormalized(store, 42)
 
 	s.Require().NoError(err)
 	s.True(skip)
 }
 
-func (s *CleanSuite) TestSaveRecipe() {
+func (s *NormalizeSuite) TestSaveRecipe() {
 	recipe, err := s.client.Recipes.Get(s.T().Context(), 42)
 	s.Require().NoError(err)
 
@@ -127,7 +127,7 @@ func (s *CleanSuite) TestSaveRecipe() {
 	s.Len(entries, 1, "should back up the pre-patched recipe before updating")
 }
 
-func (s *CleanSuite) TestSaveRecipe_BackupFailureSkipsUpdate() {
+func (s *NormalizeSuite) TestSaveRecipe_BackupFailureSkipsUpdate() {
 	recipe, err := s.client.Recipes.Get(s.T().Context(), 42)
 	s.Require().NoError(err)
 
