@@ -141,6 +141,29 @@ func TestConfigSuite(t *testing.T) {
 	suite.Run(t, new(ConfigSuite))
 }
 
+func (s *ConfigSuite) TestKeywordsIgnoreFlagAcceptsMultipleValues() {
+	cfg := s.load("--keywords.ignore", "Uncategorized", "--keywords.ignore", "Basics")
+
+	s.Equal([]string{"Uncategorized", "Basics"}, cfg.Keywords.Ignore)
+}
+
+func (s *ConfigSuite) TestKeywordsIgnoreFromConfigFile() {
+	s.writeConfigFile(`
+[keywords]
+ignore = ["Uncategorized", "Basics"]
+`)
+
+	cfg := s.load()
+
+	s.Equal([]string{"Uncategorized", "Basics"}, cfg.Keywords.Ignore)
+}
+
+func (s *ConfigSuite) TestKeywordsSchemaFileDefault() {
+	cfg := s.load()
+
+	s.Contains(cfg.Keywords.SchemaFile, "keyword_schema.md")
+}
+
 func (s *ConfigSuite) TestProviderTimeoutDefault() {
 	cfg := s.load()
 

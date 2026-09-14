@@ -45,6 +45,24 @@ func TestWalkSchemaSkipsUntaggedFields(t *testing.T) {
 	assert.Equal(t, []string{"tagged"}, keys)
 }
 
+func TestFieldTypeOf(t *testing.T) {
+	assert.Equal(t, fieldTypeString, fieldTypeOf(reflect.TypeOf("")))
+	assert.Equal(t, fieldTypeStrings, fieldTypeOf(reflect.TypeOf([]string{})))
+	assert.Equal(t, fieldTypeInt, fieldTypeOf(reflect.TypeOf(0)))
+	assert.Equal(t, fieldTypeInt, fieldTypeOf(reflect.TypeOf(int64(0))))
+	assert.Equal(t, fieldTypeBool, fieldTypeOf(reflect.TypeOf(true)))
+	assert.Equal(t, fieldTypeString, fieldTypeOf(reflect.TypeOf(3.14)), "unhandled kinds default to string")
+	assert.Equal(t, fieldTypeString, fieldTypeOf(reflect.TypeOf([]int{})), "only string slices get the multi-value flag type")
+}
+
+func TestModelsConfigGet(t *testing.T) {
+	models := ModelsConfig{Small: "ollama/small", Large: "ollama/large"}
+
+	assert.Equal(t, "ollama/small", models.Get(ModelSmall))
+	assert.Equal(t, "ollama/large", models.Get(ModelLarge))
+	assert.Equal(t, "ollama/small", models.Get(ModelSize("")), "unrecognized sizes fall back to small")
+}
+
 func TestProvidersConfigGet(t *testing.T) {
 	providers := ProvidersConfig{
 		Ollama: ProviderConfig{BaseURL: "http://localhost:11434", APIKey: "secret"},
