@@ -38,3 +38,19 @@ func SearchUnitsTool(r Registry) ai.Tool {
 		},
 	)
 }
+
+type SearchKeywordsInput struct {
+	Search string `json:"search" jsonschema_description:"The search term to use when searching for keywords in Tandoor. Ranked by fuzzy similarity, so pass the keyword as you would write it. Results are ranked candidates, not guaranteed matches - reuse the top one whenever it means the same thing as the keyword you were about to create, to avoid ending up with two keywords that differ only in wording."`
+}
+
+func SearchKeywordsTool(r Registry) ai.Tool {
+	return genkit.DefineTool(r.Genkit, "searchKeywords",
+		"Searches for existing keywords in Tandoor.",
+		func(ctx *ai.ToolContext, input SearchKeywordsInput) ([]tandoor.Keyword, error) {
+			return r.Tandoor.Keywords.SearchKeywords(ctx,
+				input.Search,
+				"page_size", "5",
+			)
+		},
+	)
+}

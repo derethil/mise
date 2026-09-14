@@ -1,5 +1,4 @@
-// Package recipe implements mise's "recipe" command family: backup,
-// restore, and AI-assisted ingredient cleanup for Tandoor recipes.
+// Package recipe implements mise's "recipe" command family.
 package recipe
 
 import "github.com/urfave/cli/v3"
@@ -10,6 +9,7 @@ var Command = &cli.Command{
 	Commands: []*cli.Command{
 		backupCmd,
 		restoreCmd,
-		cleanCmd,
+		normalizeCmd,
+		keywordCmd,
 	},
 }

@@ -66,9 +66,22 @@ func flagValues(cmd *cli.Command) map[string]any {
 
 	walkSchema(reflect.TypeFor[Config](), "", func(f schemaField) {
 		if f.Flag && cmd.IsSet(f.Key) {
-			values[f.Key] = cmd.String(f.Key)
+			values[f.Key] = flagValue(cmd, f)
 		}
 	})
 
 	return values
+}
+
+func flagValue(cmd *cli.Command, f schemaField) any {
+	switch f.Type {
+	case fieldTypeStrings:
+		return cmd.StringSlice(f.Key)
+	case fieldTypeInt:
+		return cmd.Int(f.Key)
+	case fieldTypeBool:
+		return cmd.Bool(f.Key)
+	default:
+		return cmd.String(f.Key)
+	}
 }

@@ -61,7 +61,7 @@ func TandoorUserError(err error) error {
 func AIUserError(err error, model string) error {
 	switch {
 	case errors.Is(err, ai.ErrModelMissingTools):
-		return ErrWithUserMessage(err, "Model %s doesn't support tool calling, which recipe clean needs to look up existing foods and units. Choose a different model with --model or modify your config.", model)
+		return ErrWithUserMessage(err, "Model %s doesn't support tool calling, which mise's AI commands need to look up existing entries in Tandoor. Choose a different model with --model or modify your config.", model)
 	case errors.Is(err, config.ErrInvalidConfig):
 		return ErrWithUserMessage(err, "The AI provider isn't configured correctly. Check your provider settings (e.g. providers.ollama.base_url) and try again.")
 	case errors.Is(err, status.ErrNotFound):

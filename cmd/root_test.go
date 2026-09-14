@@ -15,7 +15,7 @@ func TestRootSuite(t *testing.T) {
 }
 
 func (s *RootSuite) TestCommandPathResolvesNestedCommand() {
-	s.Equal("recipe clean", commandPath(rootCmd, []string{"recipe", "clean", "5"}))
+	s.Equal("recipe normalize", commandPath(rootCmd, []string{"recipe", "normalize", "5"}))
 }
 
 func (s *RootSuite) TestCommandPathTopLevelOnly() {
@@ -23,7 +23,7 @@ func (s *RootSuite) TestCommandPathTopLevelOnly() {
 }
 
 func (s *RootSuite) TestCommandPathSkipsLeadingFlags() {
-	s.Equal("recipe clean", commandPath(rootCmd, []string{"-v", "recipe", "clean", "5"}))
+	s.Equal("recipe normalize", commandPath(rootCmd, []string{"-v", "recipe", "normalize", "5"}))
 }
 
 func (s *RootSuite) TestCommandPathStopsAtUnknownCommand() {
