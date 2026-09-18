@@ -23,20 +23,23 @@ var version = "dev"
 
 var globalFlags = []cli.Flag{
 	&cli.StringFlag{
-		Name:    string(cliutil.GlobalFlagModel),
-		Usage:   "Override the AI model to use for this command",
-		Aliases: []string{"m"},
+		Name:     string(cliutil.GlobalFlagModel),
+		Usage:    "Override the AI model to use for this command",
+		Aliases:  []string{"m"},
+		Category: "GENERAL OPTIONS",
 	},
 	&cli.BoolFlag{
-		Name:    string(cliutil.GlobalFlagVerbose),
-		Usage:   "Enable verbose (debug) logging; repeat (-vv) for even more verbose output",
-		Aliases: []string{"v"},
+		Name:     string(cliutil.GlobalFlagVerbose),
+		Usage:    "Enable verbose (debug) logging; repeat (-vv) for even more verbose output",
+		Aliases:  []string{"v"},
+		Category: "GENERAL OPTIONS",
 	},
 	&cli.StringFlag{
 		Name:        string(cliutil.GlobalFlagConfig),
 		Usage:       "Path to the configuration file",
 		Aliases:     []string{"c"},
 		DefaultText: config.DefaultConfigPath(),
+		Category:    "GENERAL OPTIONS",
 	},
 }
 

@@ -23,12 +23,12 @@ func Flags() []cli.Flag {
 func newFlag(f schemaField) cli.Flag {
 	switch f.Type {
 	case fieldTypeStrings:
-		return &cli.StringSliceFlag{Name: f.Key, Usage: f.Usage}
+		return &cli.StringSliceFlag{Name: f.Key, Usage: f.Usage, Category: f.Category}
 	case fieldTypeInt:
-		return &cli.IntFlag{Name: f.Key, Usage: f.Usage}
+		return &cli.IntFlag{Name: f.Key, Usage: f.Usage, Category: f.Category}
 	case fieldTypeBool:
-		return &cli.BoolFlag{Name: f.Key, Usage: f.Usage}
+		return &cli.BoolFlag{Name: f.Key, Usage: f.Usage, Category: f.Category}
 	default:
-		return &cli.StringFlag{Name: f.Key, Usage: f.Usage}
+		return &cli.StringFlag{Name: f.Key, Usage: f.Usage, Category: f.Category}
 	}
 }

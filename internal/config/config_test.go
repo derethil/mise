@@ -64,6 +64,20 @@ func (s *ConfigSuite) TestDefaults() {
 	s.Empty(cfg.Models.Large)
 }
 
+func (s *ConfigSuite) TestFlagsHaveCategories() {
+	categories := make(map[string]string)
+	for _, flag := range Flags() {
+		categories[flag.Names()[0]] = flag.(cli.CategorizableFlag).GetCategory()
+	}
+
+	s.Equal("TANDOOR OPTIONS", categories["tandoor.token"])
+	s.Equal("TANDOOR OPTIONS", categories["tandoor.base_url"])
+	s.Equal("PROVIDER OPTIONS", categories["providers.ollama.base_url"])
+	s.Equal("PROVIDER OPTIONS", categories["providers.ollama.api_key"])
+	s.Equal("FEATURE OPTIONS", categories["keywords.schema_file"])
+	s.Equal("FEATURE OPTIONS", categories["keywords.ignore"])
+}
+
 func (s *ConfigSuite) TestConfigFileOverridesDefaults() {
 	s.writeConfigFile(`
 [tandoor]

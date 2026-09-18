@@ -43,15 +43,15 @@ func (m ModelsConfig) Get(size ModelSize) string {
 
 type KeywordsConfig struct {
 	SchemaFile string   `key:"schema_file" usage:"Path to the file describing your keyword schema"`
-	Ignore     []string `key:"ignore" usage:"Keywords that don't count as tagged when using --untagged"`
+	Ignore     []string `key:"ignore" usage:"Keywords that don't count as tagged when using recipes keyword --untagged"`
 }
 
 type Config struct {
-	Tandoor   TandoorConfig   `key:"tandoor"`
+	Tandoor   TandoorConfig   `key:"tandoor" category:"TANDOOR OPTIONS"`
 	Backup    BackupConfig    `key:"backup"`
-	Providers ProvidersConfig `key:"providers"`
+	Providers ProvidersConfig `key:"providers" category:"PROVIDER OPTIONS"`
 	Models    ModelsConfig    `key:"models"`
-	Keywords  KeywordsConfig  `key:"keywords"`
+	Keywords  KeywordsConfig  `key:"keywords" category:"FEATURE OPTIONS"`
 }
 
 var defaultConfig = Config{
