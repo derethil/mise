@@ -51,7 +51,7 @@ type Config struct {
 	Backup    BackupConfig    `key:"backup"`
 	Providers ProvidersConfig `key:"providers" category:"PROVIDER OPTIONS"`
 	Models    ModelsConfig    `key:"models"`
-	Keywords  KeywordsConfig  `key:"keywords" category:"FEATURE OPTIONS"`
+	Keywords  KeywordsConfig  `key:"keywords" command:"recipe keyword"`
 }
 
 var defaultConfig = Config{

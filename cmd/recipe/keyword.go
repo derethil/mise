@@ -24,7 +24,7 @@ var keywordCmd = &cli.Command{
 	Arguments: []cli.Argument{
 		&cli.IntArg{Name: "id"},
 	},
-	Flags: []cli.Flag{
+	Flags: append(config.FlagsForCommand("recipe keyword"), []cli.Flag{
 		&cli.BoolFlag{
 			Name:    "dry-run",
 			Usage:   "Log the proposed keywords without writing them",
@@ -47,6 +47,15 @@ var keywordCmd = &cli.Command{
 			Name:  "failed",
 			Usage: "Re-run only the recipes that failed during the previous --all or --failed run",
 		},
+	}...),
+	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+		configPath := cliutil.ResolveFlag(cmd, cliutil.GlobalFlagConfig, config.DefaultConfigPath())
+		cfg, err := config.Load(cmd, configPath)
+		if err != nil {
+			return ctx, err
+		}
+
+		return config.NewContext(ctx, cfg), nil
 	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		if cmd.Bool("all") && cmd.Bool("failed") {

@@ -19,6 +19,7 @@ type schemaField struct {
 	Key      string
 	Usage    string
 	Category string
+	Command  string
 	Type     fieldType
 
 	// Flag determines whether this field is settable via command line flag. Fields with
@@ -27,10 +28,10 @@ type schemaField struct {
 }
 
 func walkSchema(t reflect.Type, prefix string, visit func(schemaField)) {
-	walkFields(t, prefix, "", true, visit)
+	walkFields(t, prefix, "", "", true, visit)
 }
 
-func walkFields(t reflect.Type, prefix, category string, flag bool, visit func(schemaField)) {
+func walkFields(t reflect.Type, prefix, category, command string, flag bool, visit func(schemaField)) {
 	for field := range t.Fields() {
 		name := field.Tag.Get("key")
 		if name == "" {
@@ -43,19 +44,25 @@ func walkFields(t reflect.Type, prefix, category string, flag bool, visit func(s
 		}
 
 		enabled := flag && field.Tag.Get("flag") != "-"
+
 		fieldCategory := category
 		if taggedCategory := field.Tag.Get("category"); taggedCategory != "" {
 			fieldCategory = taggedCategory
 		}
 
+		fieldCommand := command
+		if taggedCommand := field.Tag.Get("command"); taggedCommand != "" {
+			fieldCommand = taggedCommand
+		}
+
 		if field.Type.Kind() == reflect.Struct {
-			walkFields(field.Type, key, fieldCategory, enabled, visit)
+			walkFields(field.Type, key, fieldCategory, fieldCommand, enabled, visit)
 			continue
 		}
 
 		if field.Type == reflect.TypeFor[ProvidersConfig]() {
 			for _, name := range slices.Sorted(maps.Keys(defaultConfig.Providers)) {
-				walkFields(reflect.TypeFor[ProviderConfig](), key+"."+name, fieldCategory, enabled, visit)
+				walkFields(reflect.TypeFor[ProviderConfig](), key+"."+name, fieldCategory, fieldCommand, enabled, visit)
 			}
 			continue
 		}
@@ -64,6 +71,7 @@ func walkFields(t reflect.Type, prefix, category string, flag bool, visit func(s
 			Key:      key,
 			Usage:    field.Tag.Get("usage"),
 			Category: fieldCategory,
+			Command:  fieldCommand,
 			Type:     fieldTypeOf(field.Type),
 			Flag:     enabled,
 		})

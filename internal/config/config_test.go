@@ -30,6 +30,10 @@ func (s *ConfigSuite) writeConfigFile(contents string) {
 }
 
 func (s *ConfigSuite) load(args ...string) Config {
+	return s.loadWithFlags(Flags(), args...)
+}
+
+func (s *ConfigSuite) loadWithFlags(flags []cli.Flag, args ...string) Config {
 	var (
 		cfg Config
 		err error
@@ -37,7 +41,7 @@ func (s *ConfigSuite) load(args ...string) Config {
 
 	cmd := &cli.Command{
 		Name:  "mise",
-		Flags: Flags(),
+		Flags: flags,
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			cfg, err = Load(cmd, DefaultConfigPath())
 			return err
@@ -74,8 +78,14 @@ func (s *ConfigSuite) TestFlagsHaveCategories() {
 	s.Equal("TANDOOR OPTIONS", categories["tandoor.base_url"])
 	s.Equal("PROVIDER OPTIONS", categories["providers.ollama.base_url"])
 	s.Equal("PROVIDER OPTIONS", categories["providers.ollama.api_key"])
-	s.Equal("FEATURE OPTIONS", categories["keywords.schema_file"])
-	s.Equal("FEATURE OPTIONS", categories["keywords.ignore"])
+	s.NotContains(categories, "keywords.schema_file")
+	s.NotContains(categories, "keywords.ignore")
+
+	for _, flag := range FlagsForCommand("recipe keyword") {
+		categories[flag.Names()[0]] = flag.(cli.CategorizableFlag).GetCategory()
+	}
+	s.Empty(categories["keywords.schema_file"])
+	s.Empty(categories["keywords.ignore"])
 }
 
 func (s *ConfigSuite) TestConfigFileOverridesDefaults() {
@@ -156,7 +166,7 @@ func TestConfigSuite(t *testing.T) {
 }
 
 func (s *ConfigSuite) TestKeywordsIgnoreFlagAcceptsMultipleValues() {
-	cfg := s.load("--keywords.ignore", "Uncategorized", "--keywords.ignore", "Basics")
+	cfg := s.loadWithFlags(FlagsForCommand("recipe keyword"), "--keywords.ignore", "Uncategorized", "--keywords.ignore", "Basics")
 
 	s.Equal([]string{"Uncategorized", "Basics"}, cfg.Keywords.Ignore)
 }

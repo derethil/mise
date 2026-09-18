@@ -7,10 +7,18 @@ import (
 )
 
 func Flags() []cli.Flag {
+	return flagsFor("")
+}
+
+func FlagsForCommand(command string) []cli.Flag {
+	return flagsFor(command)
+}
+
+func flagsFor(command string) []cli.Flag {
 	var flags []cli.Flag
 
 	walkSchema(reflect.TypeFor[Config](), "", func(f schemaField) {
-		if !f.Flag {
+		if !f.Flag || f.Command != command {
 			return
 		}
 
