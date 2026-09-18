@@ -1,4 +1,4 @@
-package ai
+package providers
 
 import (
 	"context"
@@ -7,14 +7,6 @@ import (
 
 	"github.com/firebase/genkit/go/ai"
 )
-
-var providerMiddlewareFactories = map[string]func(GenerateConfig) []ai.Middleware{
-	ProviderOllama: ollamaMiddleware,
-}
-
-func ollamaMiddleware(cfg GenerateConfig) []ai.Middleware {
-	return []ai.Middleware{stripThinkArtifacts}
-}
 
 // some Ollama-served Qwen3 builds leak /think and /no_think into generated text instead of consuming as config
 var thinkArtifactRegex = regexp.MustCompile(`(?i)\(?\s*/(?:no_)?think\s*\)?`)

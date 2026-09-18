@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
 	"github.com/urfave/cli/v3"
@@ -9,12 +9,12 @@ import (
 
 type labeledModel struct {
 	label string
-	ref   ai.ModelRef
+	ref   providers.ModelRef
 }
 
 func selectedModels(cmd *cli.Command, cfg config.Config) ([]labeledModel, error) {
 	if override := cmd.String(string(cliutil.GlobalFlagModel)); override != "" {
-		model, err := ai.ParseModel(override)
+		model, err := providers.ParseModel(override)
 		if err != nil {
 			return nil, err
 		}
@@ -22,12 +22,12 @@ func selectedModels(cmd *cli.Command, cfg config.Config) ([]labeledModel, error)
 		return []labeledModel{{label: "override", ref: model}}, nil
 	}
 
-	small, err := ai.ParseModel(cfg.Models.Small)
+	small, err := providers.ParseModel(cfg.Models.Small)
 	if err != nil {
 		return nil, err
 	}
 
-	large, err := ai.ParseModel(cfg.Models.Large)
+	large, err := providers.ParseModel(cfg.Models.Large)
 	if err != nil {
 		return nil, err
 	}
@@ -38,8 +38,21 @@ func selectedModels(cmd *cli.Command, cfg config.Config) ([]labeledModel, error)
 	}, nil
 }
 
-func modelRefs(models []labeledModel) []ai.ModelRef {
-	refs := make([]ai.ModelRef, len(models))
+func ollamaProvider(cfg config.ProviderConfig, models []labeledModel) (*providers.OllamaProvider, error) {
+	for _, model := range models {
+		if model.ref.Provider == providers.ProviderOllama {
+			return providers.NewOllamaProvider(cfg)
+		}
+	}
+
+	return nil, cliutil.ErrWithUserMessage(
+		cliutil.ErrIncorrectUsage,
+		"No Ollama models are selected. Configure an Ollama model in models.small or models.large, or select one with --model ollama/<model>.",
+	)
+}
+
+func modelRefs(models []labeledModel) []providers.ModelRef {
+	refs := make([]providers.ModelRef, len(models))
 	for i, model := range models {
 		refs[i] = model.ref
 	}

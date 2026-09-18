@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
 	"github.com/stretchr/testify/suite"
@@ -54,7 +54,7 @@ func (s *ConfigureSuite) TestConfigureModels_ErrorsWithoutInteractiveInput() {
 func (s *ConfigureSuite) TestConfigureProvider_ErrorsWithoutInteractiveInput() {
 	var cfg config.Config
 
-	err := configureProvider(&cfg, ai.ProviderOllama)
+	err := configureProvider(&cfg, providers.ProviderOllama)
 
 	s.Require().Error(err)
 	s.True(cliutil.IsUserAbort(err))

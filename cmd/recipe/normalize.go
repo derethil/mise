@@ -8,6 +8,7 @@ import (
 
 	"github.com/derethil/mise/internal/ai"
 	"github.com/derethil/mise/internal/ai/cleaningredients"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/backup"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
@@ -78,7 +79,7 @@ var normalizeCmd = &cli.Command{
 	},
 }
 
-func normalizeRecipe(ctx context.Context, tclient *tandoor.Client, feature *cleaningredients.Feature, model ai.ModelRef, cfg config.Config, id int, dryRun, untouchedOnly bool) (err error) {
+func normalizeRecipe(ctx context.Context, tclient *tandoor.Client, feature *cleaningredients.Feature, model providers.ModelRef, cfg config.Config, id int, dryRun, untouchedOnly bool) (err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("recipe %d: %w", id, err)
@@ -131,7 +132,7 @@ func alreadyNormalized(store *backup.Store, id int) (bool, error) {
 	return len(entries) > 0, nil
 }
 
-func runNormalization(ctx context.Context, feature *cleaningredients.Feature, model ai.ModelRef, recipe *tandoor.Recipe) ([]byte, []cleaningredients.Change, error) {
+func runNormalization(ctx context.Context, feature *cleaningredients.Feature, model providers.ModelRef, recipe *tandoor.Recipe) ([]byte, []cleaningredients.Change, error) {
 	onProgress := cliutil.PrintProgress()
 	cleaned, err := feature.CleanRecipe(ctx, recipe, func(p cleaningredients.Progress) error {
 		return onProgress(cliutil.Progress{

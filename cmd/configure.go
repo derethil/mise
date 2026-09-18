@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/tandoor"
@@ -113,31 +113,31 @@ func configureTandoor(ctx context.Context, cfg *config.Config) error {
 	return nil
 }
 
-func configureModels(cfg *config.Config) (ai.ModelRef, ai.ModelRef, error) {
+func configureModels(cfg *config.Config) (providers.ModelRef, providers.ModelRef, error) {
 	validateModel := func(input string) error {
-		_, err := ai.ParseModel(input)
+		_, err := providers.ParseModel(input)
 		return err
 	}
 
 	smallModelInput, err := cliutil.PromptForInput("Small model (e.g., ollama/qwen2.5:7b)", cfg.Models.Small, validateModel)
 	if err != nil {
-		return ai.ModelRef{}, ai.ModelRef{}, err
+		return providers.ModelRef{}, providers.ModelRef{}, err
 	}
 
 	largeModelInput, err := cliutil.PromptForInput("Large model (e.g., ollama/qwen2.5:14b)", cfg.Models.Large, validateModel)
 	if err != nil {
-		return ai.ModelRef{}, ai.ModelRef{}, err
+		return providers.ModelRef{}, providers.ModelRef{}, err
 	}
 
-	smallModel, _ := ai.ParseModel(smallModelInput)
-	largeModel, _ := ai.ParseModel(largeModelInput)
+	smallModel, _ := providers.ParseModel(smallModelInput)
+	largeModel, _ := providers.ParseModel(largeModelInput)
 
 	return smallModel, largeModel, nil
 
 }
 
 func configureProvider(cfg *config.Config, provider string) error {
-	providerCfg, _ := cfg.Providers.Get(provider)
+	providerCfg := cfg.Providers[provider]
 
 	baseURL, err := cliutil.PromptForInput(fmt.Sprintf("%s Base URL", provider), providerCfg.BaseURL, validateBaseURL)
 	if err != nil {
@@ -145,7 +145,7 @@ func configureProvider(cfg *config.Config, provider string) error {
 	}
 	providerCfg.BaseURL = baseURL
 
-	if provider != ai.ProviderOllama {
+	if provider != providers.ProviderOllama {
 		apiKey, err := cliutil.PromptForHiddenInput(fmt.Sprintf("%s API Key", provider), providerCfg.APIKey)
 		if err != nil {
 			return err
@@ -153,13 +153,13 @@ func configureProvider(cfg *config.Config, provider string) error {
 		providerCfg.APIKey = apiKey
 	}
 
-	cfg.Providers.Set(provider, providerCfg)
+	cfg.Providers[provider] = providerCfg
 
 	return nil
 }
 
 func configureProviders(cfg *config.Config) error {
-	fmt.Println("Supported providers:", strings.Join(ai.SupportedProviders(), ", "))
+	fmt.Println("Supported providers:", strings.Join(providers.SupportedProviders(), ", "))
 
 	smallModel, largeModel, err := configureModels(cfg)
 	if err != nil {

@@ -58,8 +58,8 @@ func (s *ConfigSuite) TestDefaults() {
 	s.Empty(cfg.Tandoor.Token)
 	s.Equal(filepath.Join(DataDir, "tandoor_backups"), cfg.Tandoor.BackupDir)
 
-	s.Equal("http://localhost:11434", cfg.Providers.Ollama.BaseURL)
-	s.Empty(cfg.Providers.Ollama.APIKey)
+	s.Equal("http://localhost:11434", cfg.Providers["ollama"].BaseURL)
+	s.Empty(cfg.Providers["ollama"].APIKey)
 	s.Empty(cfg.Models.Small)
 	s.Empty(cfg.Models.Large)
 }
@@ -167,7 +167,7 @@ func (s *ConfigSuite) TestKeywordsSchemaFileDefault() {
 func (s *ConfigSuite) TestProviderTimeoutDefault() {
 	cfg := s.load()
 
-	s.Equal(600, cfg.Providers.Ollama.Timeout)
+	s.Equal(600, cfg.Providers["ollama"].Timeout)
 }
 
 func (s *ConfigSuite) TestProviderTimeoutFromFile() {
@@ -175,7 +175,7 @@ func (s *ConfigSuite) TestProviderTimeoutFromFile() {
 
 	cfg := s.load()
 
-	s.Equal(900, cfg.Providers.Ollama.Timeout)
+	s.Equal(900, cfg.Providers["ollama"].Timeout)
 }
 
 func (s *ConfigSuite) TestProviderTimeoutFromEnv() {
@@ -183,5 +183,5 @@ func (s *ConfigSuite) TestProviderTimeoutFromEnv() {
 
 	cfg := s.load()
 
-	s.Equal(120, cfg.Providers.Ollama.Timeout)
+	s.Equal(120, cfg.Providers["ollama"].Timeout)
 }

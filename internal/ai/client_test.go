@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/config"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core/api"
@@ -12,14 +13,14 @@ import (
 )
 
 type fakeToolPlugin struct {
-	name   string
-	action api.Action
+	name    string
+	actions []api.Action
 }
 
 func (p *fakeToolPlugin) Name() string { return p.name }
 
 func (p *fakeToolPlugin) Init(context.Context) []api.Action {
-	return []api.Action{p.action}
+	return p.actions
 }
 
 func stubModelFunc(_ context.Context, _ *ai.ModelRequest, _ any, _ ai.ModelStreamCallback) (*ai.ModelResponse, error) {
@@ -30,29 +31,24 @@ func newFakeModel(name string, supports *ai.ModelSupports) api.Action {
 	return ai.NewModelAction(name, &ai.ModelOptions{Supports: supports}, stubModelFunc)
 }
 
-func (s *ClientSuite) withFakeOllamaModel(modelName string, supports *ai.ModelSupports) {
-	action := newFakeModel(api.NewName(ProviderOllama, modelName), supports)
-
-	original := providerFactories[ProviderOllama]
-	providerFactories[ProviderOllama] = func(config.ProviderConfig) (api.Plugin, error) {
-		return &fakeToolPlugin{name: ProviderOllama, action: action}, nil
+func testProvider(name string, actions ...api.Action) *providers.Provider {
+	return &providers.Provider{
+		Name:   name,
+		Plugin: &fakeToolPlugin{name: name, actions: actions},
 	}
-
-	s.T().Cleanup(func() {
-		providerFactories[ProviderOllama] = original
-	})
 }
 
 type ClientSuite struct {
 	suite.Suite
-
-	providers config.ProvidersConfig
 }
 
-func (s *ClientSuite) SetupTest() {
-	s.providers = config.ProvidersConfig{
-		Ollama: config.ProviderConfig{BaseURL: "http://localhost:11434"},
+func (s *ClientSuite) newClient(provider *providers.Provider, names ...string) (*Client, error) {
+	models := make([]providers.ModelRef, len(names))
+	for i, name := range names {
+		models[i] = providers.ModelRef{Provider: provider.Name, Name: name}
 	}
+
+	return newGenkitClient(s.T().Context(), []*providers.Provider{provider}, Deps{}, models...)
 }
 
 func TestClientSuite(t *testing.T) {
@@ -60,41 +56,63 @@ func TestClientSuite(t *testing.T) {
 }
 
 func (s *ClientSuite) TestNewGenkitClientSucceedsWhenModelSupportsTools() {
-	s.withFakeOllamaModel("with-tools", &ai.ModelSupports{Tools: true})
+	provider := testProvider("remote", newFakeModel("remote/model", &ai.ModelSupports{Tools: true}))
 
-	client, err := NewGenkitClient(s.T().Context(), s.providers, Deps{}, ModelRef{Provider: ProviderOllama, Name: "with-tools"})
+	_, err := s.newClient(provider, "model")
 
-	s.Require().NoError(err)
-	s.NotNil(client)
+	s.NoError(err)
 }
 
 func (s *ClientSuite) TestNewGenkitClientErrorsWhenModelDoesNotSupportTools() {
-	s.withFakeOllamaModel("no-tools", &ai.ModelSupports{Tools: false})
+	provider := testProvider("remote", newFakeModel("remote/model", &ai.ModelSupports{}))
 
-	client, err := NewGenkitClient(s.T().Context(), s.providers, Deps{}, ModelRef{Provider: ProviderOllama, Name: "no-tools"})
+	_, err := s.newClient(provider, "model")
 
-	s.Require().Error(err)
 	s.ErrorIs(err, ErrModelMissingTools)
-	s.Nil(client)
 }
 
 func (s *ClientSuite) TestNewGenkitClientChecksExtraModelsToo() {
-	s.withFakeOllamaModel("no-tools", &ai.ModelSupports{Tools: false})
-
-	_, err := NewGenkitClient(s.T().Context(), s.providers, Deps{},
-		ModelRef{Provider: ProviderOllama, Name: "no-tools"},
-		ModelRef{Provider: ProviderOllama, Name: "no-tools"},
+	provider := testProvider("remote",
+		newFakeModel("remote/with-tools", &ai.ModelSupports{Tools: true}),
+		newFakeModel("remote/no-tools", &ai.ModelSupports{}),
 	)
 
-	s.Require().Error(err)
+	_, err := s.newClient(provider, "with-tools", "no-tools")
+
 	s.ErrorIs(err, ErrModelMissingTools)
+	s.ErrorContains(err, "remote/no-tools")
 }
 
 func (s *ClientSuite) TestNewGenkitClientPropagatesProviderConfigErrors() {
-	_, err := NewGenkitClient(s.T().Context(), config.ProvidersConfig{}, Deps{}, ModelRef{Provider: ProviderOllama, Name: "qwen2.5"})
+	model := providers.ModelRef{Provider: providers.ProviderOllama, Name: "qwen2.5"}
 
-	s.Require().Error(err)
+	_, err := NewGenkitClient(s.T().Context(), config.ProvidersConfig{}, Deps{}, model)
+
 	s.ErrorIs(err, config.ErrInvalidConfig)
+}
+
+type providerTestFeature struct {
+	registry Registry
+}
+
+func (f *providerTestFeature) Register(r Registry) error {
+	f.registry = r
+	return nil
+}
+
+func (s *ClientSuite) TestPassesSelectedProviderToFeatures() {
+	feature := &providerTestFeature{}
+	provider := testProvider("remote", newFakeModel("remote/model", &ai.ModelSupports{Tools: true}))
+
+	original := featureFactories
+	featureFactories = []func() Feature{func() Feature { return feature }}
+	s.T().Cleanup(func() { featureFactories = original })
+
+	_, err := s.newClient(provider, "model")
+	s.Require().NoError(err)
+
+	s.Same(provider, feature.registry.Providers[provider.Name])
+	s.Equal(providers.ModelRef{Provider: "remote", Name: "model"}, feature.registry.Model)
 }
 
 func (s *ClientSuite) TestSupportsToolsWhenModelSupportsThem() {

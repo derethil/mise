@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/config"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core/api"
@@ -23,16 +24,25 @@ type Client struct {
 	features map[reflect.Type]Feature
 }
 
-func NewGenkitClient(ctx context.Context, providers config.ProvidersConfig, deps Deps, models ...ModelRef) (*Client, error) {
+func NewGenkitClient(ctx context.Context, cfg config.ProvidersConfig, deps Deps, models ...providers.ModelRef) (*Client, error) {
 	if len(models) == 0 {
 		return nil, ErrNoModels
 	}
 
 	slog.DebugContext(ctx, "initializing ai client", slog.String("model", models[0].String()))
 
-	plugins, err := getProviderPlugins(ctx, providers, models...)
+	configured, err := providers.ForModels(ctx, cfg, models...)
 	if err != nil {
 		return nil, err
+	}
+
+	return newGenkitClient(ctx, configured, deps, models...)
+}
+
+func newGenkitClient(ctx context.Context, configured []*providers.Provider, deps Deps, models ...providers.ModelRef) (*Client, error) {
+	plugins := make([]api.Plugin, len(configured))
+	for i, provider := range configured {
+		plugins[i] = provider.Plugin
 	}
 
 	slog.DebugContext(ctx, "using provider plugins", slog.String("plugins", pluginNames(plugins)))
@@ -50,7 +60,7 @@ func NewGenkitClient(ctx context.Context, providers config.ProvidersConfig, deps
 	}
 
 	client := &Client{features: make(map[reflect.Type]Feature, len(featureFactories))}
-	err = client.RegisterFeatures(ctx, g, models, deps)
+	err := client.RegisterFeatures(ctx, g, configured, models[0], deps)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +68,13 @@ func NewGenkitClient(ctx context.Context, providers config.ProvidersConfig, deps
 	return client, nil
 }
 
-func (c *Client) RegisterFeatures(ctx context.Context, g *genkit.Genkit, models []ModelRef, deps Deps) error {
-	registry := Registry{Genkit: g, Provider: models[0].Provider, Deps: deps}
+func (c *Client) RegisterFeatures(ctx context.Context, g *genkit.Genkit, configured []*providers.Provider, model providers.ModelRef, deps Deps) error {
+	providerByName := make(map[string]*providers.Provider, len(configured))
+	for _, provider := range configured {
+		providerByName[provider.Name] = provider
+	}
+
+	registry := Registry{Genkit: g, Providers: providerByName, Model: model, Deps: deps}
 
 	for _, newFeature := range featureFactories {
 		feature := newFeature()

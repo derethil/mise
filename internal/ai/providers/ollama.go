@@ -1,5 +1,4 @@
-// Package ollama provides an interface to manage Ollama models for the user.
-package ollama
+package providers
 
 import (
 	"context"
@@ -12,23 +11,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/derethil/mise/internal/ai"
 	"github.com/derethil/mise/internal/config"
+	genai "github.com/firebase/genkit/go/ai"
+	"github.com/firebase/genkit/go/plugins/ollama"
 	"github.com/ollama/ollama/api"
 )
 
 var ErrPullDeclined = errors.New("model download declined")
 var ErrClearDeclined = errors.New("model deletion declined")
 
+type OllamaProvider struct {
+	Provider
+	client *api.Client
+}
+
 type ConfirmFunc func(question string) (bool, error)
 
 type ModelStatus struct {
-	Model ai.ModelRef
+	Model ModelRef
 	Info  *ModelInfo
-}
-
-type Provisioner struct {
-	client *api.Client
 }
 
 type ModelInfo struct {
@@ -48,22 +49,41 @@ type PullProgress struct {
 
 type PullProgressFunc func(PullProgress) error
 
-func NewProvisioner(baseURL string) (*Provisioner, error) {
-	if baseURL == "" {
+func NewOllamaProvider(cfg config.ProviderConfig) (*OllamaProvider, error) {
+	if cfg.BaseURL == "" {
 		return nil, fmt.Errorf("%w: providers.ollama.base_url is not set", config.ErrInvalidConfig)
 	}
 
-	base, err := url.Parse(baseURL)
+	base, err := url.Parse(cfg.BaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse providers.ollama.base_url: %w", err)
 	}
 
-	c := api.NewClient(base, http.DefaultClient)
-
-	return &Provisioner{client: c}, nil
+	return &OllamaProvider{
+		Provider: Provider{
+			Name:           ProviderOllama,
+			Config:         cfg,
+			Plugin:         &ollama.Ollama{ServerAddress: cfg.BaseURL, Timeout: cfg.Timeout},
+			GenerateConfig: ollamaConfig,
+			Middleware:     ollamaMiddleware,
+		},
+		client: api.NewClient(base, http.DefaultClient),
+	}, nil
 }
 
-func (c *Provisioner) models(ctx context.Context) ([]ModelInfo, error) {
+func ollamaConfig(cfg GenerateConfig) any {
+	out := &ollama.GenerateContentConfig{Temperature: cfg.Temperature, TopP: cfg.TopP}
+	if cfg.Reasoning != nil {
+		out.Think = ollama.ThinkEnabled(*cfg.Reasoning)
+	}
+	return out
+}
+
+func ollamaMiddleware(GenerateConfig) []genai.Middleware {
+	return []genai.Middleware{stripThinkArtifacts}
+}
+
+func (c *OllamaProvider) models(ctx context.Context) ([]ModelInfo, error) {
 	response, err := c.client.List(ctx)
 	if err != nil {
 		return nil, err
@@ -91,7 +111,7 @@ func (c *Provisioner) models(ctx context.Context) ([]ModelInfo, error) {
 	return models, nil
 }
 
-func (c *Provisioner) hasModel(ctx context.Context, model ai.ModelRef) (bool, error) {
+func (c *OllamaProvider) hasModel(ctx context.Context, model ModelRef) (bool, error) {
 	models, err := c.models(ctx)
 	if err != nil {
 		return false, err
@@ -102,7 +122,7 @@ func (c *Provisioner) hasModel(ctx context.Context, model ai.ModelRef) (bool, er
 	return slices.ContainsFunc(models, func(m ModelInfo) bool { return m.Name == name }), nil
 }
 
-func (c *Provisioner) pullModel(ctx context.Context, model ai.ModelRef, onProgress PullProgressFunc) error {
+func (c *OllamaProvider) pullModel(ctx context.Context, model ModelRef, onProgress PullProgressFunc) error {
 	request := api.PullRequest{
 		Model: ModelName(model),
 	}
@@ -123,13 +143,13 @@ func (c *Provisioner) pullModel(ctx context.Context, model ai.ModelRef, onProgre
 	return nil
 }
 
-func (c *Provisioner) deleteModel(ctx context.Context, name string) error {
+func (c *OllamaProvider) deleteModel(ctx context.Context, name string) error {
 	slog.DebugContext(ctx, "deleting ollama model", slog.String("model", name))
 	return c.client.Delete(ctx, &api.DeleteRequest{Model: name})
 }
 
-func (c *Provisioner) installedModels(ctx context.Context, models []ai.ModelRef) (map[string]ModelInfo, error) {
-	if !slices.ContainsFunc(models, func(m ai.ModelRef) bool { return m.Provider == ai.ProviderOllama }) {
+func (c *OllamaProvider) installedModels(ctx context.Context, models []ModelRef) (map[string]ModelInfo, error) {
+	if !slices.ContainsFunc(models, func(m ModelRef) bool { return m.Provider == ProviderOllama }) {
 		return nil, nil
 	}
 
@@ -146,7 +166,7 @@ func (c *Provisioner) installedModels(ctx context.Context, models []ai.ModelRef)
 	return installed, nil
 }
 
-func (c *Provisioner) Clear(ctx context.Context, keep []ai.ModelRef, confirm ConfirmFunc) ([]ModelInfo, error) {
+func (c *OllamaProvider) Clear(ctx context.Context, keep []ModelRef, confirm ConfirmFunc) ([]ModelInfo, error) {
 	installed, err := c.models(ctx)
 	if err != nil {
 		return nil, err
@@ -182,7 +202,7 @@ func (c *Provisioner) Clear(ctx context.Context, keep []ai.ModelRef, confirm Con
 	return stale, nil
 }
 
-func (c *Provisioner) Statuses(ctx context.Context, models []ai.ModelRef) ([]ModelStatus, error) {
+func (c *OllamaProvider) Statuses(ctx context.Context, models []ModelRef) ([]ModelStatus, error) {
 	installed, err := c.installedModels(ctx, models)
 	if err != nil {
 		return nil, err
@@ -192,7 +212,7 @@ func (c *Provisioner) Statuses(ctx context.Context, models []ai.ModelRef) ([]Mod
 	for i, model := range models {
 		statuses[i] = ModelStatus{Model: model}
 
-		if model.Provider != ai.ProviderOllama {
+		if model.Provider != ProviderOllama {
 			continue
 		}
 
@@ -204,7 +224,7 @@ func (c *Provisioner) Statuses(ctx context.Context, models []ai.ModelRef) ([]Mod
 	return statuses, nil
 }
 
-func (c *Provisioner) Ensure(ctx context.Context, model ai.ModelRef, confirm ConfirmFunc, onProgress PullProgressFunc) error {
+func (c *OllamaProvider) Ensure(ctx context.Context, model ModelRef, confirm ConfirmFunc, onProgress PullProgressFunc) error {
 	has, err := c.hasModel(ctx, model)
 	if err != nil {
 		return err
@@ -227,8 +247,8 @@ func (c *Provisioner) Ensure(ctx context.Context, model ai.ModelRef, confirm Con
 
 }
 
-func ModelName(model ai.ModelRef) string {
-	if model.Provider != ai.ProviderOllama {
+func ModelName(model ModelRef) string {
+	if model.Provider != ProviderOllama {
 		return model.String()
 	}
 
@@ -240,10 +260,10 @@ func ModelName(model ai.ModelRef) string {
 	return model.Name + ":" + tag
 }
 
-func staleModels(installed []ModelInfo, keep []ai.ModelRef) []ModelInfo {
+func staleModels(installed []ModelInfo, keep []ModelRef) []ModelInfo {
 	keepNames := make(map[string]bool, len(keep))
 	for _, model := range keep {
-		if model.Provider != ai.ProviderOllama {
+		if model.Provider != ProviderOllama {
 			continue
 		}
 		keepNames[ModelName(model)] = true

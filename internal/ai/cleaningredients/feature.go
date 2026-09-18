@@ -1,4 +1,4 @@
-// Package cleaningredients implements the miseai.Feature for cleaning up recipe ingredients.
+// Package cleaningredients implements the ai.Feature for cleaning up recipe ingredients.
 package cleaningredients
 
 import (
@@ -7,15 +7,16 @@ import (
 	"log/slog"
 	"strings"
 
-	miseai "github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/tandoor"
-	"github.com/firebase/genkit/go/ai"
+	genai "github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
 )
 
 func init() {
-	miseai.RegisterFeature(func() miseai.Feature { return &Feature{} })
+	ai.RegisterFeature(func() ai.Feature { return &Feature{} })
 }
 
 const (
@@ -23,7 +24,7 @@ const (
 	defaultIngredientBatchSize = 2
 )
 
-var cleanIngredientsConfig = miseai.GenerateConfig{
+var cleanIngredientsConfig = providers.GenerateConfig{
 	Temperature: new(0.1),
 	Reasoning:   new(false),
 }
@@ -47,8 +48,8 @@ type CleanedRowBatch struct {
 type Feature struct {
 	BatchSize int
 
-	opts   []ai.PromptExecuteOption
-	prompt *ai.DataPrompt[CleanIngredientBatchInput, *CleanedRowBatch]
+	opts   []genai.PromptExecuteOption
+	prompt *genai.DataPrompt[CleanIngredientBatchInput, *CleanedRowBatch]
 	flow   *core.Flow[projectedRecipe, *CleanedRecipe, struct{}]
 }
 
@@ -86,20 +87,20 @@ func reportProgress(ctx context.Context, completed, total int) error {
 	return fn(Progress{Completed: completed, Total: total})
 }
 
-func (c *Feature) Register(r miseai.Registry) error {
+func (c *Feature) Register(r ai.Registry) error {
 	genkit.DefineSchemaFor[CleanedRow](r.Genkit)
 	genkit.DefineSchemaFor[CleanIngredientBatchInput](r.Genkit)
 	genkit.DefineSchemaFor[CleanedRowBatch](r.Genkit)
 
 	c.prompt = genkit.LookupDataPrompt[CleanIngredientBatchInput, *CleanedRowBatch](r.Genkit, "clean_ingredients")
 	if c.prompt == nil {
-		return fmt.Errorf("%w: clean_ingredients", miseai.ErrPromptNotFound)
+		return fmt.Errorf("%w: clean_ingredients", ai.ErrPromptNotFound)
 	}
 
 	c.opts = r.PromptOptions(cleanIngredientsConfig,
-		ai.WithTools(
-			miseai.SearchFoodsTool(r),
-			miseai.SearchUnitsTool(r),
+		genai.WithTools(
+			ai.SearchFoodsTool(r),
+			ai.SearchUnitsTool(r),
 		),
 	)
 
@@ -150,7 +151,7 @@ func (c *Feature) cleanRecipe(ctx context.Context, projected projectedRecipe) (*
 
 func (c *Feature) cleanRowBatch(ctx context.Context, rows []string) ([]CleanedRow, error) {
 	input := CleanIngredientBatchInput{Rows: rows}
-	opts := append(c.opts, ai.WithMaxTurns(2*len(rows)+2))
+	opts := append(c.opts, genai.WithMaxTurns(2*len(rows)+2))
 
 	var batch *CleanedRowBatch
 	var err error
@@ -176,11 +177,11 @@ func (c *Feature) cleanRowBatch(ctx context.Context, rows []string) ([]CleanedRo
 
 func normalizeRows(batch *CleanedRowBatch, rows []string) ([]CleanedRow, error) {
 	if batch == nil {
-		return nil, fmt.Errorf("%w: nil batch", miseai.ErrMalformedResponse)
+		return nil, fmt.Errorf("%w: nil batch", ai.ErrMalformedResponse)
 	}
 
 	if len(batch.Rows) != len(rows) {
-		return nil, fmt.Errorf("%w: want %d rows, got %d", miseai.ErrMalformedResponse, len(rows), len(batch.Rows))
+		return nil, fmt.Errorf("%w: want %d rows, got %d", ai.ErrMalformedResponse, len(rows), len(batch.Rows))
 	}
 
 	result := make([]CleanedRow, len(rows))

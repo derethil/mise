@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
 	"github.com/stretchr/testify/suite"
@@ -30,11 +30,9 @@ func TestSharedSuite(t *testing.T) {
 	suite.Run(t, new(SharedSuite))
 }
 
-func (s *SharedSuite) selectedModels(args ...string) []labeledModel {
-	var (
-		models []labeledModel
-		err    error
-	)
+func (s *SharedSuite) selectedModels(args ...string) ([]labeledModel, error) {
+	s.T().Helper()
+	var models []labeledModel
 
 	cmd := &cli.Command{
 		Name: "mise",
@@ -42,60 +40,84 @@ func (s *SharedSuite) selectedModels(args ...string) []labeledModel {
 			&cli.StringFlag{Name: string(cliutil.GlobalFlagModel)},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
+			var err error
 			models, err = selectedModels(cmd, s.cfg)
 			return err
 		},
 	}
 
-	runErr := cmd.Run(context.Background(), append([]string{"mise"}, args...))
-	s.Require().NoError(runErr)
-	s.Require().NoError(err)
-
-	return models
+	err := cmd.Run(context.Background(), append([]string{"mise"}, args...))
+	return models, err
 }
 
 func (s *SharedSuite) TestReturnsConfiguredSmallAndLargeModels() {
-	models := s.selectedModels()
+	models, err := s.selectedModels()
 
-	s.Require().Len(models, 2)
-	s.Equal(labeledModel{label: "small", ref: ai.ModelRef{Provider: "ollama", Name: "qwen2.5", Tag: "7b"}}, models[0])
-	s.Equal(labeledModel{label: "large", ref: ai.ModelRef{Provider: "ollama", Name: "qwen2.5", Tag: "14b"}}, models[1])
+	s.Require().NoError(err)
+	s.Equal([]labeledModel{
+		{label: "small", ref: providers.ModelRef{Provider: "ollama", Name: "qwen2.5", Tag: "7b"}},
+		{label: "large", ref: providers.ModelRef{Provider: "ollama", Name: "qwen2.5", Tag: "14b"}},
+	}, models)
 }
 
 func (s *SharedSuite) TestModelFlagOverridesConfig() {
-	models := s.selectedModels("--model", "ollama/llama3:8b")
+	models, err := s.selectedModels("--model", "ollama/llama3:8b")
 
-	s.Require().Len(models, 1)
-	s.Equal(labeledModel{label: "override", ref: ai.ModelRef{Provider: "ollama", Name: "llama3", Tag: "8b"}}, models[0])
+	s.Require().NoError(err)
+	s.Equal([]labeledModel{
+		{label: "override", ref: providers.ModelRef{Provider: "ollama", Name: "llama3", Tag: "8b"}},
+	}, models)
 }
 
 func (s *SharedSuite) TestInvalidConfiguredModel() {
 	s.cfg.Models.Small = "not-a-valid-model"
 
-	var err error
-	cmd := &cli.Command{
-		Name: "mise",
-		Flags: []cli.Flag{
-			&cli.StringFlag{Name: string(cliutil.GlobalFlagModel)},
-		},
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			_, err = selectedModels(cmd, s.cfg)
-			return nil
-		},
-	}
-	s.Require().NoError(cmd.Run(context.Background(), []string{"mise"}))
+	_, err := s.selectedModels()
 
 	s.Error(err)
 }
 
 func (s *SharedSuite) TestModelRefs() {
 	refs := modelRefs([]labeledModel{
-		{label: "small", ref: ai.ModelRef{Provider: "ollama", Name: "qwen2.5"}},
-		{label: "large", ref: ai.ModelRef{Provider: "ollama", Name: "llama3"}},
+		{label: "small", ref: providers.ModelRef{Provider: "ollama", Name: "qwen2.5"}},
+		{label: "large", ref: providers.ModelRef{Provider: "ollama", Name: "llama3"}},
 	})
 
-	s.Equal([]ai.ModelRef{
+	s.Equal([]providers.ModelRef{
 		{Provider: "ollama", Name: "qwen2.5"},
 		{Provider: "ollama", Name: "llama3"},
 	}, refs)
+}
+
+func (s *SharedSuite) TestOllamaProviderRequiresSelectedOllamaModel() {
+	for _, tc := range []struct {
+		name   string
+		models []labeledModel
+	}{
+		{"none", nil},
+		{"configured", []labeledModel{
+			{label: "small", ref: providers.ModelRef{Provider: "openai", Name: "small"}},
+			{label: "large", ref: providers.ModelRef{Provider: "anthropic", Name: "large"}},
+		}},
+		{"override", []labeledModel{
+			{label: "override", ref: providers.ModelRef{Provider: "openai", Name: "remote"}},
+		}},
+	} {
+		s.Run(tc.name, func() {
+			_, err := ollamaProvider(config.ProviderConfig{}, tc.models)
+
+			s.Require().ErrorIs(err, cliutil.ErrIncorrectUsage)
+			s.Contains(cliutil.UserMessage(err), "No Ollama models are selected.")
+		})
+	}
+}
+
+func (s *SharedSuite) TestOllamaProviderAllowsMixedModels() {
+	provider, err := ollamaProvider(config.ProviderConfig{BaseURL: "http://localhost:11434"}, []labeledModel{
+		{label: "small", ref: providers.ModelRef{Provider: "openai", Name: "remote"}},
+		{label: "large", ref: providers.ModelRef{Provider: "ollama", Name: "local"}},
+	})
+
+	s.Require().NoError(err)
+	s.NotNil(provider)
 }

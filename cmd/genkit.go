@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	miseai "github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/tandoor"
@@ -49,14 +50,14 @@ var genkitDevCmd = &cli.Command{
 	},
 }
 
-func genkitDevModels(cfg config.Config, cmd *cli.Command) ([]miseai.ModelRef, error) {
+func genkitDevModels(cfg config.Config, cmd *cli.Command) ([]providers.ModelRef, error) {
 	names := []string{cfg.Models.Small, cfg.Models.Large}
 	if override := cmd.String(string(cliutil.GlobalFlagModel)); override != "" {
 		names = append(names, override)
 	}
 
 	seen := make(map[string]bool, len(names))
-	var models []miseai.ModelRef
+	var models []providers.ModelRef
 
 	for _, name := range names {
 		if seen[name] {
@@ -65,7 +66,7 @@ func genkitDevModels(cfg config.Config, cmd *cli.Command) ([]miseai.ModelRef, er
 
 		seen[name] = true
 
-		model, err := miseai.ParseModel(name)
+		model, err := providers.ParseModel(name)
 		if err != nil {
 			return nil, err
 		}
