@@ -43,11 +43,14 @@ var globalFlags = []cli.Flag{
 	},
 }
 
+var rootFlags = append(config.Flags(), globalFlags...)
+
 var rootCmd = &cli.Command{
 	Name:                   "mise",
 	Usage:                  "mise is a CLI for managing Tandoor recipes",
 	Version:                version,
-	Flags:                  append(config.Flags(), globalFlags...),
+	Flags:                  rootFlags,
+	Metadata:               map[string]any{"globalFlagCategories": newGlobalFlagCategories(rootFlags)},
 	UseShortOptionHandling: true,
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		ctx, err := logging.Init(ctx, cmd.Count(string(cliutil.GlobalFlagVerbose)))
