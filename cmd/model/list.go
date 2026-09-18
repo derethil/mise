@@ -6,9 +6,8 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/config"
-	"github.com/derethil/mise/internal/ollama"
 	"github.com/ollama/ollama/format"
 	"github.com/urfave/cli/v3"
 )
@@ -24,12 +23,12 @@ var listCmd = &cli.Command{
 			return err
 		}
 
-		provisioner, err := ollama.NewProvisioner(cfg.Providers.Ollama.BaseURL)
+		provider, err := ollamaProvider(cfg.Providers.Ollama, models)
 		if err != nil {
 			return err
 		}
 
-		statuses, err := provisioner.Statuses(ctx, modelRefs(models))
+		statuses, err := provider.Statuses(ctx, modelRefs(models))
 		if err != nil {
 			return err
 		}
@@ -42,8 +41,8 @@ var listCmd = &cli.Command{
 	},
 }
 
-func printModelStatus(ctx context.Context, label string, s ollama.ModelStatus) {
-	if s.Model.Provider != ai.ProviderOllama {
+func printModelStatus(ctx context.Context, label string, s providers.ModelStatus) {
+	if s.Model.Provider != providers.ProviderOllama {
 		slog.InfoContext(ctx, fmt.Sprintf("[%s] %s: availability not tracked (%s is not an Ollama model)", label, s.Model, s.Model.Provider),
 			slog.String("label", label), slog.String("model", s.Model.String()), slog.String("provider", string(s.Model.Provider)))
 		return

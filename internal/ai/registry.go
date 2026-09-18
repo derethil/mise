@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/tandoor"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
@@ -15,25 +16,31 @@ type Deps struct {
 }
 
 type Registry struct {
-	Genkit   *genkit.Genkit
-	Provider string
+	Genkit    *genkit.Genkit
+	Providers map[string]*providers.Provider
+	Model     providers.ModelRef
 	Deps
 }
 
-func (r Registry) PromptOptions(cfg GenerateConfig, opts ...ai.PromptExecuteOption) []ai.PromptExecuteOption {
-	mw := []ai.Middleware{&middleware.Retry{}}
+func (r Registry) PromptOptions(cfg providers.GenerateConfig, opts ...ai.PromptExecuteOption) []ai.PromptExecuteOption {
+	return r.PromptOptionsFor(r.Model, cfg, opts...)
+}
 
-	if cfg != (GenerateConfig{}) {
-		if translate, ok := providerConfigFactories[r.Provider]; ok {
+func (r Registry) PromptOptionsFor(model providers.ModelRef, cfg providers.GenerateConfig, opts ...ai.PromptExecuteOption) []ai.PromptExecuteOption {
+	mw := []ai.Middleware{&middleware.Retry{}}
+	provider := r.Providers[model.Provider]
+
+	if cfg != (providers.GenerateConfig{}) && provider != nil {
+		if translate := provider.GenerateConfig; translate != nil {
 			opts = append(opts, ai.WithConfig(translate(cfg)))
 		}
 
-		if factory, ok := providerMiddlewareFactories[r.Provider]; ok {
+		if factory := provider.Middleware; factory != nil {
 			mw = append(mw, factory(cfg)...)
 		}
 	}
 
-	return append(opts, ai.WithUse(mw...))
+	return append(opts, ai.WithModelName(model.String()), ai.WithUse(mw...))
 }
 
 type Feature interface {

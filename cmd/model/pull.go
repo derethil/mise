@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
-	"github.com/derethil/mise/internal/ollama"
 	"github.com/urfave/cli/v3"
 )
 
@@ -23,17 +22,17 @@ var pullCmd = &cli.Command{
 			return err
 		}
 
-		provisioner, err := ollama.NewProvisioner(cfg.Providers.Ollama.BaseURL)
+		provider, err := ollamaProvider(cfg.Providers.Ollama, models)
 		if err != nil {
 			return err
 		}
 
 		for _, model := range models {
-			if model.ref.Provider != ai.ProviderOllama {
+			if model.ref.Provider != providers.ProviderOllama {
 				continue
 			}
 
-			if err := pullModel(ctx, provisioner, model.ref); err != nil {
+			if err := pullModel(ctx, provider, model.ref); err != nil {
 				return err
 			}
 		}
@@ -42,11 +41,11 @@ var pullCmd = &cli.Command{
 	},
 }
 
-func pullModel(ctx context.Context, provisioner *ollama.Provisioner, model ai.ModelRef) error {
+func pullModel(ctx context.Context, provider *providers.OllamaProvider, model providers.ModelRef) error {
 	pulled := false
 	onProgress := cliutil.PrintProgress()
 
-	err := provisioner.Ensure(ctx, model, cliutil.AutoConfirm, func(p ollama.PullProgress) error {
+	err := provider.Ensure(ctx, model, cliutil.AutoConfirm, func(p providers.PullProgress) error {
 		pulled = true
 		return onProgress(cliutil.Progress{Label: model.String(), Status: p.Status, Total: p.Total, Completed: p.Completed})
 	})

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	miseai "github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/tandoor"
 	"github.com/firebase/genkit/go/ai"
@@ -30,7 +31,7 @@ const (
 	maxKeywords    = 10
 )
 
-var assignKeywordsConfig = miseai.GenerateConfig{
+var assignKeywordsConfig = providers.GenerateConfig{
 	Temperature: new(0.2),
 	Reasoning:   new(false),
 }

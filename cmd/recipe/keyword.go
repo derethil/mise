@@ -9,6 +9,7 @@ import (
 
 	"github.com/derethil/mise/internal/ai"
 	"github.com/derethil/mise/internal/ai/assignkeywords"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/backup"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
@@ -116,7 +117,7 @@ func readSchema(path string) (string, error) {
 	return schema, nil
 }
 
-func keywordRecipe(ctx context.Context, tclient *tandoor.Client, feature *assignkeywords.Feature, model ai.ModelRef, cfg config.Config, id int, opts keywordOptions) (err error) {
+func keywordRecipe(ctx context.Context, tclient *tandoor.Client, feature *assignkeywords.Feature, model providers.ModelRef, cfg config.Config, id int, opts keywordOptions) (err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("recipe %d: %w", id, err)
@@ -172,7 +173,7 @@ func isAlreadyTagged(recipe *tandoor.Recipe, ignore []string) bool {
 	return false
 }
 
-func runAssignment(ctx context.Context, feature *assignkeywords.Feature, model ai.ModelRef, recipe *tandoor.Recipe, applyOpts assignkeywords.ApplyOptions) ([]byte, []assignkeywords.Change, error) {
+func runAssignment(ctx context.Context, feature *assignkeywords.Feature, model providers.ModelRef, recipe *tandoor.Recipe, applyOpts assignkeywords.ApplyOptions) ([]byte, []assignkeywords.Change, error) {
 	onProgress := cliutil.PrintProgress()
 	assigned, vocabulary, err := feature.AssignKeywords(ctx, recipe, func(p assignkeywords.Progress) error {
 		return onProgress(cliutil.Progress{

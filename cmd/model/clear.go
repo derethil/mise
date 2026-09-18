@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
-	"github.com/derethil/mise/internal/ollama"
 	"github.com/urfave/cli/v3"
 )
 
@@ -36,7 +35,7 @@ var clearCmd = &cli.Command{
 			return err
 		}
 
-		provisioner, err := ollama.NewProvisioner(cfg.Providers.Ollama.BaseURL)
+		provider, err := ollamaProvider(cfg.Providers.Ollama, models)
 		if err != nil {
 			return err
 		}
@@ -46,13 +45,13 @@ var clearCmd = &cli.Command{
 			confirmFunc = cliutil.AutoConfirm
 		}
 
-		var keep []ai.ModelRef
+		var keep []providers.ModelRef
 		if !cmd.Bool("all") {
 			keep = modelRefs(models)
 		}
 
-		deleted, err := provisioner.Clear(ctx, keep, confirmFunc)
-		if errors.Is(err, ollama.ErrClearDeclined) {
+		deleted, err := provider.Clear(ctx, keep, confirmFunc)
+		if errors.Is(err, providers.ErrClearDeclined) {
 			return nil
 		}
 		if err != nil {

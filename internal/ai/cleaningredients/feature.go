@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	miseai "github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/tandoor"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core"
@@ -23,7 +24,7 @@ const (
 	defaultIngredientBatchSize = 2
 )
 
-var cleanIngredientsConfig = miseai.GenerateConfig{
+var cleanIngredientsConfig = providers.GenerateConfig{
 	Temperature: new(0.1),
 	Reasoning:   new(false),
 }
