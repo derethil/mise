@@ -1,4 +1,4 @@
-// Package assignkeywords implements the miseai.Feature for assigning keywords to a recipe
+// Package assignkeywords implements the ai.Feature for assigning keywords to a recipe
 // according to a keyword schema supplied by the user.
 package assignkeywords
 
@@ -8,17 +8,17 @@ import (
 	"log/slog"
 	"strings"
 
-	miseai "github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai"
 	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/tandoor"
-	"github.com/firebase/genkit/go/ai"
+	genai "github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
 )
 
 func init() {
-	miseai.RegisterFeature(func() miseai.Feature { return &Feature{} })
+	ai.RegisterFeature(func() ai.Feature { return &Feature{} })
 }
 
 const (
@@ -64,8 +64,8 @@ type Feature struct {
 
 	tandoor *tandoor.Client
 
-	opts   []ai.PromptExecuteOption
-	prompt *ai.DataPrompt[AssignKeywordsInput, AssignedKeywords]
+	opts   []genai.PromptExecuteOption
+	prompt *genai.DataPrompt[AssignKeywordsInput, AssignedKeywords]
 	flow   *core.Flow[AssignKeywordsInput, AssignedKeywords, struct{}]
 }
 
@@ -96,20 +96,20 @@ func reportProgress(ctx context.Context, status string, completed, total int) er
 	return fn(Progress{Status: status, Completed: completed, Total: total})
 }
 
-func (f *Feature) Register(r miseai.Registry) error {
+func (f *Feature) Register(r ai.Registry) error {
 	genkit.DefineSchemaFor[AssignKeywordsInput](r.Genkit)
 	genkit.DefineSchemaFor[AssignedKeyword](r.Genkit)
 	genkit.DefineSchemaFor[AssignedKeywords](r.Genkit)
 
 	f.prompt = genkit.LookupDataPrompt[AssignKeywordsInput, AssignedKeywords](r.Genkit, "assign_keywords")
 	if f.prompt == nil {
-		return fmt.Errorf("%w: assign_keywords", miseai.ErrPromptNotFound)
+		return fmt.Errorf("%w: assign_keywords", ai.ErrPromptNotFound)
 	}
 
 	f.tandoor = r.Tandoor
 
 	f.opts = r.PromptOptions(assignKeywordsConfig,
-		ai.WithTools(miseai.SearchKeywordsTool(r)),
+		genai.WithTools(ai.SearchKeywordsTool(r)),
 	)
 
 	f.flow = genkit.DefineFlow(r.Genkit, "assignRecipeKeywords", f.assign)
@@ -209,7 +209,7 @@ func sectionInput(sec section, vocabulary []tandoor.Keyword, projected projected
 func (f *Feature) assign(ctx context.Context, input AssignKeywordsInput) (AssignedKeywords, error) {
 	opts := f.opts
 	if !input.VocabularyComplete {
-		opts = append(f.opts, ai.WithMaxTurns(assignMaxTurns))
+		opts = append(f.opts, genai.WithMaxTurns(assignMaxTurns))
 	}
 
 	var assigned AssignedKeywords
