@@ -1,10 +1,7 @@
 // Package config provides configuration management for the application
 package config
 
-import (
-	"path/filepath"
-	"reflect"
-)
+import "path/filepath"
 
 type TandoorConfig struct {
 	Token     string `key:"token" usage:"Tandoor API token"`
@@ -22,41 +19,7 @@ type ProviderConfig struct {
 	Timeout int    `key:"timeout" flag:"-" usage:"Seconds to wait for a response from the provider"`
 }
 
-type ProvidersConfig struct {
-	Ollama ProviderConfig `key:"ollama"`
-}
-
-func (p ProvidersConfig) Get(name string) (ProviderConfig, bool) {
-	t := reflect.TypeOf(p)
-	v := reflect.ValueOf(p)
-
-	for field := range t.Fields() {
-		if field.Tag.Get("key") != name {
-			continue
-		}
-
-		cfg, ok := v.FieldByIndex(field.Index).Interface().(ProviderConfig)
-		return cfg, ok
-	}
-
-	return ProviderConfig{}, false
-}
-
-func (p *ProvidersConfig) Set(name string, cfg ProviderConfig) bool {
-	t := reflect.TypeOf(p).Elem()
-	v := reflect.ValueOf(p).Elem()
-
-	for field := range t.Fields() {
-		if field.Tag.Get("key") != name {
-			continue
-		}
-
-		v.FieldByIndex(field.Index).Set(reflect.ValueOf(cfg))
-		return true
-	}
-
-	return false
-}
+type ProvidersConfig map[string]ProviderConfig
 
 type ModelSize string
 
@@ -100,7 +63,7 @@ var defaultConfig = Config{
 		Keep: 0,
 	},
 	Providers: ProvidersConfig{
-		Ollama: ProviderConfig{
+		"ollama": {
 			BaseURL: "http://localhost:11434",
 			Timeout: 600,
 		},

@@ -19,7 +19,7 @@ type ProvidersSuite struct {
 }
 
 func (s *ProvidersSuite) SetupTest() {
-	s.providers = config.ProvidersConfig{Ollama: config.ProviderConfig{BaseURL: "http://localhost:11434"}}
+	s.providers = config.ProvidersConfig{ProviderOllama: {BaseURL: "http://localhost:11434"}}
 }
 
 func TestProvidersSuite(t *testing.T) {
@@ -49,7 +49,7 @@ func (s *ProvidersSuite) TestProviderNotConfigured() {
 }
 
 func (s *ProvidersSuite) TestFactoryErrorPropagates() {
-	s.providers.Ollama.BaseURL = "://invalid"
+	s.providers[ProviderOllama] = config.ProviderConfig{BaseURL: "://invalid"}
 
 	_, err := ForModels(context.Background(), s.providers, ModelRef{Provider: ProviderOllama, Name: "qwen2.5"})
 
@@ -84,7 +84,7 @@ func (s *ProvidersSuite) TestRejectsInvalidURL() {
 }
 
 func (s *ProvidersSuite) TestSamplingConfigTranslation() {
-	provider, err := NewProvider(ProviderOllama, s.providers.Ollama)
+	provider, err := NewProvider(ProviderOllama, s.providers[ProviderOllama])
 	s.Require().NoError(err)
 
 	translated := provider.GenerateConfig(GenerateConfig{Temperature: new(0.2), TopP: new(0.8)})
@@ -93,7 +93,7 @@ func (s *ProvidersSuite) TestSamplingConfigTranslation() {
 }
 
 func (s *ProvidersSuite) TestReasoningConfigTranslation() {
-	provider, err := NewProvider(ProviderOllama, s.providers.Ollama)
+	provider, err := NewProvider(ProviderOllama, s.providers[ProviderOllama])
 	s.Require().NoError(err)
 
 	for _, tc := range []struct {

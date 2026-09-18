@@ -21,6 +21,9 @@ type Provider struct {
 	Middleware     func(GenerateConfig) []genai.Middleware
 }
 
+// NOTE: Provider environment variables and CLI flags are generated from
+// config.defaultConfig.Providers. Add a provider key there when registering a
+// factory here to enable those config options for a new provider.
 var providerFactories = map[string]func(config.ProviderConfig) (*Provider, error){
 	ProviderOllama: func(cfg config.ProviderConfig) (*Provider, error) {
 		p, err := NewOllamaProvider(cfg)
@@ -66,7 +69,7 @@ func ForModels(ctx context.Context, providers config.ProvidersConfig, models ...
 			return nil, fmt.Errorf("%w: unsupported provider: %s", config.ErrInvalidConfig, model.Provider)
 		}
 
-		cfg, ok := providers.Get(model.Provider)
+		cfg, ok := providers[model.Provider]
 		if !ok {
 			return nil, fmt.Errorf("%w: provider %s is not configured", config.ErrInvalidConfig, model.Provider)
 		}

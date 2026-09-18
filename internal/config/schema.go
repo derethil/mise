@@ -1,6 +1,10 @@
 package config
 
-import "reflect"
+import (
+	"maps"
+	"reflect"
+	"slices"
+)
 
 type fieldType int
 
@@ -41,6 +45,13 @@ func walkFields(t reflect.Type, prefix string, flag bool, visit func(schemaField
 
 		if field.Type.Kind() == reflect.Struct {
 			walkFields(field.Type, key, enabled, visit)
+			continue
+		}
+
+		if field.Type == reflect.TypeFor[ProvidersConfig]() {
+			for _, name := range slices.Sorted(maps.Keys(defaultConfig.Providers)) {
+				walkFields(reflect.TypeFor[ProviderConfig](), key+"."+name, enabled, visit)
+			}
 			continue
 		}
 

@@ -137,7 +137,7 @@ func configureModels(cfg *config.Config) (providers.ModelRef, providers.ModelRef
 }
 
 func configureProvider(cfg *config.Config, provider string) error {
-	providerCfg, _ := cfg.Providers.Get(provider)
+	providerCfg := cfg.Providers[provider]
 
 	baseURL, err := cliutil.PromptForInput(fmt.Sprintf("%s Base URL", provider), providerCfg.BaseURL, validateBaseURL)
 	if err != nil {
@@ -153,7 +153,7 @@ func configureProvider(cfg *config.Config, provider string) error {
 		providerCfg.APIKey = apiKey
 	}
 
-	cfg.Providers.Set(provider, providerCfg)
+	cfg.Providers[provider] = providerCfg
 
 	return nil
 }

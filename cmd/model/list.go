@@ -23,7 +23,7 @@ var listCmd = &cli.Command{
 			return err
 		}
 
-		provider, err := ollamaProvider(cfg.Providers.Ollama, models)
+		provider, err := ollamaProvider(cfg.Providers[providers.ProviderOllama], models)
 		if err != nil {
 			return err
 		}
