@@ -32,7 +32,7 @@
       pname = "mise";
       src = ./.;
       vendorHash = "sha256-7ziKWtC0GhGXeE7DiPfI8aAOSch/Scrv5Hcc/KyO7jI=";
-      version = "0.3.0";
+      version = "0.3.1";
     };
 
     mkShell = ollama:
