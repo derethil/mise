@@ -45,14 +45,14 @@ func (s *KeywordSuite) TestKeywordCmd_RequiresIDOrAll() {
 	err := keywordCmd.Run(context.Background(), []string{"keyword"})
 
 	s.Require().Error(err)
-	s.Equal("Provide a recipe id, or pass --all or --failed.", cliutil.UserMessage(err))
+	s.Equal("Provide a recipe id, or pass --all, --failed, or --new.", cliutil.UserMessage(err))
 }
 
 func (s *KeywordSuite) TestKeywordCmd_RejectsAllAndFailedTogether() {
 	err := keywordCmd.Run(context.Background(), []string{"keyword", "--all", "--failed"})
 
 	s.Require().Error(err)
-	s.Equal("Pass either --all or --failed, not both.", cliutil.UserMessage(err))
+	s.Equal("Pass only one of --all, --failed, or --new.", cliutil.UserMessage(err))
 }
 
 func (s *KeywordSuite) TestReadSchema_MissingFile() {
@@ -82,41 +82,4 @@ func (s *KeywordSuite) TestReadSchema_ReturnsTrimmedContent() {
 
 	s.Require().NoError(err)
 	s.Equal("## Cuisine\nAssign it.", schema)
-}
-
-func (s *KeywordSuite) recipeWithKeywords(names ...string) *tandoor.Recipe {
-	keywords := make([]map[string]any, len(names))
-	for i, name := range names {
-		keywords[i] = map[string]any{"id": i + 1, "name": name}
-	}
-	s.response = map[string]any{"id": 42, "name": "Tacos", "keywords": keywords}
-
-	recipe, err := s.client.Recipes.Get(s.T().Context(), 42)
-	s.Require().NoError(err)
-
-	return recipe
-}
-
-func (s *KeywordSuite) TestIsAlreadyTagged_NoKeywords() {
-	recipe := s.recipeWithKeywords()
-
-	s.False(isAlreadyTagged(recipe, nil))
-}
-
-func (s *KeywordSuite) TestIsAlreadyTagged_OnlyIgnoredKeywordsPresent() {
-	recipe := s.recipeWithKeywords("Uncategorized")
-
-	s.False(isAlreadyTagged(recipe, []string{"uncategorized"}), "an ignored keyword doesn't count as tagged")
-}
-
-func (s *KeywordSuite) TestIsAlreadyTagged_HasNonIgnoredKeyword() {
-	recipe := s.recipeWithKeywords("Uncategorized", "Dinner")
-
-	s.True(isAlreadyTagged(recipe, []string{"uncategorized"}))
-}
-
-func (s *KeywordSuite) TestIsAlreadyTagged_IgnoreMatchIsCaseAndWhitespaceInsensitive() {
-	recipe := s.recipeWithKeywords("  Uncategorized  ")
-
-	s.False(isAlreadyTagged(recipe, []string{"UNCATEGORIZED"}))
 }

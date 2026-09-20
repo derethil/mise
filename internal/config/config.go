@@ -43,7 +43,7 @@ func (m ModelsConfig) Get(size ModelSize) string {
 
 type KeywordsConfig struct {
 	SchemaFile string   `key:"schema_file" usage:"Path to the file describing your keyword schema"`
-	Ignore     []string `key:"ignore" usage:"Keywords that don't count as tagged when using recipes keyword --untagged"`
+	Ignore     []string `key:"ignore" usage:"Keywords to protect from removal when using recipe keyword --replace"`
 }
 
 type Config struct {

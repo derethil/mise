@@ -13,8 +13,8 @@ import (
 	"github.com/derethil/mise/internal/backup"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/runs"
 	"github.com/derethil/mise/internal/tandoor"
-	"github.com/tidwall/gjson"
 	"github.com/urfave/cli/v3"
 )
 
@@ -31,11 +31,6 @@ var keywordCmd = &cli.Command{
 			Aliases: []string{"d"},
 		},
 		&cli.BoolFlag{
-			Name:    "untagged",
-			Usage:   "Only process recipes with no keyword outside the keywords.ignore list",
-			Aliases: []string{"u"},
-		},
-		&cli.BoolFlag{
 			Name:  "replace",
 			Usage: "Replace the recipe's keywords instead of adding to them",
 		},
@@ -45,7 +40,11 @@ var keywordCmd = &cli.Command{
 		},
 		&cli.BoolFlag{
 			Name:  "failed",
-			Usage: "Re-run only the recipes that failed during the previous --all or --failed run",
+			Usage: "Re-run only the recipes that failed on a previous run",
+		},
+		&cli.BoolFlag{
+			Name:  "new",
+			Usage: "Run on all recipes that haven't been keyworded before",
 		},
 	}...),
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
@@ -58,11 +57,8 @@ var keywordCmd = &cli.Command{
 		return config.NewContext(ctx, cfg), nil
 	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		if cmd.Bool("all") && cmd.Bool("failed") {
-			return cliutil.ErrWithUserMessage(cliutil.ErrIncorrectUsage, "Pass either --all or --failed, not both.")
-		}
-		if cmd.IntArg("id") == 0 && !cmd.Bool("all") && !cmd.Bool("failed") {
-			return cliutil.ErrWithUserMessage(cliutil.ErrIncorrectUsage, "Provide a recipe id, or pass --all or --failed.")
+		if err := validateSelector(cmd); err != nil {
+			return err
 		}
 
 		cfg := config.FromContext(ctx)
@@ -79,30 +75,34 @@ var keywordCmd = &cli.Command{
 		}
 		feature.Schema = schema
 
+		cache, err := runs.OpenDefault("keyword")
+		if err != nil {
+			return cliutil.ErrWithUserMessage(err, "Could not open the run state.")
+		}
+		defer cache.Close()
+
 		opts := keywordOptions{
-			dryRun:       cmd.Bool("dry-run"),
-			replace:      cmd.Bool("replace"),
-			untaggedOnly: cmd.Bool("untagged"),
-			ignore:       cfg.Keywords.Ignore,
+			dryRun:  cmd.Bool("dry-run"),
+			replace: cmd.Bool("replace"),
+			ignore:  cfg.Keywords.Ignore,
 		}
 
 		run := func(ctx context.Context, id int) error {
-			return keywordRecipe(ctx, tclient, feature, model, cfg, id, opts)
+			return keywordRecipe(ctx, tclient, feature, model, cfg, id, opts, cache)
 		}
 
-		if !cmd.Bool("all") && !cmd.Bool("failed") {
-			return run(ctx, cmd.IntArg("id"))
+		if !isBulkRun(cmd) {
+			return runSingle(ctx, cache, cmd.IntArg("id"), run)
 		}
 
-		return runBulk(ctx, cmd, tclient, "keyword", run)
+		return runBulk(ctx, cmd, tclient, cache, run)
 	},
 }
 
 type keywordOptions struct {
-	dryRun       bool
-	replace      bool
-	untaggedOnly bool
-	ignore       []string
+	dryRun  bool
+	replace bool
+	ignore  []string
 }
 
 func readSchema(path string) (string, error) {
@@ -126,7 +126,7 @@ func readSchema(path string) (string, error) {
 	return schema, nil
 }
 
-func keywordRecipe(ctx context.Context, tclient *tandoor.Client, feature *assignkeywords.Feature, model providers.ModelRef, cfg config.Config, id int, opts keywordOptions) (err error) {
+func keywordRecipe(ctx context.Context, tclient *tandoor.Client, feature *assignkeywords.Feature, model providers.ModelRef, cfg config.Config, id int, opts keywordOptions, cache *runs.Store) (err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("recipe %d: %w", id, err)
@@ -136,11 +136,6 @@ func keywordRecipe(ctx context.Context, tclient *tandoor.Client, feature *assign
 	recipe, err := tclient.Recipes.Get(ctx, id)
 	if err != nil {
 		return cliutil.TandoorUserError(err)
-	}
-
-	if opts.untaggedOnly && isAlreadyTagged(recipe, opts.ignore) {
-		slog.InfoContext(ctx, "Skipping already-keyworded recipe", slog.Int("recipe_id", id))
-		return nil
 	}
 
 	updated, changes, err := runAssignment(ctx, feature, model, recipe, assignkeywords.ApplyOptions{
@@ -159,27 +154,17 @@ func keywordRecipe(ctx context.Context, tclient *tandoor.Client, feature *assign
 	}
 
 	if !assignkeywords.HasChanges(changes) {
+		cache.MarkOK(ctx, id)
 		return nil
 	}
 
 	store := backup.NewStore(cfg.Tandoor.BackupDir, cfg.Backup.Keep)
-
-	return saveRecipe(ctx, tclient, store, cfg.Tandoor.BackupDir, recipe, updated)
-}
-
-func isAlreadyTagged(recipe *tandoor.Recipe, ignore []string) bool {
-	ignored := make(map[string]bool, len(ignore))
-	for _, name := range ignore {
-		ignored[strings.ToLower(strings.TrimSpace(name))] = true
+	if err := saveRecipe(ctx, tclient, store, cfg.Tandoor.BackupDir, recipe, updated); err != nil {
+		return err
 	}
 
-	for _, keyword := range gjson.GetBytes(recipe.JSON(), "keywords").Array() {
-		if !ignored[strings.ToLower(strings.TrimSpace(keyword.Get("name").String()))] {
-			return true
-		}
-	}
-
-	return false
+	cache.MarkOK(ctx, id)
+	return nil
 }
 
 func runAssignment(ctx context.Context, feature *assignkeywords.Feature, model providers.ModelRef, recipe *tandoor.Recipe, applyOpts assignkeywords.ApplyOptions) ([]byte, []assignkeywords.Change, error) {
