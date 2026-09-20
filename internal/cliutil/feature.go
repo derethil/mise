@@ -22,7 +22,7 @@ func LoadFeature[T ai.Feature](ctx context.Context, cmd *cli.Command, size confi
 
 	if model.Provider == providers.ProviderOllama {
 		providerConfig := cfg.Providers[providers.ProviderOllama]
-		if err := providers.CheckOllama(ctx, providerConfig); err != nil {
+		if err := providers.EnsureOllama(ctx, providerConfig, cfg.StartOllama || cmd.Bool("start-ollama")); err != nil {
 			return zero, model, err
 		}
 	}

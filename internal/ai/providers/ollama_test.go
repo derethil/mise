@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -103,6 +105,18 @@ func (s *ProvisionerSuite) TestCheckOllamaReturnsUnavailableWhenServerIsDown() {
 	err := CheckOllama(s.T().Context(), config.ProviderConfig{BaseURL: serverURL})
 
 	s.ErrorIs(err, ErrOllamaUnavailable)
+}
+
+func (s *ProvisionerSuite) TestEnsureOllamaReturnsFriendlyInstallationError() {
+	serverURL := s.server.URL
+	s.server.Close()
+	path := filepath.Join(s.T().TempDir(), "bin")
+	s.Require().NoError(os.Mkdir(path, 0o755))
+	s.T().Setenv("PATH", path)
+
+	err := EnsureOllama(s.T().Context(), config.ProviderConfig{BaseURL: serverURL}, true)
+
+	s.ErrorIs(err, ErrOllamaNotInstalled)
 }
 
 func (s *ProvisionerSuite) TestModels() {

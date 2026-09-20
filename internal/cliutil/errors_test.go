@@ -55,6 +55,12 @@ func (s *ErrorsSuite) TestAIUserError_OllamaUnavailable() {
 	s.Equal("Could not connect to Ollama. Make sure it is running (try `ollama serve`) and try again.", UserMessage(err))
 }
 
+func (s *ErrorsSuite) TestAIUserError_OllamaNotInstalled() {
+	err := AIUserError(providers.ErrOllamaNotInstalled, "ollama/qwen3")
+
+	s.Equal("Could not find `ollama` on your PATH. Install Ollama or add it to your PATH, then try again.", UserMessage(err))
+}
+
 func (s *ErrorsSuite) TestUserMessage_PlainErrorUsesErrorString() {
 	s.Equal("boom", UserMessage(errors.New("boom")))
 }

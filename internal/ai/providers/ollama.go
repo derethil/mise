@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"slices"
 	"strings"
 	"time"
@@ -20,6 +22,7 @@ import (
 var ErrPullDeclined = errors.New("model download declined")
 var ErrClearDeclined = errors.New("model deletion declined")
 var ErrOllamaUnavailable = errors.New("ollama unavailable")
+var ErrOllamaNotInstalled = errors.New("ollama is not installed")
 
 type OllamaProvider struct {
 	Provider
@@ -86,6 +89,46 @@ func CheckOllama(ctx context.Context, cfg config.ProviderConfig) error {
 	}
 
 	return nil
+}
+
+func EnsureOllama(ctx context.Context, cfg config.ProviderConfig, start bool) error {
+	err := CheckOllama(ctx, cfg)
+	if err == nil {
+		return nil
+	}
+	if !start || !errors.Is(err, ErrOllamaUnavailable) {
+		return err
+	}
+
+	if _, err := exec.LookPath("ollama"); err != nil {
+		return fmt.Errorf("%w: %w", ErrOllamaNotInstalled, err)
+	}
+
+	command := exec.Command("ollama", "serve")
+	command.Stdout = io.Discard
+	command.Stderr = io.Discard
+	if err := command.Start(); err != nil {
+		return fmt.Errorf("%w: %w", ErrOllamaUnavailable, err)
+	}
+
+	waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		if err := CheckOllama(waitCtx, cfg); err == nil {
+			return nil
+		}
+
+		select {
+		case <-waitCtx.Done():
+			_ = command.Process.Kill()
+			_ = command.Wait()
+			return fmt.Errorf("%w: timed out waiting for ollama serve", ErrOllamaUnavailable)
+		case <-ticker.C:
+		}
+	}
 }
 
 func ollamaConfig(cfg GenerateConfig) any {

@@ -61,6 +61,8 @@ func TandoorUserError(err error) error {
 
 func AIUserError(err error, model string) error {
 	switch {
+	case errors.Is(err, providers.ErrOllamaNotInstalled):
+		return ErrWithUserMessage(err, "Could not find `ollama` on your PATH. Install Ollama or add it to your PATH, then try again.")
 	case errors.Is(err, providers.ErrOllamaUnavailable):
 		return ErrWithUserMessage(err, "Could not connect to Ollama. Make sure it is running (try `ollama serve`) and try again.")
 	case errors.Is(err, ai.ErrModelMissingTools):

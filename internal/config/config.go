@@ -47,11 +47,12 @@ type KeywordsConfig struct {
 }
 
 type Config struct {
-	Tandoor   TandoorConfig   `key:"tandoor" category:"TANDOOR OPTIONS"`
-	Backup    BackupConfig    `key:"backup"`
-	Providers ProvidersConfig `key:"providers" category:"PROVIDER OPTIONS"`
-	Models    ModelsConfig    `key:"models"`
-	Keywords  KeywordsConfig  `key:"keywords" command:"recipe keyword"`
+	Tandoor     TandoorConfig   `key:"tandoor" category:"TANDOOR OPTIONS"`
+	Backup      BackupConfig    `key:"backup"`
+	Providers   ProvidersConfig `key:"providers" category:"PROVIDER OPTIONS"`
+	Models      ModelsConfig    `key:"models"`
+	Keywords    KeywordsConfig  `key:"keywords" command:"recipe keyword"`
+	StartOllama bool            `key:"start_ollama" usage:"Start Ollama automatically when an Ollama model is selected"`
 }
 
 var defaultConfig = Config{

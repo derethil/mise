@@ -12,6 +12,9 @@ base_url = "http://localhost:11434"
 timeout = 600 
 # api_key = "your-api-key" (optional)
 
+# Start Ollama automatically when an Ollama model is selected.
+start_ollama = false
+
 [models]
 # small = "ollama/qwen3:8b" # Model for simpler tasks, as provider/model
 # large = "ollama/qwen3:14b" # Model for harder tasks, as provider/model
