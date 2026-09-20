@@ -1,12 +1,79 @@
 package assignkeywords
 
 import (
+	"os"
 	"testing"
 
+	"github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
+	"github.com/derethil/mise/internal/ai/testutil"
 	"github.com/derethil/mise/internal/tandoor"
+	"github.com/firebase/genkit/go/core/status"
+	"github.com/firebase/genkit/go/genkit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAssignFlow_UsesStructuredFakeModelOutput(t *testing.T) {
+	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("..")))
+
+	testutil.DefineModel(g, "test/model", testutil.JSONResponse(AssignedKeywords{
+		{Reason: "The recipe is baked in one pan.", Applies: true, Name: " Dinner "},
+		{Reason: "A duplicate with different casing.", Applies: true, Name: "dinner"},
+		{Reason: "There is no meat in the ingredients.", Applies: false, Name: "Meat"},
+	}))
+
+	feature := &Feature{}
+	require.NoError(t, feature.Register(ai.Registry{
+		Genkit: g,
+		Model:  providers.ModelRef{Provider: "test", Name: "model"},
+	}))
+
+	got, err := feature.flow.Run(t.Context(), AssignKeywordsInput{
+		Category:           "Meal",
+		Schema:             "Assign Dinner to baked dinners.",
+		Vocabulary:         []string{},
+		VocabularyComplete: true,
+		Name:               "Sheet pan vegetables",
+		CurrentKeywords:    []string{},
+		Ingredients:        []string{"carrot", "potato"},
+		Steps:              []string{"Bake until browned."},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, AssignedKeywords{{
+		Reason:  "The recipe is baked in one pan.",
+		Applies: true,
+		Name:    "Dinner",
+	}}, got)
+}
+
+func TestAssignFlow_RetriesAfterClassifiedModelFailure(t *testing.T) {
+	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("..")))
+	testutil.DefineModel(g, "test/model",
+		testutil.ErrorResponse(status.Errorf(status.ErrInvalidArgument, "bad request")),
+		testutil.JSONResponse(AssignedKeywords{{Reason: "The recipe is baked.", Applies: true, Name: "Dinner"}}),
+	)
+
+	feature := &Feature{}
+	require.NoError(t, feature.Register(ai.Registry{
+		Genkit: g,
+		Model:  providers.ModelRef{Provider: "test", Name: "model"},
+	}))
+
+	got, err := feature.flow.Run(t.Context(), AssignKeywordsInput{
+		Category:           "Meal",
+		Schema:             "Assign Dinner to baked dinners.",
+		Vocabulary:         []string{},
+		VocabularyComplete: true,
+		CurrentKeywords:    []string{},
+		Ingredients:        []string{},
+		Steps:              []string{},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, AssignedKeywords{{Reason: "The recipe is baked.", Applies: true, Name: "Dinner"}}, got)
+}
 
 func TestNormalize_DropsEntriesThatDoNotApply(t *testing.T) {
 	out, err := normalize(AssignedKeywords{
