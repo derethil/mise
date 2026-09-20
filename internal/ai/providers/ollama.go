@@ -94,6 +94,7 @@ func CheckOllama(ctx context.Context, cfg config.ProviderConfig) error {
 func EnsureOllama(ctx context.Context, cfg config.ProviderConfig, start bool) error {
 	err := CheckOllama(ctx, cfg)
 	if err == nil {
+		slog.DebugContext(ctx, "Ollama is already running", slog.String("base_url", cfg.BaseURL))
 		return nil
 	}
 	if !start || !errors.Is(err, ErrOllamaUnavailable) {
@@ -107,7 +108,10 @@ func EnsureOllama(ctx context.Context, cfg config.ProviderConfig, start bool) er
 	command := exec.Command("ollama", "serve")
 	command.Stdout = io.Discard
 	command.Stderr = io.Discard
+	startedAt := time.Now()
+	slog.InfoContext(ctx, "starting Ollama", slog.String("base_url", cfg.BaseURL))
 	if err := command.Start(); err != nil {
+		slog.ErrorContext(ctx, "could not start Ollama", slog.Any("error", err))
 		return fmt.Errorf("%w: %w", ErrOllamaUnavailable, err)
 	}
 
@@ -118,6 +122,10 @@ func EnsureOllama(ctx context.Context, cfg config.ProviderConfig, start bool) er
 
 	for {
 		if err := CheckOllama(waitCtx, cfg); err == nil {
+			slog.InfoContext(ctx, "Ollama is ready",
+				slog.String("base_url", cfg.BaseURL),
+				slog.Duration("startup_time", time.Since(startedAt)),
+			)
 			return nil
 		}
 
@@ -125,6 +133,10 @@ func EnsureOllama(ctx context.Context, cfg config.ProviderConfig, start bool) er
 		case <-waitCtx.Done():
 			_ = command.Process.Kill()
 			_ = command.Wait()
+			slog.ErrorContext(ctx, "Ollama did not become ready before the startup timeout",
+				slog.String("base_url", cfg.BaseURL),
+				slog.Duration("startup_time", time.Since(startedAt)),
+			)
 			return fmt.Errorf("%w: timed out waiting for ollama serve", ErrOllamaUnavailable)
 		case <-ticker.C:
 		}

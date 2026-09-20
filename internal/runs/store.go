@@ -107,7 +107,10 @@ func (s *Store) MarkFailure(ctx context.Context, id int) {
 func (s *Store) markResult(ctx context.Context, id int, result Result) {
 	if err := s.Mark(id, result); err != nil {
 		slog.WarnContext(ctx, "Could not update run state", slog.Int("recipe_id", id), slog.Any("error", err))
+		return
 	}
+
+	slog.DebugContext(ctx, "recorded recipe run result", slog.Int("recipe_id", id), slog.String("result", string(result)))
 }
 
 func (s *Store) Close() error {

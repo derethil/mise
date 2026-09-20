@@ -53,6 +53,14 @@ func runBulk(ctx context.Context, cmd *cli.Command, tclient *tandoor.Client, cac
 		return nil
 	}
 
+	mode := "all"
+	if cmd.Bool("failed") {
+		mode = "failed"
+	} else if cmd.Bool("new") {
+		mode = "new"
+	}
+	slog.InfoContext(ctx, "selected recipes", slog.String("mode", mode), slog.Int("count", len(ids)))
+
 	var errs []error
 
 	for _, id := range ids {
