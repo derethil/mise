@@ -10,5 +10,6 @@ import (
 var ConfigDir = filepath.Join(xdg.ConfigHome, "mise")
 var DataDir = filepath.Join(xdg.DataHome, "mise")
 var StateDir = filepath.Join(xdg.StateHome, "mise")
+var CacheDir = filepath.Join(xdg.CacheHome, "mise")
 
 var ErrInvalidConfig = errors.New("configuration error")
