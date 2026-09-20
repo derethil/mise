@@ -20,6 +20,13 @@ func LoadFeature[T ai.Feature](ctx context.Context, cmd *cli.Command, size confi
 		return zero, model, err
 	}
 
+	if model.Provider == providers.ProviderOllama {
+		providerConfig := cfg.Providers[providers.ProviderOllama]
+		if err := providers.CheckOllama(ctx, providerConfig); err != nil {
+			return zero, model, err
+		}
+	}
+
 	client, err := ai.NewGenkitClient(ctx, cfg.Providers, deps, model)
 	if err != nil {
 		return zero, model, err

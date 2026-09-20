@@ -92,6 +92,19 @@ func (s *ProvisionerSuite) TestNewProvisionerRequiresBaseURL() {
 	s.ErrorIs(err, config.ErrInvalidConfig)
 }
 
+func (s *ProvisionerSuite) TestCheckOllama() {
+	s.Require().NoError(CheckOllama(s.T().Context(), config.ProviderConfig{BaseURL: s.server.URL}))
+}
+
+func (s *ProvisionerSuite) TestCheckOllamaReturnsUnavailableWhenServerIsDown() {
+	serverURL := s.server.URL
+	s.server.Close()
+
+	err := CheckOllama(s.T().Context(), config.ProviderConfig{BaseURL: serverURL})
+
+	s.ErrorIs(err, ErrOllamaUnavailable)
+}
+
 func (s *ProvisionerSuite) TestModels() {
 	models, err := s.provisioner.models(s.T().Context())
 

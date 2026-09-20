@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/derethil/mise/internal/ai"
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/tandoor"
 	"github.com/firebase/genkit/go/core/status"
@@ -60,6 +61,8 @@ func TandoorUserError(err error) error {
 
 func AIUserError(err error, model string) error {
 	switch {
+	case errors.Is(err, providers.ErrOllamaUnavailable):
+		return ErrWithUserMessage(err, "Could not connect to Ollama. Make sure it is running (try `ollama serve`) and try again.")
 	case errors.Is(err, ai.ErrModelMissingTools):
 		return ErrWithUserMessage(err, "Model %s doesn't support tool calling, which mise's AI commands need to look up existing entries in Tandoor. Choose a different model with --model or modify your config.", model)
 	case errors.Is(err, config.ErrInvalidConfig):

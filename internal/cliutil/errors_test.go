@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/tandoor"
 	"github.com/stretchr/testify/suite"
 )
@@ -46,6 +47,12 @@ func (s *ErrorsSuite) TestTandoorUserError_UnknownErrorPassesThrough() {
 
 func (s *ErrorsSuite) TestTandoorUserError_Nil() {
 	s.NoError(TandoorUserError(nil))
+}
+
+func (s *ErrorsSuite) TestAIUserError_OllamaUnavailable() {
+	err := AIUserError(providers.ErrOllamaUnavailable, "ollama/qwen3")
+
+	s.Equal("Could not connect to Ollama. Make sure it is running (try `ollama serve`) and try again.", UserMessage(err))
 }
 
 func (s *ErrorsSuite) TestUserMessage_PlainErrorUsesErrorString() {

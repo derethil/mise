@@ -19,6 +19,7 @@ import (
 
 var ErrPullDeclined = errors.New("model download declined")
 var ErrClearDeclined = errors.New("model deletion declined")
+var ErrOllamaUnavailable = errors.New("ollama unavailable")
 
 type OllamaProvider struct {
 	Provider
@@ -69,6 +70,22 @@ func NewOllamaProvider(cfg config.ProviderConfig) (*OllamaProvider, error) {
 		},
 		client: api.NewClient(base, http.DefaultClient),
 	}, nil
+}
+
+func CheckOllama(ctx context.Context, cfg config.ProviderConfig) error {
+	provider, err := NewOllamaProvider(cfg)
+	if err != nil {
+		return err
+	}
+
+	checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	if _, err := provider.client.List(checkCtx); err != nil {
+		return fmt.Errorf("%w: %w", ErrOllamaUnavailable, err)
+	}
+
+	return nil
 }
 
 func ollamaConfig(cfg GenerateConfig) any {
