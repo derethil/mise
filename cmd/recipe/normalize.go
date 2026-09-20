@@ -12,6 +12,7 @@ import (
 	"github.com/derethil/mise/internal/backup"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/runs"
 	"github.com/derethil/mise/internal/tandoor"
 	"github.com/urfave/cli/v3"
 )
@@ -29,17 +30,16 @@ var normalizeCmd = &cli.Command{
 			Aliases: []string{"d"},
 		},
 		&cli.BoolFlag{
-			Name:    "untouched",
-			Usage:   "Only process recipes with no backup, since a backup means they've already been normalized",
-			Aliases: []string{"u"},
-		},
-		&cli.BoolFlag{
 			Name:  "all",
 			Usage: "Run on all recipes in the Tandoor instance. Overrides id argument.",
 		},
 		&cli.BoolFlag{
 			Name:  "failed",
-			Usage: "Re-run only the recipes that failed during the previous --all or --failed run",
+			Usage: "Re-run only the recipes that failed on a previous run",
+		},
+		&cli.BoolFlag{
+			Name:  "new",
+			Usage: "Run on all recipes that haven't been normalized before",
 		},
 		&cli.IntFlag{
 			Name:  "batch-size",
@@ -48,11 +48,8 @@ var normalizeCmd = &cli.Command{
 		},
 	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		if cmd.Bool("all") && cmd.Bool("failed") {
-			return cliutil.ErrWithUserMessage(cliutil.ErrIncorrectUsage, "Pass either --all or --failed, not both.")
-		}
-		if cmd.IntArg("id") == 0 && !cmd.Bool("all") && !cmd.Bool("failed") {
-			return cliutil.ErrWithUserMessage(cliutil.ErrIncorrectUsage, "Provide a recipe id, or pass --all or --failed.")
+		if err := validateSelector(cmd); err != nil {
+			return err
 		}
 
 		cfg := config.FromContext(ctx)
@@ -64,40 +61,32 @@ var normalizeCmd = &cli.Command{
 		}
 		feature.BatchSize = cmd.Int("batch-size")
 
+		cache, err := runs.OpenDefault("normalize")
+		if err != nil {
+			return cliutil.ErrWithUserMessage(err, "Could not open the run state.")
+		}
+		defer cache.Close()
+
 		dryRun := cmd.Bool("dry-run")
-		untouchedOnly := cmd.Bool("untouched")
 
 		run := func(ctx context.Context, id int) error {
-			return normalizeRecipe(ctx, tclient, feature, model, cfg, id, dryRun, untouchedOnly)
+			return normalizeRecipe(ctx, tclient, feature, model, cfg, id, dryRun, cache)
 		}
 
-		if !cmd.Bool("all") && !cmd.Bool("failed") {
-			return run(ctx, cmd.IntArg("id"))
+		if !isBulkRun(cmd) {
+			return runSingle(ctx, cache, cmd.IntArg("id"), run)
 		}
 
-		return runBulk(ctx, cmd, tclient, "normalize", run)
+		return runBulk(ctx, cmd, tclient, cache, run)
 	},
 }
 
-func normalizeRecipe(ctx context.Context, tclient *tandoor.Client, feature *cleaningredients.Feature, model providers.ModelRef, cfg config.Config, id int, dryRun, untouchedOnly bool) (err error) {
+func normalizeRecipe(ctx context.Context, tclient *tandoor.Client, feature *cleaningredients.Feature, model providers.ModelRef, cfg config.Config, id int, dryRun bool, cache *runs.Store) (err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("recipe %d: %w", id, err)
 		}
 	}()
-
-	store := backup.NewStore(cfg.Tandoor.BackupDir, cfg.Backup.Keep)
-
-	if untouchedOnly {
-		skip, err := alreadyNormalized(store, id)
-		if err != nil {
-			return err
-		}
-		if skip {
-			slog.InfoContext(ctx, "Skipping already-normalized recipe", slog.Int("recipe_id", id))
-			return nil
-		}
-	}
 
 	recipe, err := tclient.Recipes.Get(ctx, id)
 	if err != nil {
@@ -117,19 +106,17 @@ func normalizeRecipe(ctx context.Context, tclient *tandoor.Client, feature *clea
 	}
 
 	if len(changes) == 0 {
+		cache.MarkOK(ctx, id)
 		return nil
 	}
 
-	return saveRecipe(ctx, tclient, store, cfg.Tandoor.BackupDir, recipe, updated)
-}
-
-func alreadyNormalized(store *backup.Store, id int) (bool, error) {
-	entries, err := store.List(id)
-	if err != nil {
-		return false, err
+	store := backup.NewStore(cfg.Tandoor.BackupDir, cfg.Backup.Keep)
+	if err := saveRecipe(ctx, tclient, store, cfg.Tandoor.BackupDir, recipe, updated); err != nil {
+		return err
 	}
 
-	return len(entries) > 0, nil
+	cache.MarkOK(ctx, id)
+	return nil
 }
 
 func runNormalization(ctx context.Context, feature *cleaningredients.Feature, model providers.ModelRef, recipe *tandoor.Recipe) ([]byte, []cleaningredients.Change, error) {

@@ -54,59 +54,14 @@ func (s *NormalizeSuite) TestNormalizeCmd_RequiresIDOrAll() {
 	err := normalizeCmd.Run(context.Background(), []string{"normalize"})
 
 	s.Require().Error(err)
-	s.Equal("Provide a recipe id, or pass --all or --failed.", cliutil.UserMessage(err))
+	s.Equal("Provide a recipe id, or pass --all, --failed, or --new.", cliutil.UserMessage(err))
 }
 
 func (s *NormalizeSuite) TestNormalizeCmd_RejectsAllAndFailedTogether() {
 	err := normalizeCmd.Run(context.Background(), []string{"normalize", "--all", "--failed"})
 
 	s.Require().Error(err)
-	s.Equal("Pass either --all or --failed, not both.", cliutil.UserMessage(err))
-}
-
-func (s *NormalizeSuite) TestFailedIDs_RoundTrip() {
-	path := filepath.Join(s.T().TempDir(), "failed.json")
-
-	ids, err := loadFailedIDs(path)
-	s.Require().NoError(err, "missing file should not be an error")
-	s.Empty(ids)
-
-	s.Require().NoError(saveFailedIDs(path, []int{3, 7, 9}))
-
-	ids, err = loadFailedIDs(path)
-	s.Require().NoError(err)
-	s.Equal([]int{3, 7, 9}, ids)
-}
-
-func (s *NormalizeSuite) TestFailedIDs_SaveEmptyClearsFile() {
-	path := filepath.Join(s.T().TempDir(), "failed.json")
-
-	s.Require().NoError(saveFailedIDs(path, []int{3, 7}))
-	s.Require().NoError(saveFailedIDs(path, nil))
-
-	ids, err := loadFailedIDs(path)
-	s.Require().NoError(err)
-	s.Empty(ids)
-}
-
-func (s *NormalizeSuite) TestAlreadyNormalized_NoBackups() {
-	store := backup.NewStore(s.T().TempDir(), 0)
-
-	skip, err := alreadyNormalized(store, 42)
-
-	s.Require().NoError(err)
-	s.False(skip)
-}
-
-func (s *NormalizeSuite) TestAlreadyNormalized_HasBackup() {
-	store := backup.NewStore(s.T().TempDir(), 0)
-	_, err := store.Save(42, []byte(`{"id":42}`))
-	s.Require().NoError(err)
-
-	skip, err := alreadyNormalized(store, 42)
-
-	s.Require().NoError(err)
-	s.True(skip)
+	s.Equal("Pass only one of --all, --failed, or --new.", cliutil.UserMessage(err))
 }
 
 func (s *NormalizeSuite) TestSaveRecipe() {
