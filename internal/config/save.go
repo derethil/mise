@@ -39,7 +39,6 @@ func marshalConfig(cfg Config) ([]byte, error) {
 	if err := k.Load(structs.Provider(cfg, "key"), nil); err != nil {
 		return nil, err
 	}
-
 	b, err := k.Marshal(toml.Parser())
 	if err != nil {
 		return nil, err

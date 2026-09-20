@@ -39,7 +39,6 @@ func Load(cmd *cli.Command, configPath string) (Config, error) {
 	if err := k.Load(confmap.Provider(flagValues(cmd), "."), nil); err != nil {
 		return Config{}, err
 	}
-
 	var cfg Config
 	if err := k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "key"}); err != nil {
 		return Config{}, err

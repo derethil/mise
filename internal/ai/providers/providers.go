@@ -47,11 +47,11 @@ func NewProvider(name string, cfg config.ProviderConfig) (*Provider, error) {
 }
 
 func SupportedProviders() []string {
-	res := make([]string, 0, len(providerFactories))
+	providers := make([]string, 0, len(providerFactories))
 	for provider := range providerFactories {
-		res = append(res, provider)
+		providers = append(providers, provider)
 	}
-	return res
+	return providers
 }
 
 func ForModels(ctx context.Context, providers config.ProvidersConfig, models ...ModelRef) ([]*Provider, error) {
@@ -69,7 +69,7 @@ func ForModels(ctx context.Context, providers config.ProvidersConfig, models ...
 			return nil, fmt.Errorf("%w: unsupported provider: %s", config.ErrInvalidConfig, model.Provider)
 		}
 
-		cfg, ok := providers[model.Provider]
+		cfg, ok := providers.Get(model.Provider)
 		if !ok {
 			return nil, fmt.Errorf("%w: provider %s is not configured", config.ErrInvalidConfig, model.Provider)
 		}
@@ -85,4 +85,14 @@ func ForModels(ctx context.Context, providers config.ProvidersConfig, models ...
 	}
 
 	return configured, nil
+}
+
+func EnsureProvider(ctx context.Context, name string, cfg config.ProvidersConfig, start bool) error {
+	switch name {
+	case ProviderOllama:
+		providerCfg, _ := cfg.Get(name)
+		return EnsureOllama(ctx, providerCfg, cfg.Ollama.Autostart || start)
+	default:
+		return nil
+	}
 }

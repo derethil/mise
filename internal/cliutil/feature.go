@@ -23,16 +23,15 @@ func LoadFeature[T ai.Feature](ctx context.Context, cmd *cli.Command, size confi
 	cleanup := func() {}
 
 	if model.Provider == providers.ProviderOllama {
-		providerConfig := cfg.Providers[providers.ProviderOllama]
-		ollamaCtx, cancelOllama := context.WithCancel(ctx)
+		ensureCtx, cancelEnsureCtx := context.WithCancel(ctx)
 
-		if err := providers.EnsureOllama(ollamaCtx, providerConfig, cfg.StartOllama || cmd.Bool("start-ollama")); err != nil {
-			cancelOllama()
+		if err := providers.EnsureProvider(ensureCtx, model.Provider, cfg.Providers, cmd.Bool("start-ollama")); err != nil {
+			cancelEnsureCtx()
 			return zero, model, nil, err
 		}
 
-		cleanup = cancelOllama
-		ctx = ollamaCtx
+		cleanup = cancelEnsureCtx
+		ctx = ensureCtx
 	}
 
 	client, err := ai.NewGenkitClient(ctx, cfg.Providers, deps, model)

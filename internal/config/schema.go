@@ -1,9 +1,7 @@
 package config
 
 import (
-	"maps"
 	"reflect"
-	"slices"
 	"strings"
 )
 
@@ -37,6 +35,9 @@ func walkFields(t reflect.Type, prefix, category, command string, flag bool, vis
 	for field := range t.Fields() {
 		name := field.Tag.Get("key")
 		if name == "" {
+			if field.Anonymous && field.Type.Kind() == reflect.Struct {
+				walkFields(field.Type, prefix, category, command, flag, visit)
+			}
 			continue
 		}
 
@@ -59,13 +60,6 @@ func walkFields(t reflect.Type, prefix, category, command string, flag bool, vis
 
 		if field.Type.Kind() == reflect.Struct {
 			walkFields(field.Type, key, fieldCategory, fieldCommand, enabled, visit)
-			continue
-		}
-
-		if field.Type == reflect.TypeFor[ProvidersConfig]() {
-			for _, name := range slices.Sorted(maps.Keys(defaultConfig.Providers)) {
-				walkFields(reflect.TypeFor[ProviderConfig](), key+"."+name, fieldCategory, fieldCommand, enabled, visit)
-			}
 			continue
 		}
 

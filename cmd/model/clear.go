@@ -35,7 +35,8 @@ var clearCmd = &cli.Command{
 			return err
 		}
 
-		provider, err := ollamaProvider(cfg.Providers[providers.ProviderOllama], models)
+		providerCfg, _ := cfg.Providers.Get(providers.ProviderOllama)
+		provider, err := ollamaProvider(providerCfg, models)
 		if err != nil {
 			return err
 		}

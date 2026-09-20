@@ -131,13 +131,17 @@ func configureModels(cfg *config.Config) (providers.ModelRef, providers.ModelRef
 
 	smallModel, _ := providers.ParseModel(smallModelInput)
 	largeModel, _ := providers.ParseModel(largeModelInput)
+	cfg.Models.Small = smallModelInput
+	cfg.Models.Large = largeModelInput
 
 	return smallModel, largeModel, nil
-
 }
 
 func configureProvider(cfg *config.Config, provider string) error {
-	providerCfg := cfg.Providers[provider]
+	providerCfg, ok := cfg.Providers.Get(provider)
+	if !ok {
+		return fmt.Errorf("unsupported provider: %s", provider)
+	}
 
 	baseURL, err := cliutil.PromptForInput(fmt.Sprintf("%s Base URL", provider), providerCfg.BaseURL, validateBaseURL)
 	if err != nil {
@@ -153,7 +157,7 @@ func configureProvider(cfg *config.Config, provider string) error {
 		providerCfg.APIKey = apiKey
 	}
 
-	cfg.Providers[provider] = providerCfg
+	cfg.Providers.Set(provider, providerCfg)
 
 	return nil
 }
@@ -174,8 +178,7 @@ func configureProviders(cfg *config.Config) error {
 	}
 
 	for _, provider := range usedProviders {
-		err := configureProvider(cfg, provider)
-		if err != nil {
+		if err := configureProvider(cfg, provider); err != nil {
 			return err
 		}
 	}
@@ -185,7 +188,7 @@ func configureProviders(cfg *config.Config) error {
 		if err != nil {
 			return err
 		}
-		cfg.StartOllama = startOllama
+		cfg.Providers.Ollama.Autostart = startOllama
 	}
 
 	return nil

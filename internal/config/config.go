@@ -14,12 +14,43 @@ type BackupConfig struct {
 }
 
 type ProviderConfig struct {
-	BaseURL string `key:"base_url" usage:"Base URL of the provider's API"`
-	APIKey  string `key:"api_key" usage:"API key for the provider"`
-	Timeout int    `key:"timeout" flag:"-" usage:"Seconds to wait for a response from the provider"`
+	BaseURL string
+	APIKey  string
+	Timeout int
 }
 
-type ProvidersConfig map[string]ProviderConfig
+type OllamaConfig struct {
+	BaseURL   string `key:"base_url" usage:"Base URL for the Ollama API, e.g. http://localhost:11434"`
+	Timeout   int    `key:"timeout" flag:"-" usage:"Seconds to wait for a response from Ollama"`
+	Autostart bool   `key:"autostart" usage:"Start Ollama automatically if not running, requires Ollama to be installed and in PATH"`
+}
+
+type ProvidersConfig struct {
+	Ollama OllamaConfig `key:"ollama"`
+}
+
+func (p ProvidersConfig) Get(name string) (ProviderConfig, bool) {
+	switch name {
+	case "ollama":
+		return ProviderConfig{
+			BaseURL: p.Ollama.BaseURL,
+			Timeout: p.Ollama.Timeout,
+		}, true
+	default:
+		return ProviderConfig{}, false
+	}
+}
+
+func (p *ProvidersConfig) Set(name string, cfg ProviderConfig) bool {
+	switch name {
+	case "ollama":
+		p.Ollama.BaseURL = cfg.BaseURL
+		p.Ollama.Timeout = cfg.Timeout
+		return true
+	default:
+		return false
+	}
+}
 
 type ModelSize string
 
@@ -47,12 +78,11 @@ type KeywordsConfig struct {
 }
 
 type Config struct {
-	Tandoor     TandoorConfig   `key:"tandoor" category:"TANDOOR OPTIONS"`
-	Backup      BackupConfig    `key:"backup"`
-	Providers   ProvidersConfig `key:"providers" category:"PROVIDER OPTIONS"`
-	Models      ModelsConfig    `key:"models"`
-	Keywords    KeywordsConfig  `key:"keywords" command:"recipe keyword"`
-	StartOllama bool            `key:"start_ollama" usage:"Start Ollama automatically when an Ollama model is selected"`
+	Tandoor   TandoorConfig   `key:"tandoor" category:"TANDOOR OPTIONS"`
+	Backup    BackupConfig    `key:"backup"`
+	Providers ProvidersConfig `key:"providers" category:"PROVIDER OPTIONS"`
+	Models    ModelsConfig    `key:"models"`
+	Keywords  KeywordsConfig  `key:"keywords" command:"recipe keyword"`
 }
 
 var defaultConfig = Config{
@@ -64,9 +94,10 @@ var defaultConfig = Config{
 		Keep: 0,
 	},
 	Providers: ProvidersConfig{
-		"ollama": {
-			BaseURL: "http://localhost:11434",
-			Timeout: 600,
+		Ollama: OllamaConfig{
+			BaseURL:   "http://localhost:11434",
+			Timeout:   600,
+			Autostart: false,
 		},
 	},
 	Keywords: KeywordsConfig{
