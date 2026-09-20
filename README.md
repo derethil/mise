@@ -1,7 +1,9 @@
 # mise
 
 A CLI that provides a suite of AI-assisted tools to help you manage your
-[Tandoor](https://tandoor.dev) recipes.
+[Tandoor](https://tandoor.dev) recipes. LLMs are not perfect, and mise will
+certainly get some things wrong, but if you have hundreds or thousands of
+recipes, it can help you manage them semi-autonomously.
 
 ## Features
 
@@ -61,11 +63,10 @@ Global flags:
 
 ## Keyword schemas
 
-`mise recipe keyword` has no built-in classification system, so you can tell
-mise to follow whatever keyword system you prefer. It reads your schema file
+`mise recipe keyword` has no built-in keyword assignment system, so you can tell
+mise to follow whatever schema you prefer. It reads your schema file
 (`$XDG_CONFIG_HOME/mise/keyword_schema.md` by default), injects it into the
-prompt, and uses it as the sole provider describing which keywords to add to a
-recipe.
+prompt, and uses it to decide which keywords to add to a recipe.
 
 ```markdown
 ## Cuisine
