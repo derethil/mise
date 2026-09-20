@@ -78,7 +78,7 @@ func (s *FeatureSuite) TestNormalizeRows_CountMismatchIsMalformed() {
 }
 
 func TestCleanFlow_UsesFakeModelOutputForEachBatch(t *testing.T) {
-	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("..")))
+	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("../..")))
 	testutil.DefineModel(g, "test/model",
 		testutil.JSONResponse(CleanedRowBatch{Rows: []CleanedRow{
 			{Kind: KindIngredient, Amount: 2, Unit: "cup", Food: "onion"},
@@ -108,7 +108,7 @@ func TestCleanFlow_UsesFakeModelOutputForEachBatch(t *testing.T) {
 }
 
 func TestCleanFlow_AnnotatesModelFailureWithBatchRange(t *testing.T) {
-	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("..")))
+	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("../..")))
 	modelErr := status.Errorf(status.ErrInvalidArgument, "model unavailable")
 	testutil.DefineModel(g, "test/model", testutil.ErrorResponse(modelErr), testutil.ErrorResponse(modelErr))
 
@@ -126,7 +126,7 @@ func TestCleanFlow_AnnotatesModelFailureWithBatchRange(t *testing.T) {
 }
 
 func TestCleanFlow_RetriesAfterClassifiedModelFailure(t *testing.T) {
-	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("..")))
+	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("../..")))
 	testutil.DefineModel(g, "test/model",
 		testutil.ErrorResponse(status.Errorf(status.ErrInvalidArgument, "bad request")),
 		testutil.JSONResponse(CleanedRowBatch{Rows: []CleanedRow{{Kind: KindIngredient, Food: "onion"}}}),
@@ -145,7 +145,7 @@ func TestCleanFlow_RetriesAfterClassifiedModelFailure(t *testing.T) {
 }
 
 func TestCleanFlow_MalformedBatchIncludesBatchRange(t *testing.T) {
-	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("..")))
+	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("../..")))
 	testutil.DefineModel(g, "test/model", testutil.JSONResponse(CleanedRowBatch{
 		Rows: []CleanedRow{{Kind: KindIngredient, Food: "onion"}},
 	}))

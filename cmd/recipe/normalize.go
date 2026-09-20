@@ -7,7 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/derethil/mise/internal/ai"
-	"github.com/derethil/mise/internal/ai/cleaningredients"
+	"github.com/derethil/mise/internal/ai/features/clean-ingredients"
 	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/backup"
 	"github.com/derethil/mise/internal/cliutil"

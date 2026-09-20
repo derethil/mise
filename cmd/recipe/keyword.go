@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/derethil/mise/internal/ai"
-	"github.com/derethil/mise/internal/ai/assignkeywords"
+	"github.com/derethil/mise/internal/ai/features/assign-keywords"
 	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/backup"
 	"github.com/derethil/mise/internal/cliutil"

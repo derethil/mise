@@ -15,7 +15,7 @@ import (
 )
 
 func TestAssignFlow_UsesStructuredFakeModelOutput(t *testing.T) {
-	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("..")))
+	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("../..")))
 
 	testutil.DefineModel(g, "test/model", testutil.JSONResponse(AssignedKeywords{
 		{Reason: "The recipe is baked in one pan.", Applies: true, Name: " Dinner "},
@@ -49,7 +49,7 @@ func TestAssignFlow_UsesStructuredFakeModelOutput(t *testing.T) {
 }
 
 func TestAssignFlow_RetriesAfterClassifiedModelFailure(t *testing.T) {
-	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("..")))
+	g := genkit.Init(t.Context(), genkit.WithPromptFS(os.DirFS("../..")))
 	testutil.DefineModel(g, "test/model",
 		testutil.ErrorResponse(status.Errorf(status.ErrInvalidArgument, "bad request")),
 		testutil.JSONResponse(AssignedKeywords{{Reason: "The recipe is baked.", Applies: true, Name: "Dinner"}}),
