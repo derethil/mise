@@ -69,17 +69,23 @@ var keywordCmd = &cli.Command{
 			return err
 		}
 
-		feature, model, err := cliutil.LoadFeature[*assignkeywords.Feature](ctx, cmd, config.ModelLarge, ai.Deps{Tandoor: tclient})
+		feature, model, cancelOllama, err := cliutil.LoadFeature[*assignkeywords.Feature](ctx, cmd, config.ModelLarge, ai.Deps{Tandoor: tclient})
 		if err != nil {
 			return cliutil.AIUserError(err, model.String())
 		}
+		defer func() {
+			if cancelOllama != nil {
+				cancelOllama()
+			}
+		}()
+
 		feature.Schema = schema
 
 		cache, err := runs.OpenDefault("keyword")
 		if err != nil {
 			return cliutil.ErrWithUserMessage(err, "Could not open the run state.")
 		}
-		defer cache.Close()
+		defer func() { _ = cache.Close() }()
 
 		opts := keywordOptions{
 			dryRun:  cmd.Bool("dry-run"),

@@ -8,9 +8,12 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/derethil/mise/internal/config"
@@ -92,28 +95,61 @@ func CheckOllama(ctx context.Context, cfg config.ProviderConfig) error {
 }
 
 func EnsureOllama(ctx context.Context, cfg config.ProviderConfig, start bool) error {
-	err := CheckOllama(ctx, cfg)
-	if err == nil {
+	if err := CheckOllama(ctx, cfg); err == nil {
 		slog.DebugContext(ctx, "Ollama is already running", slog.String("base_url", cfg.BaseURL))
 		return nil
-	}
-	if !start || !errors.Is(err, ErrOllamaUnavailable) {
+	} else if !start || !errors.Is(err, ErrOllamaUnavailable) {
 		return err
 	}
 
+	return startOllama(ctx, cfg)
+}
+
+func startOllama(ctx context.Context, cfg config.ProviderConfig) error {
 	if _, err := exec.LookPath("ollama"); err != nil {
 		return fmt.Errorf("%w: %w", ErrOllamaNotInstalled, err)
 	}
 
-	command := exec.Command("ollama", "serve")
+	if err := os.MkdirAll(config.CacheDir, 0o755); err != nil {
+		return err
+	}
+
+	lock, err := os.OpenFile(filepath.Join(config.CacheDir, "ollama-start.lock"), os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		return err
+	}
+
+	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
+		_ = lock.Close()
+		return err
+	}
+
+	defer func() {
+		_ = syscall.Flock(int(lock.Fd()), syscall.LOCK_UN)
+		_ = lock.Close()
+	}()
+
+	if err := CheckOllama(ctx, cfg); err == nil {
+		slog.DebugContext(ctx, "Ollama became available while waiting for startup lock", slog.String("base_url", cfg.BaseURL))
+		return nil
+	} else if !errors.Is(err, ErrOllamaUnavailable) {
+		return err
+	}
+
+	command := exec.CommandContext(ctx, "ollama", "serve")
 	command.Stdout = io.Discard
 	command.Stderr = io.Discard
 	startedAt := time.Now()
+
 	slog.InfoContext(ctx, "starting Ollama", slog.String("base_url", cfg.BaseURL))
+
 	if err := command.Start(); err != nil {
 		slog.ErrorContext(ctx, "could not start Ollama", slog.Any("error", err))
 		return fmt.Errorf("%w: %w", ErrOllamaUnavailable, err)
 	}
+
+	done := make(chan error, 1)
+	go func() { done <- command.Wait() }()
 
 	waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -132,7 +168,7 @@ func EnsureOllama(ctx context.Context, cfg config.ProviderConfig, start bool) er
 		select {
 		case <-waitCtx.Done():
 			_ = command.Process.Kill()
-			_ = command.Wait()
+			<-done
 			slog.ErrorContext(ctx, "Ollama did not become ready before the startup timeout",
 				slog.String("base_url", cfg.BaseURL),
 				slog.Duration("startup_time", time.Since(startedAt)),

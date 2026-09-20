@@ -55,17 +55,22 @@ var normalizeCmd = &cli.Command{
 		cfg := config.FromContext(ctx)
 		tclient := tandoor.FromConfig(cfg)
 
-		feature, model, err := cliutil.LoadFeature[*cleaningredients.Feature](ctx, cmd, config.ModelSmall, ai.Deps{Tandoor: tclient})
+		feature, model, cancelOllama, err := cliutil.LoadFeature[*cleaningredients.Feature](ctx, cmd, config.ModelSmall, ai.Deps{Tandoor: tclient})
 		if err != nil {
 			return cliutil.AIUserError(err, model.String())
 		}
+		defer func() {
+			if cancelOllama != nil {
+				cancelOllama()
+			}
+		}()
 		feature.BatchSize = cmd.Int("batch-size")
 
 		cache, err := runs.OpenDefault("normalize")
 		if err != nil {
 			return cliutil.ErrWithUserMessage(err, "Could not open the run state.")
 		}
-		defer cache.Close()
+		defer func() { _ = cache.Close() }()
 
 		dryRun := cmd.Bool("dry-run")
 
