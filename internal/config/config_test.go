@@ -75,9 +75,9 @@ func (s *ConfigSuite) TestFlagsHaveCategories() {
 	}
 
 	s.Equal("TANDOOR OPTIONS", categories["tandoor.token"])
-	s.Equal("TANDOOR OPTIONS", categories["tandoor.base_url"])
-	s.Equal("PROVIDER OPTIONS", categories["providers.ollama.base_url"])
-	s.Equal("PROVIDER OPTIONS", categories["providers.ollama.api_key"])
+	s.Equal("TANDOOR OPTIONS", categories["tandoor.base-url"])
+	s.Equal("PROVIDER OPTIONS", categories["providers.ollama.base-url"])
+	s.Equal("PROVIDER OPTIONS", categories["providers.ollama.api-key"])
 	s.NotContains(categories, "keywords.schema_file")
 	s.NotContains(categories, "keywords.ignore")
 
@@ -101,6 +101,14 @@ base_url = "https://from-file.example"
 	s.Equal("https://from-file.example", cfg.Tandoor.BaseURL)
 }
 
+func (s *ConfigSuite) TestStartOllamaFromConfigFile() {
+	s.writeConfigFile("start_ollama = true\n")
+
+	cfg := s.load()
+
+	s.True(cfg.StartOllama)
+}
+
 func (s *ConfigSuite) TestEnvOverridesConfigFile() {
 	s.writeConfigFile(`
 [tandoor]
@@ -116,7 +124,7 @@ base_url = "https://from-file.example"
 func (s *ConfigSuite) TestFlagOverridesEnv() {
 	s.T().Setenv("MISE_TANDOOR_BASE_URL", "https://from-env.example")
 
-	cfg := s.load("--tandoor.base_url", "https://from-flag.example")
+	cfg := s.load("--tandoor.base-url", "https://from-flag.example")
 
 	s.Equal("https://from-flag.example", cfg.Tandoor.BaseURL)
 }
@@ -145,7 +153,7 @@ func (s *ConfigSuite) TestFlagOptOutStillLoadsFromEnv() {
 	s.Equal("/tmp/from-env", cfg.Tandoor.BackupDir)
 
 	for _, flag := range Flags() {
-		s.NotContains(flag.Names(), "tandoor.backup_dir")
+		s.NotContains(flag.Names(), "tandoor.backup-dir")
 	}
 }
 

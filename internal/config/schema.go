@@ -4,6 +4,7 @@ import (
 	"maps"
 	"reflect"
 	"slices"
+	"strings"
 )
 
 type fieldType int
@@ -17,6 +18,7 @@ const (
 
 type schemaField struct {
 	Key      string
+	FlagName string
 	Usage    string
 	Category string
 	Command  string
@@ -69,6 +71,7 @@ func walkFields(t reflect.Type, prefix, category, command string, flag bool, vis
 
 		visit(schemaField{
 			Key:      key,
+			FlagName: strings.ReplaceAll(key, "_", "-"),
 			Usage:    field.Tag.Get("usage"),
 			Category: fieldCategory,
 			Command:  fieldCommand,
