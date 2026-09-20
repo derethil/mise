@@ -137,8 +137,11 @@ func startOllama(ctx context.Context, cfg config.ProviderConfig) error {
 	}
 
 	command := exec.CommandContext(ctx, "ollama", "serve")
+	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	command.Cancel = func() error { return terminateProcessGroup(command.Process.Pid) }
 	command.Stdout = io.Discard
 	command.Stderr = io.Discard
+
 	startedAt := time.Now()
 
 	slog.InfoContext(ctx, "starting Ollama", slog.String("base_url", cfg.BaseURL))
@@ -167,16 +170,34 @@ func startOllama(ctx context.Context, cfg config.ProviderConfig) error {
 
 		select {
 		case <-waitCtx.Done():
-			_ = command.Process.Kill()
+			_ = terminateProcessGroup(command.Process.Pid)
 			<-done
 			slog.ErrorContext(ctx, "Ollama did not become ready before the startup timeout",
 				slog.String("base_url", cfg.BaseURL),
 				slog.Duration("startup_time", time.Since(startedAt)),
 			)
 			return fmt.Errorf("%w: timed out waiting for ollama serve", ErrOllamaUnavailable)
+		case err := <-done:
+			return fmt.Errorf("%w: ollama serve exited before becoming ready: %w", ErrOllamaUnavailable, err)
 		case <-ticker.C:
 		}
 	}
+}
+
+func terminateProcessGroup(pid int) error {
+	err := syscall.Kill(-pid, syscall.SIGTERM)
+	if err != nil && !errors.Is(err, syscall.ESRCH) {
+		return err
+	}
+
+	go func() {
+		time.Sleep(5 * time.Second)
+		if err := syscall.Kill(-pid, syscall.SIGKILL); err != nil && !errors.Is(err, syscall.ESRCH) {
+			slog.Warn("could not force-stop Ollama process group", slog.Int("pid", pid), slog.Any("error", err))
+		}
+	}()
+
+	return nil
 }
 
 func ollamaConfig(cfg GenerateConfig) any {

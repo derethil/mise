@@ -184,10 +184,7 @@ func configureProviders(cfg *config.Config) error {
 	}
 
 	if slices.Contains(usedProviders, providers.ProviderOllama) {
-		startOllama, err := cliutil.Confirm("Start Ollama automatically when needed?")
-		if err != nil {
-			return err
-		}
+		startOllama, _ := cliutil.Confirm("Start Ollama automatically when needed?")
 		cfg.Providers.Ollama.Autostart = startOllama
 	}
 

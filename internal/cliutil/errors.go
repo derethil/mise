@@ -64,7 +64,7 @@ func AIUserError(err error, model string) error {
 	case errors.Is(err, providers.ErrOllamaNotInstalled):
 		return ErrWithUserMessage(err, "Could not find `ollama` on your PATH. Install Ollama or add it to your PATH, then try again.")
 	case errors.Is(err, providers.ErrOllamaUnavailable):
-		return ErrWithUserMessage(err, "Could not connect to Ollama. Make sure it is running (try `ollama serve`) and try again.")
+		return ErrWithUserMessage(err, "Could not connect to Ollama. Make sure it is running (try `ollama serve`) or provide --providers.ollama.autostart and try again.")
 	case errors.Is(err, ai.ErrModelMissingTools):
 		return ErrWithUserMessage(err, "Model %s doesn't support tool calling, which mise's AI commands need to look up existing entries in Tandoor. Choose a different model with --model or modify your config.", model)
 	case errors.Is(err, config.ErrInvalidConfig):
