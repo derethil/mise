@@ -6,11 +6,12 @@ import (
 	"github.com/derethil/mise/internal/ai"
 	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/config/section"
 
 	"github.com/urfave/cli/v3"
 )
 
-func LoadFeature[T ai.Feature](ctx context.Context, cmd *cli.Command, size config.ModelSize, deps ai.Deps) (T, providers.ModelRef, func(), error) {
+func LoadFeature[T ai.Feature](ctx context.Context, cmd *cli.Command, size section.ModelSize, deps ai.Deps) (T, providers.ModelRef, func(), error) {
 	var zero T
 
 	cfg := config.FromContext(ctx)

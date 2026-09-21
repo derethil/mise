@@ -13,6 +13,7 @@ import (
 	"github.com/derethil/mise/internal/backup"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/config/section"
 	"github.com/derethil/mise/internal/runs"
 	"github.com/derethil/mise/internal/tandoor"
 	"github.com/urfave/cli/v3"
@@ -69,7 +70,7 @@ var keywordCmd = &cli.Command{
 			return err
 		}
 
-		feature, model, cancelOllama, err := cliutil.LoadFeature[*assignkeywords.Feature](ctx, cmd, config.ModelLarge, ai.Deps{Tandoor: tclient})
+		feature, model, cancelOllama, err := cliutil.LoadFeature[*assignkeywords.Feature](ctx, cmd, section.ModelLarge, ai.Deps{Tandoor: tclient})
 		if err != nil {
 			return cliutil.AIUserError(err, model.String())
 		}

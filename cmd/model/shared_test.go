@@ -7,6 +7,7 @@ import (
 	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/config/section"
 	"github.com/stretchr/testify/suite"
 	"github.com/urfave/cli/v3"
 )
@@ -19,7 +20,7 @@ type SharedSuite struct {
 
 func (s *SharedSuite) SetupTest() {
 	s.cfg = config.Config{
-		Models: config.ModelsConfig{
+		Models: section.ModelsConfig{
 			Small: "ollama/qwen2.5:7b",
 			Large: "ollama/qwen2.5:14b",
 		},
@@ -104,7 +105,7 @@ func (s *SharedSuite) TestOllamaProviderRequiresSelectedOllamaModel() {
 		}},
 	} {
 		s.Run(tc.name, func() {
-			_, err := ollamaProvider(config.ProviderConfig{}, tc.models)
+			_, err := ollamaProvider(section.ProviderConfig{}, tc.models)
 
 			s.Require().ErrorIs(err, cliutil.ErrIncorrectUsage)
 			s.Contains(cliutil.UserMessage(err), "No Ollama models are selected.")
@@ -113,7 +114,7 @@ func (s *SharedSuite) TestOllamaProviderRequiresSelectedOllamaModel() {
 }
 
 func (s *SharedSuite) TestOllamaProviderAllowsMixedModels() {
-	provider, err := ollamaProvider(config.ProviderConfig{BaseURL: "http://localhost:11434"}, []labeledModel{
+	provider, err := ollamaProvider(section.ProviderConfig{BaseURL: "http://localhost:11434"}, []labeledModel{
 		{label: "small", ref: providers.ModelRef{Provider: "openai", Name: "remote"}},
 		{label: "large", ref: providers.ModelRef{Provider: "ollama", Name: "local"}},
 	})

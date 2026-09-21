@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/config/section"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -75,7 +76,7 @@ func (s *ProvisionerSuite) SetupTest() {
 	}))
 
 	var err error
-	s.provisioner, err = NewOllamaProvider(config.ProviderConfig{BaseURL: s.server.URL})
+	s.provisioner, err = NewOllamaProvider(section.ProviderConfig{BaseURL: s.server.URL})
 	s.Require().NoError(err)
 }
 
@@ -88,21 +89,21 @@ func TestProvisionerSuite(t *testing.T) {
 }
 
 func (s *ProvisionerSuite) TestNewProvisionerRequiresBaseURL() {
-	_, err := NewOllamaProvider(config.ProviderConfig{})
+	_, err := NewOllamaProvider(section.ProviderConfig{})
 
 	s.Require().Error(err)
 	s.ErrorIs(err, config.ErrInvalidConfig)
 }
 
 func (s *ProvisionerSuite) TestCheckOllama() {
-	s.Require().NoError(CheckOllama(s.T().Context(), config.ProviderConfig{BaseURL: s.server.URL}))
+	s.Require().NoError(CheckOllama(s.T().Context(), section.ProviderConfig{BaseURL: s.server.URL}))
 }
 
 func (s *ProvisionerSuite) TestCheckOllamaReturnsUnavailableWhenServerIsDown() {
 	serverURL := s.server.URL
 	s.server.Close()
 
-	err := CheckOllama(s.T().Context(), config.ProviderConfig{BaseURL: serverURL})
+	err := CheckOllama(s.T().Context(), section.ProviderConfig{BaseURL: serverURL})
 
 	s.ErrorIs(err, ErrOllamaUnavailable)
 }
@@ -114,7 +115,7 @@ func (s *ProvisionerSuite) TestEnsureOllamaReturnsFriendlyInstallationError() {
 	s.Require().NoError(os.Mkdir(path, 0o755))
 	s.T().Setenv("PATH", path)
 
-	err := EnsureOllama(s.T().Context(), config.ProviderConfig{BaseURL: serverURL}, true)
+	err := EnsureOllama(s.T().Context(), section.ProviderConfig{BaseURL: serverURL}, true)
 
 	s.ErrorIs(err, ErrOllamaNotInstalled)
 }

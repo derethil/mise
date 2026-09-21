@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/config/section"
 	genai "github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core/api"
 )
@@ -15,7 +16,7 @@ const ProviderOllama = "ollama"
 
 type Provider struct {
 	Name           string
-	Config         config.ProviderConfig
+	Config         section.ProviderConfig
 	Plugin         api.Plugin
 	GenerateConfig func(GenerateConfig) any
 	Middleware     func(GenerateConfig) []genai.Middleware
@@ -24,8 +25,8 @@ type Provider struct {
 // NOTE: Provider environment variables and CLI flags are generated from
 // config.defaultConfig.Providers. Add a provider key there when registering a
 // factory here to enable those config options for a new provider.
-var providerFactories = map[string]func(config.ProviderConfig) (*Provider, error){
-	ProviderOllama: func(cfg config.ProviderConfig) (*Provider, error) {
+var providerFactories = map[string]func(section.ProviderConfig) (*Provider, error){
+	ProviderOllama: func(cfg section.ProviderConfig) (*Provider, error) {
 		p, err := NewOllamaProvider(cfg)
 		if err != nil {
 			return nil, err
@@ -34,7 +35,7 @@ var providerFactories = map[string]func(config.ProviderConfig) (*Provider, error
 	},
 }
 
-func NewProvider(name string, cfg config.ProviderConfig) (*Provider, error) {
+func NewProvider(name string, cfg section.ProviderConfig) (*Provider, error) {
 	factory, ok := providerFactories[name]
 	if !ok {
 		return nil, fmt.Errorf("%w: unsupported provider: %s", config.ErrInvalidConfig, name)
@@ -54,7 +55,7 @@ func SupportedProviders() []string {
 	return providers
 }
 
-func ForModels(ctx context.Context, providers config.ProvidersConfig, models ...ModelRef) ([]*Provider, error) {
+func ForModels(ctx context.Context, providers section.ProvidersConfig, models ...ModelRef) ([]*Provider, error) {
 	seen := make(map[string]bool, len(models))
 	configured := make([]*Provider, 0, len(models))
 
@@ -87,7 +88,7 @@ func ForModels(ctx context.Context, providers config.ProvidersConfig, models ...
 	return configured, nil
 }
 
-func EnsureProvider(ctx context.Context, name string, cfg config.ProvidersConfig, start bool) error {
+func EnsureProvider(ctx context.Context, name string, cfg section.ProvidersConfig, start bool) error {
 	switch name {
 	case ProviderOllama:
 		providerCfg, _ := cfg.Get(name)

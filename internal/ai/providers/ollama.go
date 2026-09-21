@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/config/section"
 	genai "github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/plugins/ollama"
 	"github.com/ollama/ollama/api"
@@ -56,7 +57,7 @@ type PullProgress struct {
 
 type PullProgressFunc func(PullProgress) error
 
-func NewOllamaProvider(cfg config.ProviderConfig) (*OllamaProvider, error) {
+func NewOllamaProvider(cfg section.ProviderConfig) (*OllamaProvider, error) {
 	if cfg.BaseURL == "" {
 		return nil, fmt.Errorf("%w: providers.ollama.base_url is not set", config.ErrInvalidConfig)
 	}
@@ -78,7 +79,7 @@ func NewOllamaProvider(cfg config.ProviderConfig) (*OllamaProvider, error) {
 	}, nil
 }
 
-func CheckOllama(ctx context.Context, cfg config.ProviderConfig) error {
+func CheckOllama(ctx context.Context, cfg section.ProviderConfig) error {
 	provider, err := NewOllamaProvider(cfg)
 	if err != nil {
 		return err
@@ -94,7 +95,7 @@ func CheckOllama(ctx context.Context, cfg config.ProviderConfig) error {
 	return nil
 }
 
-func EnsureOllama(ctx context.Context, cfg config.ProviderConfig, start bool) error {
+func EnsureOllama(ctx context.Context, cfg section.ProviderConfig, start bool) error {
 	if err := CheckOllama(ctx, cfg); err == nil {
 		slog.DebugContext(ctx, "Ollama is already running", slog.String("base_url", cfg.BaseURL))
 		return nil
@@ -105,7 +106,7 @@ func EnsureOllama(ctx context.Context, cfg config.ProviderConfig, start bool) er
 	return startOllama(ctx, cfg)
 }
 
-func startOllama(ctx context.Context, cfg config.ProviderConfig) error {
+func startOllama(ctx context.Context, cfg section.ProviderConfig) error {
 	if _, err := exec.LookPath("ollama"); err != nil {
 		return fmt.Errorf("%w: %w", ErrOllamaNotInstalled, err)
 	}

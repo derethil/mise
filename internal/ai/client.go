@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/derethil/mise/internal/ai/providers"
-	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/config/section"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core/api"
 	"github.com/firebase/genkit/go/genkit"
@@ -24,7 +24,7 @@ type Client struct {
 	features map[reflect.Type]Feature
 }
 
-func NewGenkitClient(ctx context.Context, cfg config.ProvidersConfig, deps Deps, models ...providers.ModelRef) (*Client, error) {
+func NewGenkitClient(ctx context.Context, cfg section.ProvidersConfig, deps Deps, models ...providers.ModelRef) (*Client, error) {
 	if len(models) == 0 {
 		return nil, ErrNoModels
 	}

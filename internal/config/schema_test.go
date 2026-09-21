@@ -54,11 +54,3 @@ func TestFieldTypeOf(t *testing.T) {
 	assert.Equal(t, fieldTypeString, fieldTypeOf(reflect.TypeOf(3.14)), "unhandled kinds default to string")
 	assert.Equal(t, fieldTypeString, fieldTypeOf(reflect.TypeOf([]int{})), "only string slices get the multi-value flag type")
 }
-
-func TestModelsConfigGet(t *testing.T) {
-	models := ModelsConfig{Small: "ollama/small", Large: "ollama/large"}
-
-	assert.Equal(t, "ollama/small", models.Get(ModelSmall))
-	assert.Equal(t, "ollama/large", models.Get(ModelLarge))
-	assert.Equal(t, "ollama/small", models.Get(ModelSize("")), "unrecognized sizes fall back to small")
-}

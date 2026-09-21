@@ -12,6 +12,7 @@ import (
 	"github.com/derethil/mise/internal/backup"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/config/section"
 	"github.com/derethil/mise/internal/runs"
 	"github.com/derethil/mise/internal/tandoor"
 	"github.com/urfave/cli/v3"
@@ -55,7 +56,7 @@ var normalizeCmd = &cli.Command{
 		cfg := config.FromContext(ctx)
 		tclient := tandoor.FromConfig(cfg)
 
-		feature, model, cancelOllama, err := cliutil.LoadFeature[*cleaningredients.Feature](ctx, cmd, config.ModelSmall, ai.Deps{Tandoor: tclient})
+		feature, model, cancelOllama, err := cliutil.LoadFeature[*cleaningredients.Feature](ctx, cmd, section.ModelSmall, ai.Deps{Tandoor: tclient})
 		if err != nil {
 			return cliutil.AIUserError(err, model.String())
 		}

@@ -4,6 +4,7 @@ import (
 	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/config/section"
 	"github.com/urfave/cli/v3"
 )
 
@@ -38,7 +39,7 @@ func selectedModels(cmd *cli.Command, cfg config.Config) ([]labeledModel, error)
 	}, nil
 }
 
-func ollamaProvider(cfg config.ProviderConfig, models []labeledModel) (*providers.OllamaProvider, error) {
+func ollamaProvider(cfg section.ProviderConfig, models []labeledModel) (*providers.OllamaProvider, error) {
 	for _, model := range models {
 		if model.ref.Provider == providers.ProviderOllama {
 			return providers.NewOllamaProvider(cfg)

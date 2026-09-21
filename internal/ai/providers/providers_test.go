@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/config/section"
 	"github.com/firebase/genkit/go/plugins/ollama"
 	"github.com/stretchr/testify/suite"
 )
@@ -15,11 +16,11 @@ import (
 type ProvidersSuite struct {
 	suite.Suite
 
-	providers config.ProvidersConfig
+	providers section.ProvidersConfig
 }
 
 func (s *ProvidersSuite) SetupTest() {
-	s.providers = config.ProvidersConfig{Ollama: config.OllamaConfig{BaseURL: "http://localhost:11434"}}
+	s.providers = section.ProvidersConfig{Ollama: section.OllamaConfig{BaseURL: "http://localhost:11434"}}
 }
 
 func TestProvidersSuite(t *testing.T) {
@@ -43,13 +44,13 @@ func (s *ProvidersSuite) TestUnsupportedProvider() {
 }
 
 func (s *ProvidersSuite) TestProviderNotConfigured() {
-	_, err := ForModels(context.Background(), config.ProvidersConfig{}, ModelRef{Provider: ProviderOllama, Name: "qwen2.5"})
+	_, err := ForModels(context.Background(), section.ProvidersConfig{}, ModelRef{Provider: ProviderOllama, Name: "qwen2.5"})
 
 	s.ErrorIs(err, config.ErrInvalidConfig)
 }
 
 func (s *ProvidersSuite) TestFactoryErrorPropagates() {
-	s.providers.Ollama = config.OllamaConfig{BaseURL: "://invalid"}
+	s.providers.Ollama = section.OllamaConfig{BaseURL: "://invalid"}
 
 	_, err := ForModels(context.Background(), s.providers, ModelRef{Provider: ProviderOllama, Name: "qwen2.5"})
 
@@ -63,7 +64,7 @@ func (s *ProvidersSuite) TestConstructsConfiguredProviderWithoutRequests() {
 	}))
 	defer server.Close()
 
-	cfg := config.ProviderConfig{BaseURL: server.URL, Timeout: 42}
+	cfg := section.ProviderConfig{BaseURL: server.URL, Timeout: 42}
 	provider, err := NewProvider(ProviderOllama, cfg)
 
 	s.Require().NoError(err)
@@ -72,7 +73,7 @@ func (s *ProvidersSuite) TestConstructsConfiguredProviderWithoutRequests() {
 }
 
 func (s *ProvidersSuite) TestRejectsInvalidURL() {
-	_, err := NewProvider(ProviderOllama, config.ProviderConfig{BaseURL: "://invalid"})
+	_, err := NewProvider(ProviderOllama, section.ProviderConfig{BaseURL: "://invalid"})
 
 	s.Error(err)
 }

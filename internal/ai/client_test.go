@@ -6,6 +6,7 @@ import (
 
 	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/config"
+	"github.com/derethil/mise/internal/config/section"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core/api"
 	"github.com/firebase/genkit/go/genkit"
@@ -86,7 +87,7 @@ func (s *ClientSuite) TestNewGenkitClientChecksExtraModelsToo() {
 func (s *ClientSuite) TestNewGenkitClientPropagatesProviderConfigErrors() {
 	model := providers.ModelRef{Provider: providers.ProviderOllama, Name: "qwen2.5"}
 
-	_, err := NewGenkitClient(s.T().Context(), config.ProvidersConfig{}, Deps{}, model)
+	_, err := NewGenkitClient(s.T().Context(), section.ProvidersConfig{}, Deps{}, model)
 
 	s.ErrorIs(err, config.ErrInvalidConfig)
 }
