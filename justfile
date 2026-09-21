@@ -37,6 +37,93 @@ test selector="" version="":
 
     TANDOOR_VERSION="{{ version }}" go test -tags=integration -v ./integration/tandoor
 
+# Validate and promote a newer Tandoor maximum after its integration suite passes
+[arg("version", pattern="^[0-9]+[.][0-9]+[.][0-9]+$", help="Tandoor version to validate and support (e.g. 2.6.15)")]
+support version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    just test integration "{{ version }}"
+    just update-support-bound maximum "{{ version }}"
+
+# Deprecate versions below an already-supported Tandoor version
+[arg("version", pattern="^[0-9]+[.][0-9]+[.][0-9]+$", help="Lowest Tandoor version to continue supporting (e.g. 2.6.15)")]
+deprecate version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    just update-support-bound minimum "{{ version }}"
+
+[private]
+update-support-bound bound version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    version_file="internal/tandoor/version.go"
+    case "{{ bound }}" in
+        maximum)
+            constant="MaxSupportedVersion"
+            commit_message="chore(tandoor): bump supported version to {{ version }}"
+            ;;
+        minimum)
+            constant="MinSupportedVersion"
+            commit_message="chore(tandoor): deprecate versions before {{ version }}"
+            ;;
+        *)
+            echo "Error: unknown support bound {{ bound }}" >&2
+            exit 1
+            ;;
+    esac
+
+    minimum="$(sed -nE 's/^[[:space:]]*MinSupportedVersion = "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' "$version_file")"
+    maximum="$(sed -nE 's/^[[:space:]]*MaxSupportedVersion = "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' "$version_file")"
+    if [ -z "$minimum" ] || [ -z "$maximum" ]; then
+        echo "Error: could not find the supported version range in $version_file" >&2
+        exit 1
+    fi
+
+    IFS=. read -r candidate_major candidate_minor candidate_patch <<< "{{ version }}"
+    IFS=. read -r minimum_major minimum_minor minimum_patch <<< "$minimum"
+    IFS=. read -r maximum_major maximum_minor maximum_patch <<< "$maximum"
+
+    if [ "{{ bound }}" = maximum ] && (( candidate_major < maximum_major ||
+        (candidate_major == maximum_major && candidate_minor < maximum_minor) ||
+        (candidate_major == maximum_major && candidate_minor == maximum_minor && candidate_patch <= maximum_patch) )); then
+        echo "Tandoor {{ version }} is not newer than the supported maximum $maximum; support range unchanged."
+        exit 0
+    fi
+
+    if [ "{{ bound }}" = minimum ] && (( candidate_major > maximum_major ||
+        (candidate_major == maximum_major && candidate_minor > maximum_minor) ||
+        (candidate_major == maximum_major && candidate_minor == maximum_minor && candidate_patch > maximum_patch) )); then
+        echo "Error: Tandoor {{ version }} is newer than the supported maximum $maximum" >&2
+        exit 1
+    fi
+
+    if [ "{{ bound }}" = minimum ] && (( candidate_major < minimum_major ||
+        (candidate_major == minimum_major && candidate_minor < minimum_minor) ||
+        (candidate_major == minimum_major && candidate_minor == minimum_minor && candidate_patch <= minimum_patch) )); then
+        echo "Tandoor {{ version }} does not raise the supported minimum $minimum; support range unchanged."
+        exit 0
+    fi
+
+    matches="$(grep -Ec "^[[:space:]]*$constant = \"" "$version_file")"
+    if [ "$matches" -ne 1 ]; then
+        echo "Error: expected exactly one $constant in $version_file, found $matches" >&2
+        exit 1
+    fi
+
+    current="$minimum"
+    if [ "{{ bound }}" = maximum ]; then
+        current="$maximum"
+    fi
+
+    sed -i "s|$constant = \"$current\"|$constant = \"{{ version }}\"|" "$version_file"
+    go test ./internal/tandoor -run 'TestVersionSupported|TestCompareVersions'
+
+    git add "$version_file"
+    git commit --only "$version_file" -m "$commit_message"
+
 # Run tests with coverage, printing per-func % coverage
 [arg("html", long="html", short="h", value="true", help="Open an HTML coverage report instead of printing per-func coverage")]
 coverage html="false":
