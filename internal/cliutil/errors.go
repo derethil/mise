@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/derethil/mise/internal/ai"
 	"github.com/derethil/mise/internal/ai/providers"
@@ -56,6 +57,21 @@ func TandoorUserError(err error) error {
 		return ErrWithUserMessage(err, "Could not reach Tandoor. Check tandoor.base_url and that the server is running.")
 	default:
 		return err
+	}
+}
+
+func WarnIfTandoorVersionUnsupported(ctx context.Context, client *tandoor.Client) {
+	version, supported, err := client.VersionSupported(ctx)
+	if err != nil {
+		slog.DebugContext(ctx, "could not determine Tandoor version", "error", err)
+		return
+	}
+
+	if !supported {
+		slog.WarnContext(ctx, fmt.Sprintf(
+			"Warning: Your Tandoor version (%s) is not officially supported. Supported versions are %s to %s. Some features may not work as expected.",
+			version, tandoor.MinSupportedVersion, tandoor.MaxSupportedVersion,
+		))
 	}
 }
 

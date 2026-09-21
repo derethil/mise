@@ -35,6 +35,7 @@ var genkitDevCmd = &cli.Command{
 		}
 
 		tclient := tandoor.FromConfig(cfg)
+		cliutil.WarnIfTandoorVersionUnsupported(ctx, tclient)
 
 		if _, err := miseai.NewGenkitClient(ctx, cfg.Providers, miseai.Deps{Tandoor: tclient}, models...); err != nil {
 			return err
