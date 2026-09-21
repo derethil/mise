@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/derethil/mise/internal/tandoor"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -41,6 +42,9 @@ type TandoorSuite struct {
 	version    string
 	stack      compose.ComposeStack
 	baseURL    string
+	token      string
+	client     *tandoor.Client
+	fixtures   fixtures
 }
 
 func TestTandoorSuite(t *testing.T) {
@@ -57,6 +61,8 @@ func (s *TandoorSuite) SetupSuite() {
 	s.createStack()
 	s.startStack(ctx)
 	s.resolveBaseURL(ctx)
+	s.bootstrapAuth(ctx)
+	s.createFixtures(ctx)
 
 	s.T().Logf("tandoor %s ready at %s (compose project %s)", s.version, s.baseURL, s.identifier)
 }
@@ -119,9 +125,4 @@ func (s *TandoorSuite) TearDownSuite() {
 	)
 
 	s.Assert().NoError(err, "tear down compose project %s", s.identifier)
-}
-
-// TODO: Remove this no-op test once we have real integration tests that use the TandoorSuite.
-func (s *TandoorSuite) TestEnvironment() {
-	s.NotEmpty(s.baseURL)
 }
