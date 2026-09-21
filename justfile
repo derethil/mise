@@ -13,21 +13,39 @@ check:
     go build -o mise
     rm -f mise
 
-# Run tests with coverage. Prints per-func % coverage, or opens an HTML report with --html/-h.
-coverage *args:
+# Run unit tests, or the Tandoor integration suite against a specific version
+[arg("selector", pattern="^(integration)?$", help="Pass 'integration' to run the Tandoor integration suite instead of the unit tests")]
+[arg("version", pattern="^([0-9]+[.][0-9]+[.][0-9]+)?$", help="Tandoor version the integration suite runs against (e.g. 2.6.13)")]
+test selector="" version="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ -z "{{ selector }}" ]; then
+        if [ -n "{{ version }}" ]; then
+            echo "Error: a version requires the 'integration' selector: just test integration {{ version }}" >&2
+            exit 1
+        fi
+
+        go test ./...
+        exit 0
+    fi
+
+    if [ -z "{{ version }}" ]; then
+        echo "Error: 'just test integration' requires a Tandoor version, e.g. just test integration 2.6.13" >&2
+        exit 1
+    fi
+
+    TANDOOR_VERSION="{{ version }}" go test -tags=integration -v ./integration/tandoor
+
+# Run tests with coverage, printing per-func % coverage
+[arg("html", long="html", short="h", value="true", help="Open an HTML coverage report instead of printing per-func coverage")]
+coverage html="false":
     #!/usr/bin/env bash
     set -euo pipefail
 
     go test ./... -coverprofile=coverage.out
 
-    html=""
-    for arg in {{ args }}; do
-        case "$arg" in
-            --html|-h) html=1 ;;
-        esac
-    done
-
-    if [ -n "$html" ]; then
+    if [ "{{ html }}" = "true" ]; then
         go tool cover -html=coverage.out
     else
         go tool cover -func=coverage.out
@@ -35,7 +53,7 @@ coverage *args:
 
     rm -f coverage.out
 
-# Recompute flake.nix's vendorHash after go.mod/go.sum change.
+# Recompute flake.nix's vendorHash after a go.mod/go.sum change
 update-vendor-hash:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -56,7 +74,8 @@ update-vendor-hash:
     nix build .#mise
     echo "vendorHash updated to $hash"
 
-# Validate, tag, and push a release for the given version (e.g. `just release 0.2.0`).
+# Validate, tag, and push a release for the given version
+[arg("version", pattern="^[0-9]+[.][0-9]+[.][0-9]+$", help="Version to release, without the leading v (e.g. 0.2.0)")]
 release version:
     #!/usr/bin/env bash
     set -euo pipefail
