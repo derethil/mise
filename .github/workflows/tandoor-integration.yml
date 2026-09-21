@@ -1,0 +1,112 @@
+name: Tandoor Integration
+
+on:
+  push:
+    branches: ["main"]
+    paths: &paths
+      - "internal/tandoor/**"
+      - "integration/tandoor/**"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/tandoor-integration.yml"
+  pull_request:
+    branches: ["main"]
+    paths: *paths
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Tandoor version to validate instead of the supported range"
+        required: false
+        type: string
+  schedule:
+    - cron: "0 5 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  versions:
+    name: Supported range
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    outputs:
+      matrix: ${{ steps.read.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the supported range
+        id: read
+        env:
+          CANDIDATE: ${{ inputs.version }}
+          SOURCE: internal/tandoor/version.go
+        run: |
+          set -euo pipefail
+
+          concrete() {
+            [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          }
+
+          if [ -n "$CANDIDATE" ]; then
+            if ! concrete "$CANDIDATE"; then
+              echo "::error::'$CANDIDATE' is not a concrete Tandoor version" >&2
+              exit 1
+            fi
+
+            echo "matrix=[\"$CANDIDATE\"]" >> "$GITHUB_OUTPUT"
+            echo "Validating candidate $CANDIDATE"
+            exit 0
+          fi
+
+          min="$(grep -oP 'MinSupportedVersion\s*=\s*"\K[^"]+' "$SOURCE" || true)"
+          max="$(grep -oP 'MaxSupportedVersion\s*=\s*"\K[^"]+' "$SOURCE" || true)"
+
+          for version in "$min" "$max"; do
+            if ! concrete "$version"; then
+              echo "::error::could not read a single concrete version pair from $SOURCE" >&2
+              exit 1
+            fi
+          done
+
+          if [ "$min" = "$max" ]; then
+            echo "matrix=[\"$min\"]" >> "$GITHUB_OUTPUT"
+          else
+            echo "matrix=[\"$min\",\"$max\"]" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "Supported range: $min to $max"
+
+  compatibility:
+    name: Tandoor ${{ matrix.tandoor }}
+    needs: versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        tandoor: ${{ fromJSON(needs.versions.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run the compatibility suite
+        env:
+          TANDOOR_VERSION: ${{ matrix.tandoor }}
+        run: go test -tags=integration -v -timeout 15m ./integration/tandoor
+
+      - name: Upload container logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tandoor-${{ matrix.tandoor }}-logs
+          path: /tmp/mise-tandoor-*/
+          if-no-files-found: ignore
+          retention-days: 7
