@@ -20,6 +20,7 @@ const defaultTimeout = 30 * time.Second
 
 type Client struct {
 	baseURL    string
+	rootURL    string
 	token      string
 	timeout    time.Duration
 	httpClient *http.Client
@@ -31,8 +32,11 @@ type Client struct {
 }
 
 func NewClient(baseURL, token string) *Client {
+	rootURL := strings.TrimRight(baseURL, "/")
+
 	c := &Client{
-		baseURL:    fmt.Sprintf("%s/api", strings.TrimRight(baseURL, "/")),
+		baseURL:    rootURL + "/api",
+		rootURL:    rootURL,
 		token:      token,
 		timeout:    defaultTimeout,
 		httpClient: &http.Client{},
@@ -51,6 +55,11 @@ func FromConfig(cfg config.Config) *Client {
 }
 
 func (c *Client) Request(ctx context.Context, method, endpoint string, payload []byte) ([]byte, error) {
+	url := fmt.Sprintf("%s/%s", c.baseURL, endpoint)
+	return c.requestURL(ctx, method, url, payload)
+}
+
+func (c *Client) requestURL(ctx context.Context, method, url string, payload []byte) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
@@ -59,7 +68,6 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 		body = bytes.NewReader(payload)
 	}
 
-	url := fmt.Sprintf("%s/%s", c.baseURL, endpoint)
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
@@ -90,13 +98,13 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 	}
 
 	slog.DebugContext(ctx, "received tandoor response",
-		slog.String("endpoint", endpoint),
+		slog.String("url", url),
 		slog.Int("status", resp.StatusCode),
 		slog.String("response_body", string(respBody)),
 	)
 
 	if resp.StatusCode >= 400 {
-		err := fmt.Errorf("request to %s failed: %s", endpoint, resp.Status)
+		err := fmt.Errorf("request to %s failed: %s", url, resp.Status)
 
 		switch resp.StatusCode {
 		case http.StatusUnauthorized, http.StatusForbidden:
@@ -109,7 +117,7 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, payload [
 	}
 
 	contentType := resp.Header.Get("Content-Type")
-	if contentType != "" && !strings.Contains(contentType, "application/json") {
+	if contentType != "" && !strings.Contains(contentType, "json") {
 		return nil, fmt.Errorf("%w: %s returned %s instead of JSON", ErrTandoorRequestFailed, resp.Request.URL, contentType)
 	}
 

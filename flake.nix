@@ -31,7 +31,7 @@
       meta.mainProgram = "mise";
       pname = "mise";
       src = ./.;
-      vendorHash = "sha256-7ziKWtC0GhGXeE7DiPfI8aAOSch/Scrv5Hcc/KyO7jI=";
+      vendorHash = "sha256-mc1Ek/vpnmpuMeXaliHU46gyQjQcNBY182Teh4bKiEU=";
       version = "0.3.1";
     };
 
@@ -40,13 +40,29 @@
         inherit inputs pkgs;
 
         modules = [
-          {
+          ({config, ...}: {
             languages.go.enable = true;
 
             git-hooks.hooks = {
               gofmt.enable = true;
-              govet.enable = true;
-              gotest.enable = true;
+
+              govet = {
+                enable = true;
+                excludes = ["^integration/"];
+              };
+
+              gotest = {
+                enable = true;
+                excludes = ["^integration/"];
+              };
+
+              govet-integration = {
+                enable = true;
+                name = "govet (integration)";
+                entry = "${config.languages.go.package}/bin/go vet -tags=integration ./integration/...";
+                files = "^integration/.*\\.go$";
+                pass_filenames = false;
+              };
             };
 
             outputs = {
@@ -87,7 +103,7 @@
                 fi | ${pkgs.fblog}/bin/fblog -d --main-line-format $'\n{{bold(fixed_size 19 fblog_timestamp)}} {{level_style (uppercase (fixed_size 5 fblog_level))}}:{{#if fblog_prefix}} {{bold(cyan fblog_prefix)}}{{/if}} {{fblog_message}}'
               '';
             };
-          }
+          })
         ];
       };
   in {
