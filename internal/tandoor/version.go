@@ -12,7 +12,7 @@ import (
 
 const (
 	MinSupportedVersion = "2.6.13"
-	MaxSupportedVersion = "2.6.13"
+	MaxSupportedVersion = "2.6.15"
 )
 
 func (c *Client) VersionSupported(ctx context.Context) (version string, supported bool, err error) {
