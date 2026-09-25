@@ -34,7 +34,6 @@ var Command = &cli.Command{
 	ArgValidator: func(ctx context.Context, cmd *cli.Command) error {
 		validators := []func(*cli.Command) error{
 			validateUrl,
-			validateCookiesFromBrowser,
 			validateCookiesFromFile,
 			validateExclusiveCookies,
 		}

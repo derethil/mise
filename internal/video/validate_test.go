@@ -43,10 +43,3 @@ func (s *ValidateSuite) TestIsSupportedImportSource() {
 		})
 	}
 }
-
-func (s *ValidateSuite) TestIsSupportedBrowser() {
-	s.True(IsSupportedBrowser("firefox"))
-	s.True(IsSupportedBrowser("Firefox"), "browser names are matched case-insensitively")
-	s.False(IsSupportedBrowser("netscape"))
-	s.False(IsSupportedBrowser(""))
-}

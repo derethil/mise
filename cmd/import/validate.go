@@ -27,19 +27,6 @@ func validateUrl(cmd *cli.Command) error {
 	return nil
 }
 
-func validateCookiesFromBrowser(cmd *cli.Command) error {
-	value := cmd.String(flagCookiesFromBrowser)
-	if value == "" {
-		return nil
-	}
-
-	if !video.IsSupportedBrowser(value) {
-		return cliutil.ErrWithUserMessage(cliutil.ErrIncorrectUsage, "Browser %s is not a supported browser %v", value, video.SupportedBrowsers)
-	}
-
-	return nil
-}
-
 func validateCookiesFromFile(cmd *cli.Command) error {
 	value := cmd.String(flagCookiesFile)
 	if value == "" {

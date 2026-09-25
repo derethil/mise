@@ -1,25 +1,11 @@
 package video
 
-import (
-	"slices"
-	"strings"
-)
+import "strings"
 
 var SupportedImportSources = []string{
 	"tiktok.com",
 	"youtube.com",
 	"instagram.com",
-}
-
-var SupportedBrowsers = []string{
-	"chrome",
-	"chromium",
-	"edge",
-	"firefox",
-	"opera",
-	"safari",
-	"vivaldi",
-	"whale",
 }
 
 func IsSupportedImportSource(host string) bool {
@@ -32,8 +18,4 @@ func IsSupportedImportSource(host string) bool {
 	}
 
 	return false
-}
-
-func IsSupportedBrowser(browser string) bool {
-	return slices.Contains(SupportedBrowsers, strings.ToLower(browser))
 }

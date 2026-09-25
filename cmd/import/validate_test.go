@@ -55,13 +55,6 @@ func (s *ValidateSuite) TestRejectsUnsupportedSource() {
 	s.Contains(cliutil.UserMessage(err), "is not a supported import source")
 }
 
-func (s *ValidateSuite) TestRejectsUnsupportedBrowser() {
-	err := s.run("https://tiktok.com/@a/video/1", "--"+flagCookiesFromBrowser, "netscape")
-
-	s.Require().Error(err)
-	s.Contains(cliutil.UserMessage(err), "is not a supported browser")
-}
-
 func (s *ValidateSuite) TestRejectsMissingCookiesFile() {
 	err := s.run("https://tiktok.com/@a/video/1", "--"+flagCookiesFile, "/nonexistent/cookies.txt")
 
@@ -88,7 +81,7 @@ func (s *ValidateSuite) TestRejectsBothCookieSources() {
 }
 
 func (s *ValidateSuite) TestURLIsValidatedBeforeCookies() {
-	err := s.run("https://vimeo.com/123", "--"+flagCookiesFromBrowser, "netscape")
+	err := s.run("https://vimeo.com/123", "--"+flagCookiesFile, "/nonexistent/cookies.txt")
 
 	s.Require().Error(err)
 	s.Contains(cliutil.UserMessage(err), "is not a supported import source",
