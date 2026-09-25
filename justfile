@@ -145,14 +145,16 @@ update-vendor-hash:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    original_hash="$(grep -oP 'vendorHash = "\K[^"]*' flake.nix)"
     sed -i 's|vendorHash = ".*";|vendorHash = pkgs.lib.fakeHash;|' flake.nix
 
     output="$(nix build .#mise 2>&1)" || true
-    hash="$(echo "$output" | grep 'got:' | awk '{print $NF}')"
+    hash="$(echo "$output" | grep 'got:' | awk '{print $NF}')" || true
 
     if [ -z "$hash" ]; then
         echo "No hash mismatch found in nix build output - vendorHash may already be correct, or the build failed for another reason:"
         echo "$output"
+        sed -i "s|vendorHash = pkgs.lib.fakeHash;|vendorHash = \"$original_hash\";|" flake.nix
         exit 1
     fi
 
