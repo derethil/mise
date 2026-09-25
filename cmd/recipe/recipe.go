@@ -12,7 +12,7 @@ import (
 
 var Command = &cli.Command{
 	Name:  "recipe",
-	Usage: "Manage a Tandoor recipe",
+	Usage: "Manage an existing Tandoor recipe",
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		cfg := config.FromContext(ctx)
 		cliutil.WarnIfTandoorVersionUnsupported(ctx, tandoor.FromConfig(cfg))

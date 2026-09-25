@@ -53,6 +53,8 @@ var rootCmd = &cli.Command{
 	Metadata:               map[string]any{"globalFlagCategories": newGlobalFlagCategories(rootFlags)},
 	UseShortOptionHandling: true,
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+
+		// Re-init after parsing flags to handle -v and -vv
 		ctx, err := logging.Init(ctx, cmd.Count(string(cliutil.GlobalFlagVerbose)))
 		if err != nil {
 			return ctx, err
@@ -71,11 +73,11 @@ var rootCmd = &cli.Command{
 		return config.NewContext(ctx, cfg), nil
 	},
 	Commands: []*cli.Command{
-		genkitDevCmd,
-		configureCmd,
-		logsCmd,
 		recipe.Command,
 		model.Command,
+		configureCmd,
+		logsCmd,
+		genkitDevCmd,
 	},
 	EnableShellCompletion: true,
 }
@@ -86,17 +88,21 @@ func Execute() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	ctx, err := logging.Init(ctx, 0)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	ctx = logging.NewInvocation(ctx, commandPath(rootCmd, args), args)
 
 	if err := rootCmd.Run(ctx, os.Args); err != nil {
-		slog.ErrorContext(ctx, err.Error())
-
 		message := cliutil.UserMessage(err)
 		if ctx.Err() != nil {
-			message = "Cancelled."
+			message = "\nCancelled."
 		}
 
-		fmt.Fprintln(os.Stderr, "Error:", message)
+		slog.ErrorContext(ctx, message)
 		os.Exit(1)
 	}
 
