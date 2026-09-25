@@ -22,7 +22,9 @@
       config.allowUnfree = true;
     };
 
-    pkg = pkgs.buildGoModule rec {
+    goPkg = pkgs.go_1_27;
+
+    pkg = (pkgs.buildGoModule.override {go = goPkg;}) rec {
       ldflags = [
         "-s"
         "-w"
@@ -41,28 +43,33 @@
 
         modules = [
           ({config, ...}: {
-            languages.go.enable = true;
+            git-hooks.tools.go = config.languages.go.package;
 
             git-hooks.hooks = {
               gofmt.enable = true;
-
-              govet = {
-                enable = true;
-                excludes = ["^integration/"];
-              };
 
               gotest = {
                 enable = true;
                 excludes = ["^integration/"];
               };
 
+              govet = {
+                enable = true;
+                excludes = ["^integration/"];
+              };
+
               govet-integration = {
                 enable = true;
-                name = "govet (integration)";
                 entry = "${config.languages.go.package}/bin/go vet -tags=integration ./integration/...";
                 files = "^integration/.*\\.go$";
+                name = "govet (integration)";
                 pass_filenames = false;
               };
+            };
+
+            languages.go = {
+              enable = true;
+              package = goPkg;
             };
 
             outputs = {
