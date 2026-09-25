@@ -74,6 +74,7 @@ var rootCmd = &cli.Command{
 	},
 	Commands: []*cli.Command{
 		recipe.Command,
+		importCmd,
 		model.Command,
 		configureCmd,
 		logsCmd,
