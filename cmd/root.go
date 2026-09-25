@@ -10,6 +10,7 @@ import (
 	"strings"
 	"syscall"
 
+	importcmd "github.com/derethil/mise/cmd/import"
 	"github.com/derethil/mise/cmd/model"
 	"github.com/derethil/mise/cmd/recipe"
 	"github.com/derethil/mise/internal/cliutil"
@@ -74,7 +75,7 @@ var rootCmd = &cli.Command{
 	},
 	Commands: []*cli.Command{
 		recipe.Command,
-		importCmd,
+		importcmd.Command,
 		model.Command,
 		configureCmd,
 		logsCmd,
