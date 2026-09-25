@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 
@@ -10,6 +11,12 @@ import (
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/video"
 	"github.com/urfave/cli/v3"
+)
+
+const (
+	flagCookiesFile        = "video.cookies-file"
+	flagCookiesFromBrowser = "video.cookies-from-browser"
+	flagDryRun             = "dry-run"
 )
 
 var importCmd = &cli.Command{
@@ -21,7 +28,10 @@ var importCmd = &cli.Command{
 			Required: true,
 		},
 	},
-	Flags: config.FlagsForCommand("import"),
+	Flags: append(config.FlagsForCommand("import"), &cli.BoolFlag{
+		Name:  flagDryRun,
+		Usage: "Fetch and print video metadata without downloading",
+	}),
 	ArgValidator: func(ctx context.Context, cmd *cli.Command) error {
 		validators := []func(*cli.Command) error{
 			validateUrl,
@@ -37,7 +47,6 @@ var importCmd = &cli.Command{
 		}
 
 		return nil
-
 	},
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		configPath := cliutil.ResolveFlag(cmd, cliutil.GlobalFlagConfig, config.DefaultConfigPath())
@@ -49,31 +58,58 @@ var importCmd = &cli.Command{
 		return config.NewContext(ctx, cfg), nil
 	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		url := cmd.StringArg("url")
 		cfg := config.FromContext(ctx)
 
-		printProgress := cliutil.PrintProgress()
-		opts := []video.YtdlpOption{
-			video.WithConfig(cfg.Video),
-			video.WithProgress(func(p video.Progress) {
-				_ = printProgress(cliutil.Progress{
-					Label:     "video",
-					Status:    p.Status,
-					Total:     p.Total,
-					Completed: p.Completed,
-				})
-			}),
-		}
-
-		workdir, err := video.DownloadVideo(ctx, url, opts, cfg.Video.YtdlpArgs...)
+		extraction, err := video.Extract(ctx, cmd.StringArg("url"), cfg.Video, progressPrinter())
 		if err != nil {
-			return err
+			return cliutil.VideoUserError(err)
 		}
 
-		fmt.Println()
+		showExtractionInfo(*extraction)
 
-		return workdir.Cleanup()
+		if cmd.Bool(flagDryRun) {
+			slog.InfoContext(ctx, "Dry run complete, no import performed.")
+			return nil
+		}
+
+		media, err := extraction.Download(ctx)
+		if err != nil {
+			return cliutil.VideoUserError(err)
+		}
+
+		fmt.Printf("\nFile:     %s\n", media.Path)
+		fmt.Println("\nTranscription, extraction, and Tandoor creation aren't built yet — the download is left in the workdir above.")
+
+		return nil
 	},
+}
+
+func progressPrinter() video.ProgressFunc {
+	printProgress := cliutil.PrintProgress()
+
+	return func(p video.Progress) {
+		_ = printProgress(cliutil.Progress{
+			Label:     "video",
+			Status:    p.Status,
+			Total:     p.Total,
+			Completed: p.Completed,
+		})
+	}
+}
+
+func showExtractionInfo(e video.Extraction) {
+	source := e.Source
+	workdir := e.WorkDir()
+
+	fmt.Printf("Title:    %s\n", source.Title)
+
+	if source.Uploader != "" {
+		fmt.Printf("Uploader: %s\n", source.Uploader)
+	}
+
+	fmt.Printf("Duration: %s\n", source.Duration)
+	fmt.Printf("Source:   %s\n", source.URL)
+	fmt.Printf("Workdir:  %s\n", workdir)
 }
 
 func validateUrl(cmd *cli.Command) error {
@@ -95,7 +131,7 @@ func validateUrl(cmd *cli.Command) error {
 }
 
 func validateCookiesFromBrowser(cmd *cli.Command) error {
-	value := cmd.String("video.cookies-from-browser")
+	value := cmd.String(flagCookiesFromBrowser)
 	if value == "" {
 		return nil
 	}
@@ -108,7 +144,7 @@ func validateCookiesFromBrowser(cmd *cli.Command) error {
 }
 
 func validateCookiesFromFile(cmd *cli.Command) error {
-	value := cmd.String("video.cookies-file")
+	value := cmd.String(flagCookiesFile)
 	if value == "" {
 		return nil
 	}
@@ -130,8 +166,8 @@ func validateCookiesFromFile(cmd *cli.Command) error {
 }
 
 func validateExclusiveCookies(cmd *cli.Command) error {
-	if cmd.String("video.cookies-from-browser") != "" && cmd.String("video.cookies-file") != "" {
-		return cliutil.ErrWithUserMessage(cliutil.ErrIncorrectUsage, "--video.cookies-from-browser and --video.cookies-file cannot be used together")
+	if cmd.String(flagCookiesFromBrowser) != "" && cmd.String(flagCookiesFile) != "" {
+		return cliutil.ErrWithUserMessage(cliutil.ErrIncorrectUsage, "--%s and --%s cannot be used together", flagCookiesFromBrowser, flagCookiesFile)
 	}
 
 	return nil

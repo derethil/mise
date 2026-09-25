@@ -13,7 +13,7 @@ type WorkDir struct {
 	Path string
 }
 
-func NewWorkDir() (*WorkDir, error) {
+func newWorkDir() (*WorkDir, error) {
 	path, err := os.MkdirTemp("", "mise-import-*")
 	if err != nil {
 		return nil, err

@@ -3,6 +3,7 @@ package video
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -35,14 +36,23 @@ type DownloadError struct {
 }
 
 func (e *DownloadError) Error() string {
-	detail := e.Stderr
-	if detail == "" {
-		detail = e.err.Error()
+	parts := []string{ErrDownloadFailed.Error()}
+
+	if e.err != nil {
+		parts = append(parts, e.err.Error())
 	}
 
-	return fmt.Sprintf("%s: %s", ErrDownloadFailed, detail)
+	if e.Stderr != "" {
+		parts = append(parts, e.Stderr)
+	}
+
+	return strings.Join(parts, ": ")
 }
 
 func (e *DownloadError) Unwrap() []error {
+	if e.err == nil {
+		return []error{ErrDownloadFailed}
+	}
+
 	return []error{ErrDownloadFailed, e.err}
 }

@@ -3,13 +3,18 @@ package video
 import (
 	"context"
 	"fmt"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/derethil/mise/internal/config/section"
 	"github.com/lrstanley/go-ytdlp"
 )
 
-type YtdlpOption func(*ytdlp.Command)
+const (
+	progressInterval = 200 * time.Millisecond
+	stderrTailLines  = 10
+)
 
 type Progress struct {
 	Status    string
@@ -19,72 +24,95 @@ type Progress struct {
 
 type ProgressFunc func(Progress)
 
-func DownloadVideo(ctx context.Context, url string, opts []YtdlpOption, extraArgs ...string) (*WorkDir, error) {
-	workdir, err := NewWorkDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create work directory: %w", err)
+func resolveBinary(ctx context.Context, cfg section.VideoConfig) (string, error) {
+	if cfg.YtdlpPath != "" {
+		path, err := exec.LookPath(cfg.YtdlpPath)
+		if err != nil {
+			return "", fmt.Errorf("%w: %w", ErrBinaryMissing, err)
+		}
+
+		return path, nil
 	}
 
-	dl := ytdlp.New().
+	resolved, err := ytdlp.Install(ctx, &ytdlp.InstallOptions{AllowVersionMismatch: true})
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", ErrBinaryMissing, err)
+	}
+
+	return resolved.Executable, nil
+}
+
+func newCommand(workdir *WorkDir, cfg section.VideoConfig, executable string, onProgress ProgressFunc) *ytdlp.Command {
+	cmd := ytdlp.New().
 		NoPlaylist().
+		FlatPlaylist().
 		Color("no_color").
-		Paths(workdir.Path).
 		Output("video.%(ext)s").
-		MergeOutputFormat("mp4")
+		MergeOutputFormat("mp4").
+		Paths("home:"+workdir.Join(mediaDir)).
+		Paths("temp:"+workdir.Join(tempDir)).
+		PrintToFile(filepathTemplate, workdir.Join(filepathFilename)).
+		SetExecutable(executable)
 
-	for _, opt := range opts {
-		opt(dl)
-	}
+	applyConfig(cmd, cfg)
+	applyProgress(cmd, onProgress)
 
-	result, err := dl.Run(ctx, append([]string{url}, extraArgs...)...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to download video: %w", err)
-	}
-
-	_, err = result.GetExtractedInfo()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get extracted info: %w", err)
-	}
-
-	return workdir, nil
+	return cmd
 }
 
-func WithProgress(onProgress ProgressFunc) YtdlpOption {
-	return func(c *ytdlp.Command) {
-		c.ProgressFunc(200*time.Millisecond, func(u ytdlp.ProgressUpdate) {
-			onProgress(Progress{
-				Status:    string(u.Status),
-				Total:     int64(u.TotalBytes),
-				Completed: int64(u.DownloadedBytes),
-			})
+func applyConfig(cmd *ytdlp.Command, cfg section.VideoConfig) {
+	settings := []struct {
+		value string
+		apply func(string) *ytdlp.Command
+	}{
+		{cfg.Format, cmd.Format},
+		{cfg.CookiesFile, cmd.Cookies},
+		{cfg.CookiesFromBrowser, cmd.CookiesFromBrowser},
+		{cfg.Impersonate, cmd.Impersonate},
+	}
+
+	for _, setting := range settings {
+		if setting.value != "" {
+			setting.apply(setting.value)
+		}
+	}
+}
+
+func applyProgress(cmd *ytdlp.Command, onProgress ProgressFunc) {
+	if onProgress == nil {
+		return
+	}
+
+	cmd.ProgressFunc(progressInterval, func(u ytdlp.ProgressUpdate) {
+		onProgress(Progress{
+			Status:    string(u.Status),
+			Total:     int64(u.TotalBytes),
+			Completed: int64(u.DownloadedBytes),
 		})
-	}
+	})
 }
 
-func WithConfig(cfg section.VideoConfig) YtdlpOption {
-	return func(c *ytdlp.Command) {
-		if cfg.Format != "" {
-			c.Format(cfg.Format)
-		}
-
-		if cfg.CookiesFromBrowser != "" {
-			c.CookiesFromBrowser(cfg.CookiesFromBrowser)
-		}
-
-		if cfg.CookiesFile != "" {
-			c.Cookies(cfg.CookiesFile)
-		}
-
-		if cfg.Impersonate != "" {
-			c.Impersonate(cfg.Impersonate)
-		}
-
-		if cfg.YtdlpPath != "" {
-			c.SetExecutable(cfg.YtdlpPath)
-		}
-
-		if cfg.MaxDurationMinutes > 0 {
-			c.MatchFilters(fmt.Sprintf("duration <= %d", cfg.MaxDurationMinutes*60))
-		}
+func classify(err error, res *ytdlp.Result) error {
+	if _, ok := ytdlp.IsMisconfigError(err); ok {
+		return fmt.Errorf("%w: %w", ErrBinaryMissing, err)
 	}
+
+	if _, ok := ytdlp.IsExitCodeError(err); ok {
+		return &DownloadError{Stderr: stderrTail(res), err: err}
+	}
+
+	return &DownloadError{err: err}
+}
+
+func stderrTail(res *ytdlp.Result) string {
+	if res == nil || res.Stderr == "" {
+		return ""
+	}
+
+	lines := strings.Split(strings.TrimSpace(res.Stderr), "\n")
+	if len(lines) > stderrTailLines {
+		lines = lines[len(lines)-stderrTailLines:]
+	}
+
+	return strings.Join(lines, "\n")
 }
