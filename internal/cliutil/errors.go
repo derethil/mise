@@ -8,11 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/derethil/mise/internal/ai"
 	"github.com/derethil/mise/internal/ai/providers"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/tandoor"
+	"github.com/derethil/mise/internal/video"
 	"github.com/firebase/genkit/go/core/status"
 )
 
@@ -89,6 +91,34 @@ func AIUserError(err error, model string) error {
 		return ErrWithUserMessage(err, "Unable to load model %s. Please ensure it is available for use by your provider.", model)
 	case errors.Is(err, ai.ErrMalformedResponse):
 		return ErrWithUserMessage(err, "Model %s didn't return a properly formatted response. Try again, or use a different/more capable model with --model.", model)
+	default:
+		return err
+	}
+}
+
+func VideoUserError(err error) error {
+	if tooLong, ok := errors.AsType[*video.TooLongError](err); ok {
+		return ErrWithUserMessage(err, "That video is %s long (limit %s). Raise `video.max_duration_minutes` to import it anyway.",
+			tooLong.Duration.Round(time.Second), tooLong.Limit)
+	}
+
+	if download, ok := errors.AsType[*video.DownloadError](err); ok && download.Stderr != "" {
+		return ErrWithUserMessage(err, "yt-dlp could not download this video:\n%s", download.Stderr)
+	}
+
+	switch {
+	case errors.Is(err, video.ErrBinaryMissing):
+		return ErrWithUserMessage(err, "Could not find `yt-dlp` on your PATH, and downloading one failed. Install it (`nix profile install nixpkgs#yt-dlp`) or set `video.ytdlp_path`.")
+	case errors.Is(err, video.ErrPlaylistURL):
+		return ErrWithUserMessage(err, "That URL is a playlist or profile. Pass a link to a single video.")
+	case errors.Is(err, video.ErrLiveVideo):
+		return ErrWithUserMessage(err, "That URL is a live stream, which mise can't import. Wait for the recording to be published and try again.")
+	case errors.Is(err, video.ErrDurationUnknown):
+		return ErrWithUserMessage(err, "yt-dlp didn't report a duration for that video, so mise can't check it against `video.max_duration_minutes`. Set that to 0 to import it anyway.")
+	case errors.Is(err, video.ErrNoVideo):
+		return ErrWithUserMessage(err, "No video was found at that URL.")
+	case errors.Is(err, video.ErrDownloadFailed):
+		return ErrWithUserMessage(err, "yt-dlp could not download this video: %s", err)
 	default:
 		return err
 	}

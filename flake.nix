@@ -22,16 +22,23 @@
       config.allowUnfree = true;
     };
 
-    pkg = pkgs.buildGoModule rec {
+    goPkg = pkgs.go_1_27;
+    runtimeDeps = [pkgs.ffmpeg pkgs.yt-dlp];
+
+    pkg = (pkgs.buildGoModule.override {go = goPkg;}) rec {
       ldflags = [
         "-s"
         "-w"
         "-X github.com/derethil/mise/cmd.version=${version}"
       ];
       meta.mainProgram = "mise";
+      nativeBuildInputs = [pkgs.makeWrapper];
       pname = "mise";
+      postFixup = ''
+        wrapProgram $out/bin/mise --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
+      '';
       src = ./.;
-      vendorHash = "sha256-mc1Ek/vpnmpuMeXaliHU46gyQjQcNBY182Teh4bKiEU=";
+      vendorHash = "sha256-tuzl700e8q6Rc1l+0bIQxpeJBES4g1XBCnLKohm91uk=";
       version = "0.3.1";
     };
 
@@ -41,35 +48,49 @@
 
         modules = [
           ({config, ...}: {
-            languages.go.enable = true;
+            git-hooks.tools.go = config.languages.go.package;
 
             git-hooks.hooks = {
               gofmt.enable = true;
-
-              govet = {
-                enable = true;
-                excludes = ["^integration/"];
-              };
 
               gotest = {
                 enable = true;
                 excludes = ["^integration/"];
               };
 
+              govet = {
+                enable = true;
+                excludes = ["^integration/"];
+              };
+
               govet-integration = {
                 enable = true;
-                name = "govet (integration)";
                 entry = "${config.languages.go.package}/bin/go vet -tags=integration ./integration/...";
                 files = "^integration/.*\\.go$";
+                name = "govet (integration)";
                 pass_filenames = false;
               };
+            };
+
+            languages.go = {
+              enable = true;
+              package = goPkg;
             };
 
             outputs = {
               mise = pkg;
             };
 
-            packages = [pkgs.just pkgs.nodejs pkgs.fblog ollama];
+            packages = builtins.concatLists [
+              [
+                pkgs.just
+                pkgs.nodejs
+                pkgs.fblog
+                ollama
+              ]
+
+              runtimeDeps
+            ];
 
             processes = {
               genkit = {
