@@ -18,6 +18,8 @@ import (
 
 const defaultTimeout = 30 * time.Second
 
+var skipResponseLogEndpoints = []string{"/openapi/"}
+
 type Client struct {
 	baseURL    string
 	rootURL    string
@@ -97,11 +99,18 @@ func (c *Client) requestURL(ctx context.Context, method, url string, payload []b
 		return nil, err
 	}
 
-	slog.DebugContext(ctx, "received tandoor response",
-		slog.String("url", url),
-		slog.Int("status", resp.StatusCode),
-		slog.String("response_body", string(respBody)),
-	)
+	if shouldLogResponseBody(url) {
+		slog.DebugContext(ctx, "received tandoor response",
+			slog.String("url", url),
+			slog.Int("status", resp.StatusCode),
+			slog.String("response_body", string(respBody)),
+		)
+	} else {
+		slog.DebugContext(ctx, "received tandoor response",
+			slog.String("url", url),
+			slog.Int("status", resp.StatusCode),
+		)
+	}
 
 	if resp.StatusCode >= 400 {
 		err := fmt.Errorf("request to %s failed: %s", url, resp.Status)
@@ -122,6 +131,16 @@ func (c *Client) requestURL(ctx context.Context, method, url string, payload []b
 	}
 
 	return respBody, nil
+}
+
+func shouldLogResponseBody(url string) bool {
+	for _, endpoint := range skipResponseLogEndpoints {
+		if strings.Contains(url, endpoint) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (c *Client) TestConnection(ctx context.Context) error {
