@@ -23,6 +23,7 @@
     };
 
     goPkg = pkgs.go_1_27;
+    runtimeDeps = [pkgs.ffmpeg pkgs.yt-dlp];
 
     pkg = (pkgs.buildGoModule.override {go = goPkg;}) rec {
       ldflags = [
@@ -31,9 +32,13 @@
         "-X github.com/derethil/mise/cmd.version=${version}"
       ];
       meta.mainProgram = "mise";
+      nativeBuildInputs = [pkgs.makeWrapper];
       pname = "mise";
+      postFixup = ''
+        wrapProgram $out/bin/mise --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
+      '';
       src = ./.;
-      vendorHash = "sha256-mc1Ek/vpnmpuMeXaliHU46gyQjQcNBY182Teh4bKiEU=";
+      vendorHash = "sha256-tuzl700e8q6Rc1l+0bIQxpeJBES4g1XBCnLKohm91uk=";
       version = "0.3.1";
     };
 
@@ -76,7 +81,16 @@
               mise = pkg;
             };
 
-            packages = [pkgs.just pkgs.nodejs pkgs.fblog ollama];
+            packages = builtins.concatLists [
+              [
+                pkgs.just
+                pkgs.nodejs
+                pkgs.fblog
+                ollama
+              ]
+
+              runtimeDeps
+            ];
 
             processes = {
               genkit = {
