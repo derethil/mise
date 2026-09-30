@@ -91,7 +91,7 @@ var keywordCmd = &cli.Command{
 		opts := keywordOptions{
 			dryRun:  cmd.Bool("dry-run"),
 			replace: cmd.Bool("replace"),
-			ignore:  cfg.Keywords.Ignore,
+			keep:    cfg.Keywords.Keep,
 		}
 
 		run := func(ctx context.Context, id int) error {
@@ -109,7 +109,7 @@ var keywordCmd = &cli.Command{
 type keywordOptions struct {
 	dryRun  bool
 	replace bool
-	ignore  []string
+	keep    []string
 }
 
 func readSchema(path string) (string, error) {
@@ -147,7 +147,7 @@ func keywordRecipe(ctx context.Context, tclient *tandoor.Client, feature *assign
 
 	updated, changes, err := runAssignment(ctx, feature, model, recipe, assignkeywords.ApplyOptions{
 		Replace: opts.replace,
-		Protect: opts.ignore,
+		Protect: opts.keep,
 	})
 	if err != nil {
 		return err

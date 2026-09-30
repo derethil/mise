@@ -15,9 +15,9 @@ type ProviderSettings interface {
 }
 
 type OllamaConfig struct {
-	BaseURL   string `key:"base_url" usage:"Base URL for the Ollama API, e.g. http://localhost:11434"`
-	Timeout   int    `key:"timeout" flag:"-" usage:"Seconds to wait for a response from Ollama"`
-	Autostart bool   `key:"autostart" usage:"Start Ollama automatically if not running, requires Ollama to be installed and in PATH"`
+	BaseURL   string `key:"base_url" flag:"ollama-url" usage:"Base URL for the Ollama API, e.g. http://localhost:11434"`
+	Timeout   int    `key:"timeout" usage:"Seconds to wait for a response from Ollama"`
+	Autostart bool   `key:"autostart" flag:"start-ollama" usage:"Start Ollama automatically if not running, requires Ollama to be installed and in PATH"`
 }
 
 func (o *OllamaConfig) Common() ProviderConfig {

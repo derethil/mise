@@ -8,8 +8,8 @@ const (
 )
 
 type ModelsConfig struct {
-	Small string `key:"small" flag:"-" usage:"Model for simpler tasks, as provider/model"`
-	Large string `key:"large" flag:"-" usage:"Model for harder tasks, as provider/model"`
+	Small string `key:"small" usage:"Model for simpler tasks, as provider/model"`
+	Large string `key:"large" usage:"Model for harder tasks, as provider/model"`
 }
 
 func (m ModelsConfig) Get(size ModelSize) string {

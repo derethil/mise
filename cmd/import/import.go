@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	flagCookiesFile        = "video.cookies-file"
-	flagCookiesFromBrowser = "video.cookies-from-browser"
+	flagCookiesFile        = "cookies-file"
+	flagCookiesFromBrowser = "cookies-from-browser"
 	flagDryRun             = "dry-run"
 )
 
