@@ -140,13 +140,14 @@ coverage html="false":
 
     rm -f coverage.out
 
-# Recompute flake.nix's vendorHash after a go.mod/go.sum change
+# Recompute nix/package.nix's vendorHash after a go.mod/go.sum change
 update-vendor-hash:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    original_hash="$(grep -oP 'vendorHash = "\K[^"]*' flake.nix)"
-    sed -i 's|vendorHash = ".*";|vendorHash = pkgs.lib.fakeHash;|' flake.nix
+    package_file="nix/package.nix"
+    original_hash="$(grep -oP 'vendorHash = "\K[^"]*' "$package_file")"
+    sed -i 's|vendorHash = ".*";|vendorHash = pkgs.lib.fakeHash;|' "$package_file"
 
     output="$(nix build .#mise 2>&1)" || true
     hash="$(echo "$output" | grep 'got:' | awk '{print $NF}')" || true
@@ -154,11 +155,11 @@ update-vendor-hash:
     if [ -z "$hash" ]; then
         echo "No hash mismatch found in nix build output - vendorHash may already be correct, or the build failed for another reason:"
         echo "$output"
-        sed -i "s|vendorHash = pkgs.lib.fakeHash;|vendorHash = \"$original_hash\";|" flake.nix
+        sed -i "s|vendorHash = pkgs.lib.fakeHash;|vendorHash = \"$original_hash\";|" "$package_file"
         exit 1
     fi
 
-    sed -i "s|vendorHash = pkgs.lib.fakeHash;|vendorHash = \"$hash\";|" flake.nix
+    sed -i "s|vendorHash = pkgs.lib.fakeHash;|vendorHash = \"$hash\";|" "$package_file"
 
     nix build .#mise
     echo "vendorHash updated to $hash"
@@ -200,13 +201,14 @@ release version:
     nix build .#mise
     rm -f result
 
-    echo "Bumping version to {{ version }} in flake.nix..."
-    sed -i 's/version = "[0-9][0-9.]*";/version = "{{ version }}";/' flake.nix
-    if git diff --quiet -- flake.nix; then
-        echo "flake.nix is already at version {{ version }}, skipping commit."
+    package_file="nix/package.nix"
+    echo "Bumping version to {{ version }} in $package_file..."
+    sed -i 's/version = "[0-9][0-9.]*";/version = "{{ version }}";/' "$package_file"
+    if git diff --quiet -- "$package_file"; then
+        echo "$package_file is already at version {{ version }}, skipping commit."
     else
-        git add flake.nix
-        git commit -m "chore: bump version to {{ version }}"
+        git add "$package_file"
+        git commit --only "$package_file" -m "chore: bump version to {{ version }}"
     fi
 
     echo "Tagging $tag..."

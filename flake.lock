@@ -309,6 +309,10 @@
     "root": {
       "inputs": {
         "devenv": "devenv",
+        "flake-parts": [
+          "devenv",
+          "flake-parts"
+        ],
         "nixpkgs": "nixpkgs_3",
         "unstable": "unstable"
       }
