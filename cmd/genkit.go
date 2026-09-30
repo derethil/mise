@@ -18,9 +18,10 @@ import (
 // Initializes the AI client and idles, for use with genkit's dev tooling
 // Run with `genkit start -- mise genkit`
 var genkitDevCmd = &cli.Command{
-	Name:   "genkit",
-	Usage:  "Initialize the AI client and idle, for use with genkit's dev tooling",
-	Hidden: true,
+	Name:     "genkit",
+	Usage:    "Initialize the AI client and idle, for use with genkit's dev tooling",
+	Hidden:   true,
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.ProviderOptions, cliutil.TandoorOptions),
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		cfg := config.FromContext(ctx)
 

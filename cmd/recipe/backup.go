@@ -12,8 +12,9 @@ import (
 )
 
 var backupCmd = &cli.Command{
-	Name:  "backup",
-	Usage: "Backup a recipe to the local backup directory",
+	Name:     "backup",
+	Usage:    "Backup a recipe to the local backup directory",
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.TandoorOptions),
 	Arguments: []cli.Argument{
 		&cli.IntArg{Name: "recipe_id", Required: true},
 	},

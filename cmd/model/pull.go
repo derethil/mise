@@ -12,8 +12,9 @@ import (
 )
 
 var pullCmd = &cli.Command{
-	Name:  "pull",
-	Usage: "Pull configured models from the Ollama model registry",
+	Name:     "pull",
+	Usage:    "Pull configured models from the Ollama model registry",
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.ProviderOptions),
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		cfg := config.FromContext(ctx)
 

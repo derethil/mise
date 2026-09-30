@@ -20,8 +20,9 @@ import (
 )
 
 var keywordCmd = &cli.Command{
-	Name:  "keyword",
-	Usage: "Assign keywords to a recipe using AI, following a keyword schema you provide",
+	Name:     "keyword",
+	Usage:    "Assign keywords to a recipe using AI, following a keyword schema you provide",
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.ProviderOptions, cliutil.TandoorOptions),
 	Arguments: []cli.Argument{
 		&cli.IntArg{Name: "id"},
 	},
@@ -32,20 +33,24 @@ var keywordCmd = &cli.Command{
 			Aliases: []string{"d"},
 		},
 		&cli.BoolFlag{
-			Name:  "replace",
-			Usage: "Replace the recipe's keywords instead of adding to them",
+			Name:    "replace",
+			Aliases: []string{"r"},
+			Usage:   "Replace the recipe's keywords instead of adding to them",
 		},
 		&cli.BoolFlag{
-			Name:  "all",
-			Usage: "Run on all recipes in the Tandoor instance. Overrides id argument.",
+			Name:    "all",
+			Aliases: []string{"a"},
+			Usage:   "Run on all recipes in the Tandoor instance. Overrides id argument.",
 		},
 		&cli.BoolFlag{
-			Name:  "failed",
-			Usage: "Re-run only the recipes that failed on a previous run",
+			Name:    "failed",
+			Aliases: []string{"f"},
+			Usage:   "Re-run only the recipes that failed on a previous run",
 		},
 		&cli.BoolFlag{
-			Name:  "new",
-			Usage: "Run on all recipes that haven't been keyworded before",
+			Name:    "new",
+			Aliases: []string{"n"},
+			Usage:   "Run on all recipes that haven't been keyworded before",
 		},
 	}...),
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
@@ -91,7 +96,7 @@ var keywordCmd = &cli.Command{
 		opts := keywordOptions{
 			dryRun:  cmd.Bool("dry-run"),
 			replace: cmd.Bool("replace"),
-			ignore:  cfg.Keywords.Ignore,
+			keep:    cfg.Keywords.Keep,
 		}
 
 		run := func(ctx context.Context, id int) error {
@@ -109,7 +114,7 @@ var keywordCmd = &cli.Command{
 type keywordOptions struct {
 	dryRun  bool
 	replace bool
-	ignore  []string
+	keep    []string
 }
 
 func readSchema(path string) (string, error) {
@@ -147,7 +152,7 @@ func keywordRecipe(ctx context.Context, tclient *tandoor.Client, feature *assign
 
 	updated, changes, err := runAssignment(ctx, feature, model, recipe, assignkeywords.ApplyOptions{
 		Replace: opts.replace,
-		Protect: opts.ignore,
+		Protect: opts.keep,
 	})
 	if err != nil {
 		return err

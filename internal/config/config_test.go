@@ -73,17 +73,55 @@ func (s *ConfigSuite) TestFlagsHaveCategories() {
 		categories[flag.Names()[0]] = flag.(cli.CategorizableFlag).GetCategory()
 	}
 
-	s.Equal("TANDOOR OPTIONS", categories["tandoor.token"])
-	s.Equal("TANDOOR OPTIONS", categories["tandoor.base-url"])
-	s.Equal("PROVIDER OPTIONS", categories["providers.ollama.base-url"])
-	s.NotContains(categories, "keywords.schema_file")
-	s.NotContains(categories, "keywords.ignore")
+	s.Equal("TANDOOR OPTIONS", categories["tandoor-url"])
+	s.Equal("PROVIDER OPTIONS", categories["ollama-url"])
+	s.Equal("PROVIDER OPTIONS", categories["start-ollama"])
+	s.NotContains(categories, "tandoor.token")
+	s.NotContains(categories, "schema-file")
+	s.NotContains(categories, "keep")
 
 	for _, flag := range FlagsForCommand("recipe keyword") {
 		categories[flag.Names()[0]] = flag.(cli.CategorizableFlag).GetCategory()
 	}
-	s.Empty(categories["keywords.schema_file"])
-	s.Empty(categories["keywords.ignore"])
+	s.Empty(categories["schema-file"])
+	s.Empty(categories["keep"])
+}
+
+func (s *ConfigSuite) TestOnlyExplicitFlagsAreGenerated() {
+	s.Equal(
+		[]string{"tandoor-url", "ollama-url", "start-ollama"},
+		flagNames(Flags()),
+	)
+	s.Equal(
+		[]string{"format", "cookies-file", "cookies-from-browser", "impersonate", "yt-dlp-path", "yt-dlp-arg", "max-duration"},
+		flagNames(FlagsForCommand("import")),
+	)
+	s.Equal(
+		[]string{"schema-file", "keep"},
+		flagNames(FlagsForCommand("recipe keyword")),
+	)
+}
+
+func (s *ConfigSuite) TestGeneratedDefaultTextDoesNotSetFlagValue() {
+	var maxDuration *cli.IntFlag
+	for _, flag := range FlagsForCommand("import") {
+		if flag.Names()[0] == "max-duration" {
+			maxDuration = flag.(*cli.IntFlag)
+		}
+	}
+
+	s.Require().NotNil(maxDuration)
+	s.Equal("30", maxDuration.DefaultText)
+	s.Zero(maxDuration.Value)
+}
+
+func flagNames(flags []cli.Flag) []string {
+	names := make([]string, 0, len(flags))
+	for _, flag := range flags {
+		names = append(names, flag.Names()[0])
+	}
+
+	return names
 }
 
 func (s *ConfigSuite) TestConfigFileOverridesDefaults() {
@@ -122,7 +160,7 @@ base_url = "https://from-file.example"
 func (s *ConfigSuite) TestFlagOverridesEnv() {
 	s.T().Setenv("MISE_TANDOOR_BASE_URL", "https://from-env.example")
 
-	cfg := s.load("--tandoor.base-url", "https://from-flag.example")
+	cfg := s.load("--tandoor-url", "https://from-flag.example")
 
 	s.Equal("https://from-flag.example", cfg.Tandoor.BaseURL)
 }
@@ -151,7 +189,7 @@ func (s *ConfigSuite) TestFlagOptOutStillLoadsFromEnv() {
 	s.Equal("/tmp/from-env", cfg.Tandoor.BackupDir)
 
 	for _, flag := range Flags() {
-		s.NotContains(flag.Names(), "tandoor.backup-dir")
+		s.NotContains(flag.Names(), "backup-dir")
 	}
 }
 
@@ -163,7 +201,7 @@ func (s *ConfigSuite) TestModelFlagOptOutStillLoadsFromEnv() {
 	s.Equal("ollama/from-env", cfg.Models.Small)
 
 	for _, flag := range Flags() {
-		s.NotContains(flag.Names(), "models.small")
+		s.NotContains(flag.Names(), "small-model")
 	}
 }
 
@@ -171,21 +209,27 @@ func TestConfigSuite(t *testing.T) {
 	suite.Run(t, new(ConfigSuite))
 }
 
-func (s *ConfigSuite) TestKeywordsIgnoreFlagAcceptsMultipleValues() {
-	cfg := s.loadWithFlags(FlagsForCommand("recipe keyword"), "--keywords.ignore", "Uncategorized", "--keywords.ignore", "Basics")
+func (s *ConfigSuite) TestKeywordsKeepFlagAcceptsMultipleValues() {
+	cfg := s.loadWithFlags(FlagsForCommand("recipe keyword"), "--keep", "Uncategorized,Basics")
 
-	s.Equal([]string{"Uncategorized", "Basics"}, cfg.Keywords.Ignore)
+	s.Equal([]string{"Uncategorized", "Basics"}, cfg.Keywords.Keep)
 }
 
-func (s *ConfigSuite) TestKeywordsIgnoreFromConfigFile() {
+func (s *ConfigSuite) TestYtdlpArgFlagAcceptsMultipleValues() {
+	cfg := s.loadWithFlags(FlagsForCommand("import"), "--yt-dlp-arg=--no-playlist,--write-info-json")
+
+	s.Equal([]string{"--no-playlist", "--write-info-json"}, cfg.Video.YtdlpArgs)
+}
+
+func (s *ConfigSuite) TestKeywordsKeepFromConfigFile() {
 	s.writeConfigFile(`
 [keywords]
-ignore = ["Uncategorized", "Basics"]
+keep = ["Uncategorized", "Basics"]
 `)
 
 	cfg := s.load()
 
-	s.Equal([]string{"Uncategorized", "Basics"}, cfg.Keywords.Ignore)
+	s.Equal([]string{"Uncategorized", "Basics"}, cfg.Keywords.Keep)
 }
 
 func (s *ConfigSuite) TestKeywordsSchemaFileDefault() {

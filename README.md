@@ -34,7 +34,10 @@ A Nix flake is also provided (`nix build .#mise`).
 `mise` reads a config file from `$XDG_CONFIG_HOME/mise/config.toml` - see
 [the example config](./docs/EXAMPLE_CONFIG.toml) for an example. You can also
 configure mise using env vars e.g. `MISE_TANDOOR_TOKEN` or with a global flag
-e.g. `--tandoor.token`.
+e.g. `--tandoor-url`.
+
+Environment variables use `MISE_`, then the section and key in uppercase;
+for example, `tandoor.token` becomes `MISE_TANDOOR_TOKEN`.
 
 ### Providers
 

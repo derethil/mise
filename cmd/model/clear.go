@@ -13,8 +13,9 @@ import (
 )
 
 var clearCmd = &cli.Command{
-	Name:  "clear",
-	Usage: "Delete Ollama models that are not configured for use by mise",
+	Name:     "clear",
+	Usage:    "Delete Ollama models that are not configured for use by mise",
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.ProviderOptions),
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:    "yes",

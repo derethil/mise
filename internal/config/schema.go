@@ -1,9 +1,6 @@
 package config
 
-import (
-	"reflect"
-	"strings"
-)
+import "reflect"
 
 type fieldType int
 
@@ -17,26 +14,23 @@ const (
 type schemaField struct {
 	Key      string
 	FlagName string
+	Alias    string
 	Usage    string
 	Category string
 	Command  string
 	Type     fieldType
-
-	// Flag determines whether this field is settable via command line flag. Fields with
-	// `flag:"-"` are ignored and only settable via config file or environment variable.
-	Flag bool
 }
 
 func walkSchema(t reflect.Type, prefix string, visit func(schemaField)) {
-	walkFields(t, prefix, "", "", true, visit)
+	walkFields(t, prefix, "", "", visit)
 }
 
-func walkFields(t reflect.Type, prefix, category, command string, flag bool, visit func(schemaField)) {
+func walkFields(t reflect.Type, prefix, category, command string, visit func(schemaField)) {
 	for field := range t.Fields() {
 		name := field.Tag.Get("key")
 		if name == "" {
 			if field.Anonymous && field.Type.Kind() == reflect.Struct {
-				walkFields(field.Type, prefix, category, command, flag, visit)
+				walkFields(field.Type, prefix, category, command, visit)
 			}
 			continue
 		}
@@ -45,8 +39,6 @@ func walkFields(t reflect.Type, prefix, category, command string, flag bool, vis
 		if prefix != "" {
 			key = prefix + "." + name
 		}
-
-		enabled := flag && field.Tag.Get("flag") != "-"
 
 		fieldCategory := category
 		if taggedCategory := field.Tag.Get("category"); taggedCategory != "" {
@@ -59,18 +51,20 @@ func walkFields(t reflect.Type, prefix, category, command string, flag bool, vis
 		}
 
 		if field.Type.Kind() == reflect.Struct {
-			walkFields(field.Type, key, fieldCategory, fieldCommand, enabled, visit)
+			walkFields(field.Type, key, fieldCategory, fieldCommand, visit)
 			continue
 		}
 
+		flagName := field.Tag.Get("flag")
+
 		visit(schemaField{
 			Key:      key,
-			FlagName: strings.ReplaceAll(key, "_", "-"),
+			FlagName: flagName,
+			Alias:    field.Tag.Get("alias"),
 			Usage:    field.Tag.Get("usage"),
 			Category: fieldCategory,
 			Command:  fieldCommand,
 			Type:     fieldTypeOf(field.Type),
-			Flag:     enabled,
 		})
 	}
 }

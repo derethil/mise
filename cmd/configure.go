@@ -16,8 +16,9 @@ import (
 )
 
 var configureCmd = &cli.Command{
-	Name:  "configure",
-	Usage: "Provide configuration values for mise",
+	Name:     "configure",
+	Usage:    "Provide configuration values for mise",
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.ProviderOptions, cliutil.TandoorOptions),
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:    "print",

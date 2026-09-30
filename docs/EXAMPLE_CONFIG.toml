@@ -16,5 +16,5 @@ autostart = false
 # large = "ollama/qwen3:14b" # Model for harder tasks, as provider/model
 
 [keywords]
-ignore = [] # Keywords that don't count as tagged when using --untagged
-# schema_file = "$XDG_CONFIG_HOME/mise/keyword_schema.md" 
+keep = [] # Keywords to preserve when using recipe keyword --replace
+# schema_file = "$XDG_CONFIG_HOME/mise/keyword_schema.md"

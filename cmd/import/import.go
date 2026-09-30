@@ -13,24 +13,28 @@ import (
 )
 
 const (
-	flagCookiesFile        = "video.cookies-file"
-	flagCookiesFromBrowser = "video.cookies-from-browser"
+	flagCookiesFile        = "cookies-file"
+	flagCookiesFromBrowser = "cookies-from-browser"
 	flagDryRun             = "dry-run"
 )
 
 var Command = &cli.Command{
-	Name:  "import",
-	Usage: "Import a recipe from various social media video sources",
+	Name:     "import",
+	Usage:    "Import a recipe from various social media video sources",
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.ProviderOptions, cliutil.TandoorOptions),
 	Arguments: []cli.Argument{
 		&cli.StringArg{
 			Name:     "url",
 			Required: true,
 		},
 	},
-	Flags: append(config.FlagsForCommand("import"), &cli.BoolFlag{
-		Name:  flagDryRun,
-		Usage: "Fetch and print video metadata without downloading",
-	}),
+	Flags: append([]cli.Flag{
+		&cli.BoolFlag{
+			Name:     flagDryRun,
+			Usage:    "Fetch and print video metadata without downloading",
+			Category: "ACTION OPTIONS",
+		},
+	}, config.FlagsForCommand("import")...),
 	ArgValidator: func(ctx context.Context, cmd *cli.Command) error {
 		validators := []func(*cli.Command) error{
 			validateUrl,
