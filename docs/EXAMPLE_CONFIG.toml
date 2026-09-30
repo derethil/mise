@@ -14,6 +14,7 @@ autostart = false
 [models]
 # small = "ollama/qwen3:8b" # Model for simpler tasks, as provider/model
 # large = "ollama/qwen3:14b" # Model for harder tasks, as provider/model
+# whisper = "base.en" # Whisper model for transcription: tiny, base, small, medium, large, turbo (tiny/base/small/medium also accept an .en suffix for English-only)
 
 [keywords]
 keep = [] # Keywords to preserve when using recipe keyword --replace

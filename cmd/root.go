@@ -25,7 +25,7 @@ var version = "dev"
 var globalFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:     string(cliutil.GlobalFlagModel),
-		Usage:    "Override the AI model to use for this command",
+		Usage:    "Override the configured small/large model settings for this invocation, as provider/model",
 		Aliases:  []string{"m"},
 		Category: "PROVIDER OPTIONS",
 	},

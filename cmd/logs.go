@@ -11,7 +11,7 @@ import (
 
 var logsCmd = &cli.Command{
 	Name:     "logs",
-	Usage:    "Print path to the mise logs file",
+	Usage:    "Print the log file path for use with a viewer or other command",
 	Metadata: cliutil.GlobalFlagMetadata(),
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		fmt.Println(logging.LogPath)
