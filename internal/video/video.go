@@ -14,9 +14,10 @@ type Source struct {
 }
 
 type Media struct {
-	Source  Source
-	Path    string
-	WorkDir string
+	Source    Source
+	VideoPath string
+	AudioPath string
+	WorkDir   string
 }
 
 func deref[T any](p *T) T {

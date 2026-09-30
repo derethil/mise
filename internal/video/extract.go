@@ -20,7 +20,7 @@ type Extraction struct {
 	workdir  *WorkDir
 }
 
-func Extract(ctx context.Context, url string, cfg section.VideoConfig, onProgress ProgressFunc) (*Extraction, error) {
+func Probe(ctx context.Context, url string, cfg section.VideoConfig, onProgress ProgressFunc) (*Extraction, error) {
 	executable, err := resolveBinary(ctx, cfg)
 	if err != nil {
 		return nil, err
@@ -63,6 +63,20 @@ func Extract(ctx context.Context, url string, cfg section.VideoConfig, onProgres
 
 func (e *Extraction) WorkDir() string {
 	return e.workdir.Path
+}
+
+func (e *Extraction) Extract(ctx context.Context) (*Media, error) {
+	videoPath, err := e.downloadVideo(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	audioPath, err := e.extractAudio(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Media{Source: e.Source, VideoPath: videoPath, AudioPath: audioPath, WorkDir: e.workdir.Path}, nil
 }
 
 func singleVideo(infos []*ytdlp.ExtractedInfo) (*ytdlp.ExtractedInfo, error) {

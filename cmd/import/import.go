@@ -62,7 +62,7 @@ var Command = &cli.Command{
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		cfg := config.FromContext(ctx)
 
-		extraction, err := video.Extract(ctx, cmd.StringArg("url"), cfg.Video, progressPrinter())
+		extraction, err := video.Probe(ctx, cmd.StringArg("url"), cfg.Video, progressPrinter())
 		if err != nil {
 			return cliutil.VideoUserError(err)
 		}
@@ -74,12 +74,13 @@ var Command = &cli.Command{
 			return nil
 		}
 
-		media, err := extraction.Download(ctx)
+		media, err := extraction.Extract(ctx)
 		if err != nil {
 			return cliutil.VideoUserError(err)
 		}
 
-		fmt.Printf("\nFile:     %s\n", media.Path)
+		fmt.Printf("\nFile:     %s\n", media.VideoPath)
+		fmt.Printf("Audio:    %s\n", media.AudioPath)
 		fmt.Println("\nTranscription, extraction, and Tandoor creation aren't built yet — the download is left in the workdir above.")
 
 		return nil
@@ -91,7 +92,7 @@ func progressPrinter() video.ProgressFunc {
 
 	return func(p video.Progress) {
 		_ = printProgress(cliutil.Progress{
-			Label:     "video",
+			Label:     "yt-dlp",
 			Status:    p.Status,
 			Total:     p.Total,
 			Completed: p.Completed,
