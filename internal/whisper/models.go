@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/config/section"
 )
@@ -118,6 +119,20 @@ func Pull(ctx context.Context, model string, onProgress PullProgressFunc) (bool,
 	}
 
 	return true, nil
+}
+
+func Ensure(ctx context.Context, model string, onProgress PullProgressFunc) error {
+	destination := ModelPath(model)
+	if _, err := os.Stat(destination); err == nil {
+		return nil
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
+	cliutil.ConfirmOrDie(fmt.Sprintf("Whisper model %q is not available locally. Download it now?", model))
+
+	_, err := Pull(ctx, model, onProgress)
+	return err
 }
 
 func copyWithProgress(dst io.Writer, src io.Reader, total int64, onProgress PullProgressFunc) error {

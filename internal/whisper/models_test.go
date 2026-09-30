@@ -29,7 +29,7 @@ func (s *PullSuite) SetupTest() {
 
 	dataDir, err := os.MkdirTemp("", "mise-whisper-test")
 	s.Require().NoError(err)
-	s.T().Cleanup(func() { os.RemoveAll(dataDir) })
+	s.T().Cleanup(func() { _ = os.RemoveAll(dataDir) })
 
 	config.DataDir = dataDir
 	baseURL = s.server.URL + "/"
@@ -56,6 +56,18 @@ func (s *PullSuite) TestPullSkipsExistingModel() {
 	downloaded, err := Pull(s.T().Context(), "tiny", nil)
 	s.Require().NoError(err)
 	s.False(downloaded)
+
+	data, err := os.ReadFile(ModelPath("tiny"))
+	s.Require().NoError(err)
+	s.Equal("already here", string(data))
+}
+
+func (s *PullSuite) TestEnsureSkipsExistingModel() {
+	require.NoError(s.T(), os.MkdirAll(ModelsDir(), 0o755))
+	require.NoError(s.T(), os.WriteFile(ModelPath("tiny"), []byte("already here"), 0o644))
+
+	err := Ensure(s.T().Context(), "tiny", nil)
+	s.Require().NoError(err)
 
 	data, err := os.ReadFile(ModelPath("tiny"))
 	s.Require().NoError(err)
