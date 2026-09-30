@@ -27,10 +27,13 @@ var Command = &cli.Command{
 			Required: true,
 		},
 	},
-	Flags: append(config.FlagsForCommand("import"), &cli.BoolFlag{
-		Name:  flagDryRun,
-		Usage: "Fetch and print video metadata without downloading",
-	}),
+	Flags: append([]cli.Flag{
+		&cli.BoolFlag{
+			Name:     flagDryRun,
+			Usage:    "Fetch and print video metadata without downloading",
+			Category: "ACTION OPTIONS",
+		},
+	}, config.FlagsForCommand("import")...),
 	ArgValidator: func(ctx context.Context, cmd *cli.Command) error {
 		validators := []func(*cli.Command) error{
 			validateUrl,
