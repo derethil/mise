@@ -11,8 +11,9 @@ import (
 )
 
 var restoreCmd = &cli.Command{
-	Name:  "restore",
-	Usage: "Restore a recipe from a local backup",
+	Name:     "restore",
+	Usage:    "Restore a recipe from a local backup",
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.TandoorOptions),
 	Arguments: []cli.Argument{
 		&cli.IntArg{Name: "recipe_id", Required: true},
 	},

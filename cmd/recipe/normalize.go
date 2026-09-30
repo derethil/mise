@@ -19,8 +19,9 @@ import (
 )
 
 var normalizeCmd = &cli.Command{
-	Name:  "normalize",
-	Usage: "Normalize a recipe's ingredient amounts, units, and foods using AI",
+	Name:     "normalize",
+	Usage:    "Normalize a recipe's ingredient amounts, units, and foods using AI",
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.ProviderOptions, cliutil.TandoorOptions),
 	Arguments: []cli.Argument{
 		&cli.IntArg{Name: "id"},
 	},

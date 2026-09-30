@@ -20,8 +20,9 @@ import (
 )
 
 var keywordCmd = &cli.Command{
-	Name:  "keyword",
-	Usage: "Assign keywords to a recipe using AI, following a keyword schema you provide",
+	Name:     "keyword",
+	Usage:    "Assign keywords to a recipe using AI, following a keyword schema you provide",
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.ProviderOptions, cliutil.TandoorOptions),
 	Arguments: []cli.Argument{
 		&cli.IntArg{Name: "id"},
 	},

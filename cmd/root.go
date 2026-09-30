@@ -51,7 +51,7 @@ var rootCmd = &cli.Command{
 	Usage:                  "mise is a CLI for managing Tandoor recipes",
 	Version:                version,
 	Flags:                  rootFlags,
-	Metadata:               map[string]any{"globalFlagCategories": newGlobalFlagCategories(rootFlags)},
+	Metadata:               cliutil.GlobalFlagMetadata(cliutil.ProviderOptions, cliutil.TandoorOptions),
 	UseShortOptionHandling: true,
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 
@@ -85,7 +85,7 @@ var rootCmd = &cli.Command{
 }
 
 func init() {
-	configureGlobalHelp(rootCmd, "", rootFlags)
+	configureGlobalHelp(rootCmd, rootFlags)
 }
 
 func Execute() {

@@ -3,6 +3,7 @@ package cmd
 import (
 	"testing"
 
+	"github.com/derethil/mise/internal/cliutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v3"
 )
@@ -21,7 +22,7 @@ func TestGlobalHelpCategoriesAreRelevantToCommand(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			metadata := test.command.Metadata["globalFlagCategories"].(globalFlagCategories)
+			metadata := test.command.Metadata[visibleGlobalFlagCategoriesMetadataKey].(globalFlagCategories)
 			var names []string
 			for _, category := range metadata.VisibleFlagCategories() {
 				names = append(names, category.Name())
@@ -29,6 +30,25 @@ func TestGlobalHelpCategoriesAreRelevantToCommand(t *testing.T) {
 			assert.Equal(t, test.categories, names)
 		})
 	}
+}
+
+func TestEveryCommandDeclaresGlobalFlagCategories(t *testing.T) {
+	var check func(*cli.Command)
+	check = func(command *cli.Command) {
+		if command.Name == "help" {
+			return
+		}
+
+		categories, ok := command.Metadata[cliutil.GlobalFlagCategoriesMetadataKey].([]string)
+		assert.True(t, ok, "%s must declare its global flag categories", command.Name)
+		assert.Contains(t, categories, cliutil.GeneralOptions)
+
+		for _, child := range command.Commands {
+			check(child)
+		}
+	}
+
+	check(rootCmd)
 }
 
 func TestCompletionIncludesRelevantGlobalFlags(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 
+	"github.com/derethil/mise/internal/cliutil"
 	"github.com/urfave/cli/v3"
 )
 
@@ -27,7 +28,7 @@ DESCRIPTION:
 OPTIONS:{{template "visibleFlagCategoryTemplate" .}}{{else if .VisibleFlags}}
 
 OPTIONS:{{template "visibleFlagTemplate" .}}{{end}}{{if .VisiblePersistentFlags}}
-GLOBAL OPTIONS:{{template "visibleFlagCategoryTemplate" .Metadata.globalFlagCategories}}
+GLOBAL OPTIONS:{{template "visibleFlagCategoryTemplate" .Metadata.visibleGlobalFlagCategories}}
    See 'mise --help' for all global configuration overrides.{{end}}
 `
 
@@ -48,26 +49,11 @@ COMMANDS:{{template "visibleCommandTemplate" .}}{{end}}{{if .VisibleFlagCategori
 OPTIONS:{{template "visibleFlagCategoryTemplate" .}}{{else if .VisibleFlags}}
 
 OPTIONS:{{template "visibleFlagTemplate" .}}{{end}}{{if .VisiblePersistentFlags}}
-GLOBAL OPTIONS:{{template "visibleFlagCategoryTemplate" .Metadata.globalFlagCategories}}
+GLOBAL OPTIONS:{{template "visibleFlagCategoryTemplate" .Metadata.visibleGlobalFlagCategories}}
    See 'mise --help' for all global configuration overrides.{{end}}
 `
 
-var commandGlobalCategories = map[string][]string{
-	"":                 {"GENERAL OPTIONS", "PROVIDER OPTIONS", "TANDOOR OPTIONS"},
-	"configure":        {"GENERAL OPTIONS", "PROVIDER OPTIONS", "TANDOOR OPTIONS"},
-	"genkit":           {"GENERAL OPTIONS", "PROVIDER OPTIONS", "TANDOOR OPTIONS"},
-	"import":           {"GENERAL OPTIONS", "PROVIDER OPTIONS", "TANDOOR OPTIONS"},
-	"logs":             {"GENERAL OPTIONS"},
-	"models":           {"GENERAL OPTIONS", "PROVIDER OPTIONS"},
-	"models clear":     {"GENERAL OPTIONS", "PROVIDER OPTIONS"},
-	"models list":      {"GENERAL OPTIONS", "PROVIDER OPTIONS"},
-	"models pull":      {"GENERAL OPTIONS", "PROVIDER OPTIONS"},
-	"recipe":           {"GENERAL OPTIONS", "PROVIDER OPTIONS", "TANDOOR OPTIONS"},
-	"recipe backup":    {"GENERAL OPTIONS", "TANDOOR OPTIONS"},
-	"recipe keyword":   {"GENERAL OPTIONS", "PROVIDER OPTIONS", "TANDOOR OPTIONS"},
-	"recipe normalize": {"GENERAL OPTIONS", "PROVIDER OPTIONS", "TANDOOR OPTIONS"},
-	"recipe restore":   {"GENERAL OPTIONS", "TANDOOR OPTIONS"},
-}
+const visibleGlobalFlagCategoriesMetadataKey = "visibleGlobalFlagCategories"
 
 type globalFlagCategories struct {
 	categories []cli.VisibleFlagCategory
@@ -123,25 +109,15 @@ func newGlobalFlagCategories(flags []cli.Flag, allowedNames ...string) globalFla
 	return globalFlagCategories{categories: categories}
 }
 
-func configureGlobalHelp(cmd *cli.Command, path string, flags []cli.Flag) {
-	if cmd.Metadata == nil {
-		cmd.Metadata = make(map[string]any)
-	}
-	categories, ok := commandGlobalCategories[path]
-	if !ok {
-		categories = []string{"GENERAL OPTIONS"}
-	}
-	cmd.Metadata["globalFlagCategories"] = newGlobalFlagCategories(flags, categories...)
-	if path != "" {
+func configureGlobalHelp(cmd *cli.Command, flags []cli.Flag) {
+	categories := cmd.Metadata[cliutil.GlobalFlagCategoriesMetadataKey].([]string)
+	cmd.Metadata[visibleGlobalFlagCategoriesMetadataKey] = newGlobalFlagCategories(flags, categories...)
+	if cmd.Name != "mise" {
 		cmd.ShellComplete = completeWithGlobalFlags
 	}
 
 	for _, child := range cmd.Commands {
-		childPath := child.Name
-		if path != "" {
-			childPath = path + " " + child.Name
-		}
-		configureGlobalHelp(child, childPath, flags)
+		configureGlobalHelp(child, flags)
 	}
 }
 
@@ -154,7 +130,7 @@ func completeWithGlobalFlags(ctx context.Context, cmd *cli.Command) {
 }
 
 func relevantGlobalFlags(cmd *cli.Command) []cli.Flag {
-	categories := cmd.Metadata["globalFlagCategories"].(globalFlagCategories)
+	categories := cmd.Metadata[visibleGlobalFlagCategoriesMetadataKey].(globalFlagCategories)
 	var flags []cli.Flag
 	for _, category := range categories.VisibleFlagCategories() {
 		flags = append(flags, category.Flags()...)

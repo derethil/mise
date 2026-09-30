@@ -11,8 +11,9 @@ import (
 )
 
 var Command = &cli.Command{
-	Name:  "recipe",
-	Usage: "Manage an existing Tandoor recipe",
+	Name:     "recipe",
+	Usage:    "Manage an existing Tandoor recipe",
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.ProviderOptions, cliutil.TandoorOptions),
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		cfg := config.FromContext(ctx)
 		cliutil.WarnIfTandoorVersionUnsupported(ctx, tandoor.FromConfig(cfg))

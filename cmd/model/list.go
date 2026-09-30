@@ -7,14 +7,16 @@ import (
 	"strings"
 
 	"github.com/derethil/mise/internal/ai/providers"
+	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
 	"github.com/ollama/ollama/format"
 	"github.com/urfave/cli/v3"
 )
 
 var listCmd = &cli.Command{
-	Name:  "list",
-	Usage: "Print Mise's configured Ollama models and their availability",
+	Name:     "list",
+	Usage:    "Print Mise's configured Ollama models and their availability",
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.ProviderOptions),
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		cfg := config.FromContext(ctx)
 

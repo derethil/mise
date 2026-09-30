@@ -19,8 +19,9 @@ const (
 )
 
 var Command = &cli.Command{
-	Name:  "import",
-	Usage: "Import a recipe from various social media video sources",
+	Name:     "import",
+	Usage:    "Import a recipe from various social media video sources",
+	Metadata: cliutil.GlobalFlagMetadata(cliutil.ProviderOptions, cliutil.TandoorOptions),
 	Arguments: []cli.Argument{
 		&cli.StringArg{
 			Name:     "url",
