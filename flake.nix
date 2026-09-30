@@ -25,7 +25,29 @@
     goPkg = pkgs.go_1_27;
     runtimeDeps = [pkgs.ffmpeg pkgs.yt-dlp];
 
+    # go-whisper's cgo LDFLAGS need a single libggml-cpu.so not dlopen'd microarch variants as packaged in nixpkgs
+    whisperCppFor = pkgs: overrides:
+      (pkgs.whisper-cpp.override overrides).overrideAttrs (old: {
+        cmakeFlags =
+          builtins.filter
+          (f:
+            !(pkgs.lib.any (needle: pkgs.lib.strings.hasInfix needle f) [
+              "GGML_BACKEND_DL"
+              "GGML_CPU_ALL_VARIANTS"
+              "GGML_BACKEND_DIR"
+            ]))
+          old.cmakeFlags
+          ++ ["-DGGML_BACKEND_DL=OFF" "-DGGML_CPU_ALL_VARIANTS=OFF"];
+      });
+
+    pkgWhisperCpp = whisperCppFor pkgs {};
+
     pkg = (pkgs.buildGoModule.override {go = goPkg;}) rec {
+      buildInputs = [pkgWhisperCpp];
+      env = {
+        CGO_CFLAGS = "-I${pkgWhisperCpp}/include";
+        CGO_LDFLAGS = "-L${pkgWhisperCpp}/lib";
+      };
       ldflags = [
         "-s"
         "-w"
@@ -38,18 +60,23 @@
         wrapProgram $out/bin/mise --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
       '';
       src = ./.;
-      vendorHash = "sha256-tuzl700e8q6Rc1l+0bIQxpeJBES4g1XBCnLKohm91uk=";
+      vendorHash = "sha256-DaI6pYjlKPWGJrNa4swqBGz080MHryXPWzSQds3USvk=";
       version = "0.3.1";
     };
 
-    mkShell = ollama:
+    mkShell = {
+      ollama,
+      whisperCpp,
+    }:
       devenv.lib.mkShell {
         inherit inputs pkgs;
 
         modules = [
           ({config, ...}: {
-            git-hooks.tools.go = config.languages.go.package;
-
+            env = {
+              CGO_CFLAGS = "-I${whisperCpp}/include";
+              CGO_LDFLAGS = "-L${whisperCpp}/lib";
+            };
             git-hooks.hooks = {
               gofmt.enable = true;
 
@@ -71,27 +98,25 @@
                 pass_filenames = false;
               };
             };
-
+            git-hooks.tools.go = config.languages.go.package;
             languages.go = {
               enable = true;
               package = goPkg;
             };
-
             outputs = {
               mise = pkg;
             };
-
             packages = builtins.concatLists [
               [
                 pkgs.just
                 pkgs.nodejs
                 pkgs.fblog
                 ollama
+                whisperCpp
               ]
 
               runtimeDeps
             ];
-
             processes = {
               genkit = {
                 exec = "genkit start -- mise genkit";
@@ -104,7 +129,6 @@
                 };
               };
             };
-
             scripts = {
               genkit.exec = ''
                 npx --yes genkit-cli@latest "$@"
@@ -128,12 +152,21 @@
         ];
       };
   in {
-    # Pick the ollama build to use by setting MISE_DEVSHELL in .envrc.local
-    devShells.${system} = {
-      cpu = mkShell unstabledPkgs.ollama;
-      cuda = mkShell unstabledFreePkgs.ollama-cuda;
-      default = mkShell unstabledPkgs.ollama;
-      rocm = mkShell unstabledPkgs.ollama-rocm;
+    # Pick the devshell build to use by setting MISE_DEVSHELL in .envrc.local
+    devShells.${system} = rec {
+      cpu = mkShell {
+        inherit (unstabledPkgs) ollama;
+        whisperCpp = whisperCppFor unstabledPkgs {};
+      };
+      cuda = mkShell {
+        ollama = unstabledFreePkgs.ollama-cuda;
+        whisperCpp = whisperCppFor unstabledFreePkgs {cudaSupport = true;};
+      };
+      default = cpu;
+      rocm = mkShell {
+        ollama = unstabledPkgs.ollama-rocm;
+        whisperCpp = whisperCppFor unstabledPkgs {rocmSupport = true;};
+      };
     };
 
     packages.${system} = {
