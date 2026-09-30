@@ -19,7 +19,7 @@ var (
 
 type MissingBinaryError struct {
 	Name           string // e.g. "yt-dlp"
-	ConfigKey      string // VideoConfig field's `key:` tag for overriding the path, e.g. "ytdlp_path"
+	ConfigKey      string // ExtractConfig field's `key:` tag for overriding the path, e.g. "ytdlp_path"
 	ConfiguredPath string // Empty when the default executable name was resolved through PATH.
 
 	err error

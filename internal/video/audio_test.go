@@ -30,7 +30,7 @@ func (s *AudioSuite) flagValue(args []string, flag string) (string, bool) {
 
 func (s *AudioSuite) TestAudioCommandSetsExtractionFlags() {
 	workdir := &WorkDir{Path: s.T().TempDir()}
-	cmd := newBaseCommand(workdir, section.VideoConfig{Format: "bestvideo"}, "/usr/bin/yt-dlp", "/usr/bin/ffmpeg", nil)
+	cmd := newBaseCommand(workdir, section.ExtractConfig{Format: "bestvideo"}, "/usr/bin/yt-dlp", "/usr/bin/ffmpeg", nil)
 
 	args := audioCommand(cmd, "mp3").BuildCommand(context.Background(), "https://tiktok.com/v").Args
 
@@ -51,7 +51,7 @@ func (s *AudioSuite) TestAudioCommandSetsExtractionFlags() {
 
 func (s *AudioSuite) TestAudioCommandDoesNotMutateTheOriginal() {
 	workdir := &WorkDir{Path: s.T().TempDir()}
-	cmd := newBaseCommand(workdir, section.VideoConfig{}, "/usr/bin/yt-dlp", "/usr/bin/ffmpeg", nil)
+	cmd := newBaseCommand(workdir, section.ExtractConfig{}, "/usr/bin/yt-dlp", "/usr/bin/ffmpeg", nil)
 
 	_ = audioCommand(cmd, "mp3")
 

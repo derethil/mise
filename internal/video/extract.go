@@ -14,13 +14,13 @@ import (
 type Extraction struct {
 	Source Source
 
-	cfg      section.VideoConfig
+	cfg      section.ExtractConfig
 	baseCmd  *ytdlp.Command
 	document []byte
 	workdir  *WorkDir
 }
 
-func Probe(ctx context.Context, url string, cfg section.VideoConfig, onProgress ProgressFunc) (*Extraction, error) {
+func Probe(ctx context.Context, url string, cfg section.ExtractConfig, onProgress ProgressFunc) (*Extraction, error) {
 	executable, ffmpeg, err := resolveDependencies(cfg)
 	if err != nil {
 		return nil, err

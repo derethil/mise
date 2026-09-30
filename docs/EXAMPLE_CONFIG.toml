@@ -19,7 +19,7 @@ autostart = false
 keep = [] # Keywords to preserve when using recipe keyword --replace
 # schema_file = "$XDG_CONFIG_HOME/mise/keyword_schema.md"
 
-[video]
+[extract]
 format = "best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best"
 max_duration_minutes = 30 # Refuse videos longer than this (0 disables the check)
 # cookies_file = "/path/to/cookies.txt" # Netscape-format cookie jar for login-walled videos

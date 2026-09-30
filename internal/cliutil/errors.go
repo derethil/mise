@@ -108,10 +108,10 @@ func VideoUserError(err error) error {
 
 	if missing, ok := errors.AsType[*video.MissingBinaryError](err); ok {
 		if missing.ConfiguredPath != "" {
-			return ErrWithUserMessage(err, "Could not use `%s` configured by `video.%s`. Check that the path exists and is executable.", missing.ConfiguredPath, missing.ConfigKey)
+			return ErrWithUserMessage(err, "Could not use `%s` configured by `extract.%s`. Check that the path exists and is executable.", missing.ConfiguredPath, missing.ConfigKey)
 		}
 
-		return ErrWithUserMessage(err, "Could not find `%s` on your PATH. Install it, or set `video.%s`.", missing.Name, missing.ConfigKey)
+		return ErrWithUserMessage(err, "Could not find `%s` on your PATH. Install it, or set `extract.%s`.", missing.Name, missing.ConfigKey)
 	}
 
 	switch {

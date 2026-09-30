@@ -14,7 +14,7 @@ func TestVideoUserErrorReferencesPublicDurationFlag(t *testing.T) {
 	message := UserMessage(VideoUserError(err))
 
 	assert.Contains(t, message, "--max-duration")
-	assert.NotContains(t, message, "video.max_duration_minutes")
+	assert.NotContains(t, message, "extract.max_duration_minutes")
 }
 
 func TestVideoUserErrorForConfiguredBinary(t *testing.T) {
@@ -27,7 +27,7 @@ func TestVideoUserErrorForConfiguredBinary(t *testing.T) {
 	message := UserMessage(VideoUserError(err))
 
 	assert.Contains(t, message, "/missing/ffmpeg")
-	assert.Contains(t, message, "video.ffmpeg_path")
+	assert.Contains(t, message, "extract.ffmpeg_path")
 	assert.NotContains(t, message, "your PATH")
 }
 
@@ -41,5 +41,5 @@ func TestVideoUserErrorForBinaryMissingFromPath(t *testing.T) {
 
 	assert.Contains(t, message, "ffmpeg")
 	assert.Contains(t, message, "your PATH")
-	assert.Contains(t, message, "video.ffmpeg_path")
+	assert.Contains(t, message, "extract.ffmpeg_path")
 }

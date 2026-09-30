@@ -13,7 +13,7 @@ type Config struct {
 	Providers section.ProvidersConfig `key:"providers" category:"PROVIDER OPTIONS"`
 	Models    section.ModelsConfig    `key:"models"`
 	Keywords  section.KeywordsConfig  `key:"keywords" command:"recipe keyword"`
-	Video     section.VideoConfig     `key:"video" command:"import"`
+	Extract   section.ExtractConfig   `key:"extract" command:"import"`
 }
 
 var defaultConfig = Config{
@@ -34,7 +34,7 @@ var defaultConfig = Config{
 	Keywords: section.KeywordsConfig{
 		SchemaFile: filepath.Join(ConfigDir, "keyword_schema.md"),
 	},
-	Video: section.VideoConfig{
+	Extract: section.ExtractConfig{
 		Format:             "best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
 		MaxDurationMinutes: 30,
 	},

@@ -22,7 +22,7 @@ func TestYtdlpSuite(t *testing.T) {
 	suite.Run(t, new(YtdlpSuite))
 }
 
-func (s *YtdlpSuite) buildArgs(cfg section.VideoConfig) []string {
+func (s *YtdlpSuite) buildArgs(cfg section.ExtractConfig) []string {
 	s.T().Helper()
 
 	workdir := &WorkDir{Path: s.T().TempDir()}
@@ -44,7 +44,7 @@ func (s *YtdlpSuite) flagValue(args []string, flag string) (string, bool) {
 }
 
 func (s *YtdlpSuite) TestDeterministicLayoutIsAlwaysSet() {
-	args := s.buildArgs(section.VideoConfig{})
+	args := s.buildArgs(section.ExtractConfig{})
 
 	s.Contains(args, "--no-playlist")
 	s.Contains(args, "--merge-output-format")
@@ -63,7 +63,7 @@ func (s *YtdlpSuite) TestDeterministicLayoutIsAlwaysSet() {
 }
 
 func (s *YtdlpSuite) TestMediaAndTempPathsAreSeparate() {
-	args := s.buildArgs(section.VideoConfig{})
+	args := s.buildArgs(section.ExtractConfig{})
 
 	var paths []string
 	for i, arg := range args {
@@ -80,7 +80,7 @@ func (s *YtdlpSuite) TestMediaAndTempPathsAreSeparate() {
 }
 
 func (s *YtdlpSuite) TestUnsetConfigAddsNoFlags() {
-	args := s.buildArgs(section.VideoConfig{})
+	args := s.buildArgs(section.ExtractConfig{})
 
 	for _, flag := range []string{"--format", "--cookies", "--cookies-from-browser", "--impersonate"} {
 		s.NotContains(args, flag, "%s must not appear when unconfigured", flag)
@@ -88,7 +88,7 @@ func (s *YtdlpSuite) TestUnsetConfigAddsNoFlags() {
 }
 
 func (s *YtdlpSuite) TestConfigIsApplied() {
-	cfg := section.VideoConfig{
+	cfg := section.ExtractConfig{
 		Format:             "best[ext=mp4]",
 		CookiesFile:        "/tmp/cookies.txt",
 		CookiesFromBrowser: "firefox",
@@ -111,7 +111,7 @@ func (s *YtdlpSuite) TestConfigIsApplied() {
 
 func (s *YtdlpSuite) TestResolvedExecutableIsTheOneRun() {
 	workdir := &WorkDir{Path: s.T().TempDir()}
-	base := newBaseCommand(workdir, section.VideoConfig{YtdlpPath: "yt-dlp"}, "/resolved/yt-dlp", "/usr/bin/ffmpeg", nil)
+	base := newBaseCommand(workdir, section.ExtractConfig{YtdlpPath: "yt-dlp"}, "/resolved/yt-dlp", "/usr/bin/ffmpeg", nil)
 	cmd := videoCommand(base, "")
 
 	args := cmd.BuildCommand(context.Background(), "https://tiktok.com/v").Args
@@ -122,7 +122,7 @@ func (s *YtdlpSuite) TestResolvedExecutableIsTheOneRun() {
 func (s *YtdlpSuite) TestResolveDependenciesRejectsUnusableYtdlpPath() {
 	for _, path := range []string{"definitely-not-on-path", "/nonexistent/yt-dlp"} {
 		s.Run(path, func() {
-			_, _, err := resolveDependencies(section.VideoConfig{YtdlpPath: path})
+			_, _, err := resolveDependencies(section.ExtractConfig{YtdlpPath: path})
 
 			s.ErrorIs(err, ErrBinaryMissing)
 
@@ -141,7 +141,7 @@ func (s *YtdlpSuite) TestResolveDependenciesRejectsUnusableFfmpegPath() {
 
 	for _, path := range []string{"definitely-not-on-path", "/nonexistent/ffmpeg"} {
 		s.Run(path, func() {
-			_, _, err := resolveDependencies(section.VideoConfig{
+			_, _, err := resolveDependencies(section.ExtractConfig{
 				FfmpegPath: path,
 			})
 
@@ -161,7 +161,7 @@ func (s *YtdlpSuite) TestResolveDependenciesUsesConfiguredPaths() {
 	fakeFfmpeg := s.writeFakeBinary(dir, "ffmpeg")
 	s.T().Setenv("PATH", dir)
 
-	ytdlpPath, ffmpegPath, err := resolveDependencies(section.VideoConfig{
+	ytdlpPath, ffmpegPath, err := resolveDependencies(section.ExtractConfig{
 		YtdlpPath:  "yt-dlp",
 		FfmpegPath: "ffmpeg",
 	})
@@ -177,7 +177,7 @@ func (s *YtdlpSuite) TestResolveDependenciesFallsBackToBareNameWhenUnconfigured(
 	fakeFfmpeg := s.writeFakeBinary(dir, "ffmpeg")
 	s.T().Setenv("PATH", dir)
 
-	ytdlpPath, ffmpegPath, err := resolveDependencies(section.VideoConfig{})
+	ytdlpPath, ffmpegPath, err := resolveDependencies(section.ExtractConfig{})
 
 	s.Require().NoError(err)
 	s.Equal(fakeYtdlp, ytdlpPath, "an already-installed yt-dlp must be used, never downloaded")

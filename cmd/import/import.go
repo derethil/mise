@@ -62,7 +62,7 @@ var Command = &cli.Command{
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		cfg := config.FromContext(ctx)
 
-		extraction, err := video.Probe(ctx, cmd.StringArg("url"), cfg.Video, progressPrinter())
+		extraction, err := video.Probe(ctx, cmd.StringArg("url"), cfg.Extract, progressPrinter())
 		if err != nil {
 			return cliutil.VideoUserError(err)
 		}

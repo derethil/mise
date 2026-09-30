@@ -218,7 +218,7 @@ func (s *ConfigSuite) TestKeywordsKeepFlagAcceptsMultipleValues() {
 func (s *ConfigSuite) TestYtdlpArgFlagAcceptsMultipleValues() {
 	cfg := s.loadWithFlags(FlagsForCommand("import"), "--yt-dlp-arg=--no-playlist,--write-info-json")
 
-	s.Equal([]string{"--no-playlist", "--write-info-json"}, cfg.Video.YtdlpArgs)
+	s.Equal([]string{"--no-playlist", "--write-info-json"}, cfg.Extract.YtdlpArgs)
 }
 
 func (s *ConfigSuite) TestKeywordsKeepFromConfigFile() {

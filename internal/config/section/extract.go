@@ -1,6 +1,6 @@
 package section
 
-type VideoConfig struct {
+type ExtractConfig struct {
 	Format             string   `key:"format" flag:"format" category:"DOWNLOAD OPTIONS" usage:"yt-dlp format selector"`
 	CookiesFile        string   `key:"cookies_file" flag:"cookies-file" category:"DOWNLOAD OPTIONS" usage:"Path to a Netscape-format cookie jar for login-walled videos"`
 	CookiesFromBrowser string   `key:"cookies_from_browser" flag:"cookies-from-browser" category:"DOWNLOAD OPTIONS" usage:"Browser to pull cookies from, e.g. firefox"`

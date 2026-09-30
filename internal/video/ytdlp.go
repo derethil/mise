@@ -23,7 +23,7 @@ type Progress struct {
 
 type ProgressFunc func(Progress)
 
-func resolveDependencies(cfg section.VideoConfig) (ytdlpPath, ffmpegPath string, err error) {
+func resolveDependencies(cfg section.ExtractConfig) (ytdlpPath, ffmpegPath string, err error) {
 	resolve := func(cfgPath, name, configKey string) (string, error) {
 		binary := name
 		if cfgPath != "" {
@@ -56,7 +56,7 @@ func resolveDependencies(cfg section.VideoConfig) (ytdlpPath, ffmpegPath string,
 	return ytdlpPath, ffmpegPath, nil
 }
 
-func newBaseCommand(workdir *WorkDir, cfg section.VideoConfig, executable, ffmpeg string, onProgress ProgressFunc) *ytdlp.Command {
+func newBaseCommand(workdir *WorkDir, cfg section.ExtractConfig, executable, ffmpeg string, onProgress ProgressFunc) *ytdlp.Command {
 	cmd := ytdlp.New().
 		NoPlaylist().
 		FlatPlaylist().
@@ -85,7 +85,7 @@ func videoCommand(cmd *ytdlp.Command, format string) *ytdlp.Command {
 	return video
 }
 
-func applySourceConfig(cmd *ytdlp.Command, cfg section.VideoConfig) {
+func applySourceConfig(cmd *ytdlp.Command, cfg section.ExtractConfig) {
 	settings := []struct {
 		value string
 		apply func(string) *ytdlp.Command
