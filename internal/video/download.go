@@ -24,7 +24,8 @@ func (e *Extraction) downloadVideo(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("failed to write video metadata: %w", err)
 	}
 
-	if err := e.run(ctx, e.cmd); err != nil {
+	cmd := videoCommand(e.baseCmd, e.cfg.Format)
+	if err := e.run(ctx, cmd); err != nil {
 		return "", err
 	}
 

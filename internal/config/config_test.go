@@ -93,7 +93,7 @@ func (s *ConfigSuite) TestOnlyExplicitFlagsAreGenerated() {
 		flagNames(Flags()),
 	)
 	s.Equal(
-		[]string{"format", "cookies-file", "cookies-from-browser", "impersonate", "yt-dlp-path", "yt-dlp-arg", "max-duration"},
+		[]string{"format", "cookies-file", "cookies-from-browser", "impersonate", "yt-dlp-path", "ffmpeg-path", "yt-dlp-arg", "max-duration"},
 		flagNames(FlagsForCommand("import")),
 	)
 	s.Equal(

@@ -8,11 +8,12 @@ import (
 
 const (
 	audioFormat         = "mp3"
+	audioSourceFormat   = "bestaudio/best"
 	audioOutputTemplate = "audio.%(ext)s"
 )
 
 func (e *Extraction) extractAudio(ctx context.Context) (string, error) {
-	cmd := audioCommand(e.cmd, audioFormat)
+	cmd := audioCommand(e.baseCmd, audioFormat)
 
 	if err := e.run(ctx, cmd); err != nil {
 		return "", err
@@ -23,6 +24,7 @@ func (e *Extraction) extractAudio(ctx context.Context) (string, error) {
 
 func audioCommand(cmd *ytdlp.Command, format string) *ytdlp.Command {
 	return cmd.Clone().
+		Format(audioSourceFormat).
 		ExtractAudio().
 		AudioFormat(format).
 		Output(audioOutputTemplate)

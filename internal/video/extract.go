@@ -15,13 +15,13 @@ type Extraction struct {
 	Source Source
 
 	cfg      section.VideoConfig
-	cmd      *ytdlp.Command
+	baseCmd  *ytdlp.Command
 	document []byte
 	workdir  *WorkDir
 }
 
 func Probe(ctx context.Context, url string, cfg section.VideoConfig, onProgress ProgressFunc) (*Extraction, error) {
-	executable, err := resolveBinary(ctx, cfg)
+	executable, ffmpeg, err := resolveDependencies(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -31,9 +31,9 @@ func Probe(ctx context.Context, url string, cfg section.VideoConfig, onProgress 
 		return nil, fmt.Errorf("failed to create work directory: %w", err)
 	}
 
-	cmd := newCommand(workdir, cfg, executable, onProgress)
+	baseCmd := newBaseCommand(workdir, cfg, executable, ffmpeg, onProgress)
 
-	infos, res, err := cmd.ExtractInfo(ctx, append([]string{url}, cfg.YtdlpArgs...)...)
+	infos, res, err := baseCmd.ExtractInfo(ctx, append([]string{url}, cfg.YtdlpArgs...)...)
 	if err != nil {
 		return nil, classify(err, res)
 	}
@@ -55,7 +55,7 @@ func Probe(ctx context.Context, url string, cfg section.VideoConfig, onProgress 
 	return &Extraction{
 		Source:   flattenSource(info, url),
 		cfg:      cfg,
-		cmd:      cmd,
+		baseCmd:  baseCmd,
 		document: document,
 		workdir:  workdir,
 	}, nil

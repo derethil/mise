@@ -1,7 +1,6 @@
 package video
 
 import (
-	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -24,48 +23,73 @@ type Progress struct {
 
 type ProgressFunc func(Progress)
 
-func resolveBinary(ctx context.Context, cfg section.VideoConfig) (string, error) {
-	if cfg.YtdlpPath != "" {
-		path, err := exec.LookPath(cfg.YtdlpPath)
+func resolveDependencies(cfg section.VideoConfig) (ytdlpPath, ffmpegPath string, err error) {
+	resolve := func(cfgPath, name, configKey string) (string, error) {
+		binary := name
+		if cfgPath != "" {
+			binary = cfgPath
+		}
+
+		path, err := exec.LookPath(binary)
 		if err != nil {
-			return "", fmt.Errorf("%w: %w", ErrBinaryMissing, err)
+			return "", &MissingBinaryError{
+				Name:           name,
+				ConfigKey:      configKey,
+				ConfiguredPath: cfgPath,
+				err:            err,
+			}
 		}
 
 		return path, nil
 	}
 
-	resolved, err := ytdlp.Install(ctx, &ytdlp.InstallOptions{AllowVersionMismatch: true})
+	ytdlpPath, err = resolve(cfg.YtdlpPath, "yt-dlp", "ytdlp_path")
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrBinaryMissing, err)
+		return "", "", err
 	}
 
-	return resolved.Executable, nil
+	ffmpegPath, err = resolve(cfg.FfmpegPath, "ffmpeg", "ffmpeg_path")
+	if err != nil {
+		return "", "", err
+	}
+
+	return ytdlpPath, ffmpegPath, nil
 }
 
-func newCommand(workdir *WorkDir, cfg section.VideoConfig, executable string, onProgress ProgressFunc) *ytdlp.Command {
+func newBaseCommand(workdir *WorkDir, cfg section.VideoConfig, executable, ffmpeg string, onProgress ProgressFunc) *ytdlp.Command {
 	cmd := ytdlp.New().
 		NoPlaylist().
 		FlatPlaylist().
 		Color("no_color").
-		Output("video.%(ext)s").
-		MergeOutputFormat("mp4").
 		Paths("home:"+workdir.Join(mediaDir)).
 		Paths("temp:"+workdir.Join(tempDir)).
 		PrintToFile(filepathTemplate, workdir.Join(filepathFilename)).
-		SetExecutable(executable)
+		SetExecutable(executable).
+		FFmpegLocation(ffmpeg)
 
-	applyConfig(cmd, cfg)
+	applySourceConfig(cmd, cfg)
 	applyProgress(cmd, onProgress)
 
 	return cmd
 }
 
-func applyConfig(cmd *ytdlp.Command, cfg section.VideoConfig) {
+func videoCommand(cmd *ytdlp.Command, format string) *ytdlp.Command {
+	video := cmd.Clone().
+		Output("video.%(ext)s").
+		MergeOutputFormat("mp4")
+
+	if format != "" {
+		video.Format(format)
+	}
+
+	return video
+}
+
+func applySourceConfig(cmd *ytdlp.Command, cfg section.VideoConfig) {
 	settings := []struct {
 		value string
 		apply func(string) *ytdlp.Command
 	}{
-		{cfg.Format, cmd.Format},
 		{cfg.CookiesFile, cmd.Cookies},
 		{cfg.CookiesFromBrowser, cmd.CookiesFromBrowser},
 		{cfg.Impersonate, cmd.Impersonate},

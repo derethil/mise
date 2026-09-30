@@ -30,11 +30,15 @@ func (s *AudioSuite) flagValue(args []string, flag string) (string, bool) {
 
 func (s *AudioSuite) TestAudioCommandSetsExtractionFlags() {
 	workdir := &WorkDir{Path: s.T().TempDir()}
-	cmd := newCommand(workdir, section.VideoConfig{}, "/usr/bin/yt-dlp", nil)
+	cmd := newBaseCommand(workdir, section.VideoConfig{Format: "bestvideo"}, "/usr/bin/yt-dlp", "/usr/bin/ffmpeg", nil)
 
 	args := audioCommand(cmd, "mp3").BuildCommand(context.Background(), "https://tiktok.com/v").Args
 
 	s.Contains(args, "--extract-audio")
+
+	sourceFormat, ok := s.flagValue(args, "--format")
+	s.Require().True(ok)
+	s.Equal(audioSourceFormat, sourceFormat, "audio extraction must override video-only format selectors")
 
 	format, ok := s.flagValue(args, "--audio-format")
 	s.Require().True(ok)
@@ -47,7 +51,7 @@ func (s *AudioSuite) TestAudioCommandSetsExtractionFlags() {
 
 func (s *AudioSuite) TestAudioCommandDoesNotMutateTheOriginal() {
 	workdir := &WorkDir{Path: s.T().TempDir()}
-	cmd := newCommand(workdir, section.VideoConfig{}, "/usr/bin/yt-dlp", nil)
+	cmd := newBaseCommand(workdir, section.VideoConfig{}, "/usr/bin/yt-dlp", "/usr/bin/ffmpeg", nil)
 
 	_ = audioCommand(cmd, "mp3")
 

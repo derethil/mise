@@ -105,9 +105,18 @@ func VideoUserError(err error) error {
 	if download, ok := errors.AsType[*video.DownloadError](err); ok && download.Stderr != "" {
 		return ErrWithUserMessage(err, "yt-dlp could not download this video:\n%s", download.Stderr)
 	}
+
+	if missing, ok := errors.AsType[*video.MissingBinaryError](err); ok {
+		if missing.ConfiguredPath != "" {
+			return ErrWithUserMessage(err, "Could not use `%s` configured by `video.%s`. Check that the path exists and is executable.", missing.ConfiguredPath, missing.ConfigKey)
+		}
+
+		return ErrWithUserMessage(err, "Could not find `%s` on your PATH. Install it, or set `video.%s`.", missing.Name, missing.ConfigKey)
+	}
+
 	switch {
 	case errors.Is(err, video.ErrBinaryMissing):
-		return ErrWithUserMessage(err, "Could not find `yt-dlp` on your PATH, and downloading one failed. Install it (`nix profile install nixpkgs#yt-dlp`) or set `--yt-dlp-path`.")
+		return ErrWithUserMessage(err, "A required video dependency (yt-dlp or ffmpeg) is missing or misconfigured.")
 	case errors.Is(err, video.ErrPlaylistURL):
 		return ErrWithUserMessage(err, "That URL is a playlist or profile. Pass a link to a single video.")
 	case errors.Is(err, video.ErrLiveVideo):

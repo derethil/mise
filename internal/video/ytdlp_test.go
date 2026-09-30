@@ -26,7 +26,8 @@ func (s *YtdlpSuite) buildArgs(cfg section.VideoConfig) []string {
 	s.T().Helper()
 
 	workdir := &WorkDir{Path: s.T().TempDir()}
-	cmd := newCommand(workdir, cfg, "/usr/bin/yt-dlp", nil)
+	base := newBaseCommand(workdir, cfg, "/usr/bin/yt-dlp", "/usr/bin/ffmpeg", nil)
+	cmd := videoCommand(base, cfg.Format)
 
 	return cmd.BuildCommand(context.Background(), "https://tiktok.com/v").Args
 }
@@ -55,6 +56,10 @@ func (s *YtdlpSuite) TestDeterministicLayoutIsAlwaysSet() {
 	report, ok := s.flagValue(args, "--print-to-file")
 	s.Require().True(ok)
 	s.Equal(filepathTemplate, report)
+
+	ffmpeg, ok := s.flagValue(args, "--ffmpeg-location")
+	s.Require().True(ok, "yt-dlp must be pointed at the resolved ffmpeg, not left to find one itself")
+	s.Equal("/usr/bin/ffmpeg", ffmpeg)
 }
 
 func (s *YtdlpSuite) TestMediaAndTempPathsAreSeparate() {
@@ -106,33 +111,89 @@ func (s *YtdlpSuite) TestConfigIsApplied() {
 
 func (s *YtdlpSuite) TestResolvedExecutableIsTheOneRun() {
 	workdir := &WorkDir{Path: s.T().TempDir()}
-	cmd := newCommand(workdir, section.VideoConfig{YtdlpPath: "yt-dlp"}, "/resolved/yt-dlp", nil)
+	base := newBaseCommand(workdir, section.VideoConfig{YtdlpPath: "yt-dlp"}, "/resolved/yt-dlp", "/usr/bin/ffmpeg", nil)
+	cmd := videoCommand(base, "")
 
 	args := cmd.BuildCommand(context.Background(), "https://tiktok.com/v").Args
 
 	s.Equal("/resolved/yt-dlp", args[0], "the validated binary is the one executed")
 }
 
-func (s *YtdlpSuite) TestResolveBinaryRejectsUnusablePaths() {
+func (s *YtdlpSuite) TestResolveDependenciesRejectsUnusableYtdlpPath() {
 	for _, path := range []string{"definitely-not-on-path", "/nonexistent/yt-dlp"} {
 		s.Run(path, func() {
-			_, err := resolveBinary(context.Background(), section.VideoConfig{YtdlpPath: path})
+			_, _, err := resolveDependencies(section.VideoConfig{YtdlpPath: path})
 
 			s.ErrorIs(err, ErrBinaryMissing)
+
+			var missing *MissingBinaryError
+			s.Require().ErrorAs(err, &missing)
+			s.Equal("yt-dlp", missing.Name)
+			s.Equal(path, missing.ConfiguredPath)
 		})
 	}
 }
 
-func (s *YtdlpSuite) TestResolveBinaryReturnsAnAbsolutePath() {
+func (s *YtdlpSuite) TestResolveDependenciesRejectsUnusableFfmpegPath() {
 	dir := s.T().TempDir()
-	fake := filepath.Join(dir, "yt-dlp")
-	s.Require().NoError(os.WriteFile(fake, []byte("#!/bin/sh\nexit 0\n"), 0o755))
+	s.writeFakeBinary(dir, "yt-dlp")
 	s.T().Setenv("PATH", dir)
 
-	resolved, err := resolveBinary(context.Background(), section.VideoConfig{YtdlpPath: "yt-dlp"})
+	for _, path := range []string{"definitely-not-on-path", "/nonexistent/ffmpeg"} {
+		s.Run(path, func() {
+			_, _, err := resolveDependencies(section.VideoConfig{
+				FfmpegPath: path,
+			})
+
+			s.ErrorIs(err, ErrBinaryMissing)
+
+			var missing *MissingBinaryError
+			s.Require().ErrorAs(err, &missing)
+			s.Equal("ffmpeg", missing.Name)
+			s.Equal(path, missing.ConfiguredPath)
+		})
+	}
+}
+
+func (s *YtdlpSuite) TestResolveDependenciesUsesConfiguredPaths() {
+	dir := s.T().TempDir()
+	fakeYtdlp := s.writeFakeBinary(dir, "yt-dlp")
+	fakeFfmpeg := s.writeFakeBinary(dir, "ffmpeg")
+	s.T().Setenv("PATH", dir)
+
+	ytdlpPath, ffmpegPath, err := resolveDependencies(section.VideoConfig{
+		YtdlpPath:  "yt-dlp",
+		FfmpegPath: "ffmpeg",
+	})
 
 	s.Require().NoError(err)
-	s.Equal(fake, resolved, "a bare name resolves through PATH to an absolute path")
+	s.Equal(fakeYtdlp, ytdlpPath, "a bare name resolves through PATH to an absolute path")
+	s.Equal(fakeFfmpeg, ffmpegPath, "a bare name resolves through PATH to an absolute path")
+}
+
+func (s *YtdlpSuite) TestResolveDependenciesFallsBackToBareNameWhenUnconfigured() {
+	dir := s.T().TempDir()
+	fakeYtdlp := s.writeFakeBinary(dir, "yt-dlp")
+	fakeFfmpeg := s.writeFakeBinary(dir, "ffmpeg")
+	s.T().Setenv("PATH", dir)
+
+	ytdlpPath, ffmpegPath, err := resolveDependencies(section.VideoConfig{})
+
+	s.Require().NoError(err)
+	s.Equal(fakeYtdlp, ytdlpPath, "an already-installed yt-dlp must be used, never downloaded")
+	s.Equal(fakeFfmpeg, ffmpegPath, "an already-installed ffmpeg must be used, never downloaded")
+}
+
+// writeFakeBinary writes an empty executable stub named name into dir and
+// returns its absolute path. resolveDependencies only ever stats/looks up
+// binaries via PATH, it never executes them, so the stub's contents don't matter.
+func (s *YtdlpSuite) writeFakeBinary(dir, name string) string {
+	s.T().Helper()
+
+	path := filepath.Join(dir, name)
+	s.Require().NoError(os.WriteFile(path, []byte("#!/bin/sh\n"), 0o755))
+
+	return path
 }
 
 func (s *YtdlpSuite) TestStderrTailIsNilSafe() {

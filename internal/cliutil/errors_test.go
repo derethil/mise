@@ -17,9 +17,29 @@ func TestVideoUserErrorReferencesPublicDurationFlag(t *testing.T) {
 	assert.NotContains(t, message, "video.max_duration_minutes")
 }
 
-func TestVideoUserErrorReferencesPublicYtdlpFlag(t *testing.T) {
-	message := UserMessage(VideoUserError(video.ErrBinaryMissing))
+func TestVideoUserErrorForConfiguredBinary(t *testing.T) {
+	err := &video.MissingBinaryError{
+		Name:           "ffmpeg",
+		ConfigKey:      "ffmpeg_path",
+		ConfiguredPath: "/missing/ffmpeg",
+	}
 
-	assert.Contains(t, message, "--yt-dlp-path")
-	assert.NotContains(t, message, "video.ytdlp_path")
+	message := UserMessage(VideoUserError(err))
+
+	assert.Contains(t, message, "/missing/ffmpeg")
+	assert.Contains(t, message, "video.ffmpeg_path")
+	assert.NotContains(t, message, "your PATH")
+}
+
+func TestVideoUserErrorForBinaryMissingFromPath(t *testing.T) {
+	err := &video.MissingBinaryError{
+		Name:      "ffmpeg",
+		ConfigKey: "ffmpeg_path",
+	}
+
+	message := UserMessage(VideoUserError(err))
+
+	assert.Contains(t, message, "ffmpeg")
+	assert.Contains(t, message, "your PATH")
+	assert.Contains(t, message, "video.ffmpeg_path")
 }
