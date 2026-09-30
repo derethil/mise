@@ -17,17 +17,17 @@ const commandHelpTemplate = `NAME:
    {{template "helpNameTemplate" .}}
 
 USAGE:
-   {{template "usageTemplate" .}}{{if .Category}}
+   {{if .UsageText}}{{wrap .UsageText 3}}{{else}}{{.FullName}}{{if .VisibleFlags}} [options]{{end}}{{if .VisibleCommands}} [command [command options]]{{end}}{{if .ArgsUsage}} {{trim .ArgsUsage}}{{else}}{{range .Arguments}} {{.Usage}}{{end}}{{end}}{{end}}{{if .Category}}
 
 CATEGORY:
    {{.Category}}{{end}}{{if .Description}}
 
 DESCRIPTION:
-   {{template "descriptionTemplate" .}}{{end}}{{if .VisibleFlagCategories}}
+   {{template "descriptionTemplate" .}}{{end}}{{if .Metadata.hasLocalOptions}}
 
-OPTIONS:{{template "visibleFlagCategoryTemplate" .}}{{else if .VisibleFlags}}
-
-OPTIONS:{{template "visibleFlagTemplate" .}}{{end}}{{if .VisiblePersistentFlags}}
+OPTIONS:{{if .VisibleFlagCategories}}{{template "visibleFlagCategoryTemplate" .}}{{else}}{{template "visibleFlagTemplate" .}}
+{{end}}{{else}}
+{{end}}{{if .VisiblePersistentFlags}}
 GLOBAL OPTIONS:{{template "visibleFlagCategoryTemplate" .Metadata.visibleGlobalFlagCategories}}
    See 'mise --help' for all global configuration overrides.{{end}}
 `
@@ -36,7 +36,7 @@ const subcommandHelpTemplate = `NAME:
    {{template "helpNameTemplate" .}}
 
 USAGE:
-   {{if .UsageText}}{{wrap .UsageText 3}}{{else}}{{.FullName}}{{if .VisibleCommands}} [command [command options]]{{end}}{{if .ArgsUsage}} {{.ArgsUsage}}{{else}}{{if .Arguments}} [arguments...]{{end}}{{end}}{{end}}{{if .Category}}
+   {{if .UsageText}}{{wrap .UsageText 3}}{{else}}{{.FullName}}{{if .VisibleFlags}} [options]{{end}}{{if .VisibleCommands}} [command [command options]]{{end}}{{if .ArgsUsage}} {{trim .ArgsUsage}}{{else}}{{range .Arguments}} {{.Usage}}{{end}}{{end}}{{end}}{{if .Category}}
 
 CATEGORY:
    {{.Category}}{{end}}{{if .Description}}
@@ -44,16 +44,19 @@ CATEGORY:
 DESCRIPTION:
    {{template "descriptionTemplate" .}}{{end}}{{if .VisibleCommands}}
 
-COMMANDS:{{template "visibleCommandTemplate" .}}{{end}}{{if .VisibleFlagCategories}}
+COMMANDS:{{template "visibleCommandTemplate" .}}{{end}}{{if .Metadata.hasLocalOptions}}
 
-OPTIONS:{{template "visibleFlagCategoryTemplate" .}}{{else if .VisibleFlags}}
-
-OPTIONS:{{template "visibleFlagTemplate" .}}{{end}}{{if .VisiblePersistentFlags}}
+OPTIONS:{{if .VisibleFlagCategories}}{{template "visibleFlagCategoryTemplate" .}}{{else}}{{template "visibleFlagTemplate" .}}
+{{end}}{{else}}
+{{end}}{{if .VisiblePersistentFlags}}
 GLOBAL OPTIONS:{{template "visibleFlagCategoryTemplate" .Metadata.visibleGlobalFlagCategories}}
    See 'mise --help' for all global configuration overrides.{{end}}
 `
 
-const visibleGlobalFlagCategoriesMetadataKey = "visibleGlobalFlagCategories"
+const (
+	hasLocalOptionsMetadataKey             = "hasLocalOptions"
+	visibleGlobalFlagCategoriesMetadataKey = "visibleGlobalFlagCategories"
+)
 
 type globalFlagCategories struct {
 	categories []cli.VisibleFlagCategory
@@ -111,6 +114,7 @@ func newGlobalFlagCategories(flags []cli.Flag, allowedNames ...string) globalFla
 
 func configureGlobalHelp(cmd *cli.Command, flags []cli.Flag) {
 	categories := cmd.Metadata[cliutil.GlobalFlagCategoriesMetadataKey].([]string)
+	cmd.Metadata[hasLocalOptionsMetadataKey] = len(cmd.Flags) > 0
 	cmd.Metadata[visibleGlobalFlagCategoriesMetadataKey] = newGlobalFlagCategories(flags, categories...)
 	if cmd.Name != "mise" {
 		cmd.ShellComplete = completeWithGlobalFlags

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bytes"
+	"context"
 	"testing"
 
 	"github.com/derethil/mise/internal/cliutil"
@@ -64,6 +66,51 @@ func TestCompletionIncludesRelevantGlobalFlags(t *testing.T) {
 		[]string{"config", "verbose"},
 		flagNames(relevantGlobalFlags(rootCmd.Command("logs"))),
 	)
+}
+
+func TestOptionsSectionRequiresLocalOptions(t *testing.T) {
+	withoutOptions := renderCommandHelp(t, nil)
+	assert.NotContains(t, withoutOptions, "\nOPTIONS:")
+	assert.Contains(t, withoutOptions, "\nGLOBAL OPTIONS:")
+	assert.Contains(t, withoutOptions, "mise child [options]\n\nGLOBAL OPTIONS:")
+
+	withOptions := renderCommandHelp(t, []cli.Flag{&cli.BoolFlag{Name: "local"}})
+	assert.Contains(t, withOptions, "\nOPTIONS:")
+	assert.Contains(t, withOptions, "--local")
+	assert.Contains(t, withOptions, "--help, -h  show help\n\nGLOBAL OPTIONS:")
+
+	withArgument := renderCommandHelpWithArguments(t, nil, []cli.Argument{&cli.StringArg{Name: "value"}})
+	assert.Contains(t, withArgument, "mise child [options] [value]\n")
+	assert.NotContains(t, withArgument, "[value] \n")
+}
+
+func renderCommandHelp(t *testing.T, localFlags []cli.Flag) string {
+	return renderCommandHelpWithArguments(t, localFlags, nil)
+}
+
+func renderCommandHelpWithArguments(t *testing.T, localFlags []cli.Flag, arguments []cli.Argument) string {
+	t.Helper()
+
+	var output bytes.Buffer
+	command := &cli.Command{
+		Name:      "child",
+		Flags:     localFlags,
+		Arguments: arguments,
+		Metadata:  cliutil.GlobalFlagMetadata(),
+	}
+	root := &cli.Command{
+		Name:     "mise",
+		Writer:   &output,
+		Flags:    []cli.Flag{&cli.BoolFlag{Name: "verbose", Category: cliutil.GeneralOptions}},
+		Metadata: cliutil.GlobalFlagMetadata(),
+		Commands: []*cli.Command{command},
+	}
+	configureGlobalHelp(root, root.Flags)
+
+	err := root.Run(context.Background(), []string{"mise", "child", "--help"})
+	assert.NoError(t, err)
+
+	return output.String()
 }
 
 func flagNames(flags []cli.Flag) []string {
