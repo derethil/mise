@@ -31,16 +31,19 @@ var normalizeCmd = &cli.Command{
 			Aliases: []string{"d"},
 		},
 		&cli.BoolFlag{
-			Name:  "all",
-			Usage: "Run on all recipes in the Tandoor instance. Overrides id argument.",
+			Name:    "all",
+			Aliases: []string{"a"},
+			Usage:   "Run on all recipes in the Tandoor instance. Overrides id argument.",
 		},
 		&cli.BoolFlag{
-			Name:  "failed",
-			Usage: "Re-run only the recipes that failed on a previous run",
+			Name:    "failed",
+			Aliases: []string{"f"},
+			Usage:   "Re-run only the recipes that failed on a previous run",
 		},
 		&cli.BoolFlag{
-			Name:  "new",
-			Usage: "Run on all recipes that haven't been normalized before",
+			Name:    "new",
+			Aliases: []string{"n"},
+			Usage:   "Run on all recipes that haven't been normalized before",
 		},
 		&cli.IntFlag{
 			Name:  "batch-size",

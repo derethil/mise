@@ -32,20 +32,24 @@ var keywordCmd = &cli.Command{
 			Aliases: []string{"d"},
 		},
 		&cli.BoolFlag{
-			Name:  "replace",
-			Usage: "Replace the recipe's keywords instead of adding to them",
+			Name:    "replace",
+			Aliases: []string{"r"},
+			Usage:   "Replace the recipe's keywords instead of adding to them",
 		},
 		&cli.BoolFlag{
-			Name:  "all",
-			Usage: "Run on all recipes in the Tandoor instance. Overrides id argument.",
+			Name:    "all",
+			Aliases: []string{"a"},
+			Usage:   "Run on all recipes in the Tandoor instance. Overrides id argument.",
 		},
 		&cli.BoolFlag{
-			Name:  "failed",
-			Usage: "Re-run only the recipes that failed on a previous run",
+			Name:    "failed",
+			Aliases: []string{"f"},
+			Usage:   "Re-run only the recipes that failed on a previous run",
 		},
 		&cli.BoolFlag{
-			Name:  "new",
-			Usage: "Run on all recipes that haven't been keyworded before",
+			Name:    "new",
+			Aliases: []string{"n"},
+			Usage:   "Run on all recipes that haven't been keyworded before",
 		},
 	}...),
 	Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
