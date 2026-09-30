@@ -1,5 +1,6 @@
 // Package model implements mise's "models" command family: listing,
-// pulling, and clearing Ollama models.
+// pulling, and clearing Ollama models, plus managing the whisper.cpp
+// transcription model.
 package model
 
 import (
@@ -15,5 +16,6 @@ var Command = &cli.Command{
 		listCmd,
 		pullCmd,
 		clearCmd,
+		whisperCmd,
 	},
 }
