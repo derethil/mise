@@ -82,7 +82,7 @@ func AIUserError(err error, model string) error {
 	case errors.Is(err, providers.ErrOllamaNotInstalled):
 		return ErrWithUserMessage(err, "Could not find `ollama` on your PATH. Install Ollama or add it to your PATH, then try again.")
 	case errors.Is(err, providers.ErrOllamaUnavailable):
-		return ErrWithUserMessage(err, "Could not connect to Ollama. Make sure it is running (try `ollama serve`) or provide --providers.ollama.autostart and try again.")
+		return ErrWithUserMessage(err, "Could not connect to Ollama. Make sure it is running (try `ollama serve`) or provide --start-ollama and try again.")
 	case errors.Is(err, ai.ErrModelMissingTools):
 		return ErrWithUserMessage(err, "Model %s doesn't support tool calling, which mise's AI commands need to look up existing entries in Tandoor. Choose a different model with --model or modify your config.", model)
 	case errors.Is(err, config.ErrInvalidConfig):
@@ -98,23 +98,22 @@ func AIUserError(err error, model string) error {
 
 func VideoUserError(err error) error {
 	if tooLong, ok := errors.AsType[*video.TooLongError](err); ok {
-		return ErrWithUserMessage(err, "That video is %s long (limit %s). Raise `video.max_duration_minutes` to import it anyway.",
+		return ErrWithUserMessage(err, "That video is %s long (limit %s). Raise `--max-duration` to import it anyway.",
 			tooLong.Duration.Round(time.Second), tooLong.Limit)
 	}
 
 	if download, ok := errors.AsType[*video.DownloadError](err); ok && download.Stderr != "" {
 		return ErrWithUserMessage(err, "yt-dlp could not download this video:\n%s", download.Stderr)
 	}
-
 	switch {
 	case errors.Is(err, video.ErrBinaryMissing):
-		return ErrWithUserMessage(err, "Could not find `yt-dlp` on your PATH, and downloading one failed. Install it (`nix profile install nixpkgs#yt-dlp`) or set `video.ytdlp_path`.")
+		return ErrWithUserMessage(err, "Could not find `yt-dlp` on your PATH, and downloading one failed. Install it (`nix profile install nixpkgs#yt-dlp`) or set `--yt-dlp-path`.")
 	case errors.Is(err, video.ErrPlaylistURL):
 		return ErrWithUserMessage(err, "That URL is a playlist or profile. Pass a link to a single video.")
 	case errors.Is(err, video.ErrLiveVideo):
 		return ErrWithUserMessage(err, "That URL is a live stream, which mise can't import. Wait for the recording to be published and try again.")
 	case errors.Is(err, video.ErrDurationUnknown):
-		return ErrWithUserMessage(err, "yt-dlp didn't report a duration for that video, so mise can't check it against `video.max_duration_minutes`. Set that to 0 to import it anyway.")
+		return ErrWithUserMessage(err, "yt-dlp didn't report a duration for that video, so mise can't check it against `--max-duration`. Set it to 0 to import it anyway.")
 	case errors.Is(err, video.ErrNoVideo):
 		return ErrWithUserMessage(err, "No video was found at that URL.")
 	case errors.Is(err, video.ErrDownloadFailed):
