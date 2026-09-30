@@ -18,3 +18,13 @@ autostart = false
 [keywords]
 keep = [] # Keywords to preserve when using recipe keyword --replace
 # schema_file = "$XDG_CONFIG_HOME/mise/keyword_schema.md"
+
+[video]
+format = "best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best"
+max_duration_minutes = 30 # Refuse videos longer than this (0 disables the check)
+# cookies_file = "/path/to/cookies.txt" # Netscape-format cookie jar for login-walled videos
+# cookies_from_browser = "firefox" # Browser to pull cookies from
+# impersonate = "chrome" # TLS client to impersonate, often required for Instagram
+# ytdlp_path = "/path/to/yt-dlp" # Empty resolves yt-dlp from PATH
+# ffmpeg_path = "/path/to/ffmpeg" # Empty resolves ffmpeg from PATH
+# ytdlp_args = [] # Extra arguments passed through to yt-dlp

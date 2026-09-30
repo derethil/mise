@@ -7,6 +7,7 @@ recipes, it can help you manage them semi-autonomously.
 
 ## Features
 
+- Import recipes from social media videos like YouTube, TikTok, and Instagram.
 - Normalize messy ingredient rows so amount, unit, and food land in the right
   fields, reusing Tandoor's existing foods and units.
 - Assign keywords to a recipe following your own custom keyword schema.
@@ -29,6 +30,23 @@ go build -o mise .
 
 A Nix flake is also provided (`nix build .#mise`).
 
+## Dependencies
+
+mise depends on a few external tools during some commands, primarily `ffmpeg`
+and `yt-dlp`. The Nix package bundles everything automatically.
+
+Transcription uses [whisper.cpp](https://github.com/ggerganov/whisper.cpp)'s Go
+bindings directly instead of going through Ollama or mise's AI provider
+abstraction. Neither supports whisper at the moment (see
+[genkit/issues#5899](https://github.com/genkit-ai/genkit/issues/5899) and
+[ollama/issues/11798](https://github.com/ollama/ollama/issues/11798)) . This
+means you need its headers and shared libraries installed both to build mise and
+to run it afterward. The Nix package handles this for you.
+
+Unfortunately, this also means transcription can only be run locally. If you are
+running mise on a low-end machine, you may want to wait to run imports until
+after the cloud whisper API is merged.
+
 ## Configuration
 
 `mise` reads a config file from `$XDG_CONFIG_HOME/mise/config.toml` - see
@@ -48,6 +66,7 @@ different models for lighter vs. more demanding tasks or you can provide a
 ## Commands
 
 - `mise configure` - manage configuration file
+- `mise import` - import recipes from social media videos
 - `mise recipe normalize` - cleans up a recipe's ingredients by ensuring each
   amount/unit/food lands in the correct Tandoor field
 - `mise recipe keyword` - assigns keywords to a recipe according to the keyword
