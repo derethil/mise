@@ -27,7 +27,7 @@ var globalFlags = []cli.Flag{
 		Name:     string(cliutil.GlobalFlagModel),
 		Usage:    "Override the AI model to use for this command",
 		Aliases:  []string{"m"},
-		Category: "GENERAL OPTIONS",
+		Category: "PROVIDER OPTIONS",
 	},
 	&cli.BoolFlag{
 		Name:     string(cliutil.GlobalFlagVerbose),
@@ -82,6 +82,10 @@ var rootCmd = &cli.Command{
 		genkitDevCmd,
 	},
 	EnableShellCompletion: true,
+}
+
+func init() {
+	configureGlobalHelp(rootCmd, "", rootFlags)
 }
 
 func Execute() {
