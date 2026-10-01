@@ -142,6 +142,29 @@ func (s *ExtractSuite) TestInfoDocumentPrefersRawJSON() {
 	s.Contains(string(document), "extractor_specific", "fields go-ytdlp does not model must survive")
 }
 
+func (s *ExtractSuite) TestLoadCachedInfoMissingFileReturnsNil() {
+	workdir := &WorkDir{Path: s.T().TempDir()}
+
+	info, document, err := loadCachedInfo(workdir)
+
+	s.Require().NoError(err)
+	s.Nil(info)
+	s.Nil(document)
+}
+
+func (s *ExtractSuite) TestLoadCachedInfoReadsPreviouslyWrittenMetadata() {
+	workdir := &WorkDir{Path: s.T().TempDir()}
+	s.Require().NoError(workdir.WriteFile(metadataFilename, []byte(`{"id":"abc","title":"Tacos"}`)))
+
+	info, document, err := loadCachedInfo(workdir)
+
+	s.Require().NoError(err)
+	s.Require().NotNil(info)
+	s.Equal("abc", info.ID)
+	s.Equal("Tacos", *info.Title)
+	s.Contains(string(document), "Tacos")
+}
+
 func (s *ExtractSuite) TestInfoDocumentFallsBackToMarshalling() {
 	res := &ytdlp.Result{OutputLogs: []*ytdlp.ResultLog{{Line: "not json"}}}
 

@@ -1,6 +1,9 @@
 package video
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,17 +12,29 @@ import (
 
 const workdirFileMode = 0o644
 
+const workdirHashLen = 16
+
 type WorkDir struct {
 	Path string
 }
 
-func newWorkDir() (*WorkDir, error) {
-	path, err := os.MkdirTemp("", "mise-import-*")
-	if err != nil {
+func newWorkDir(ctx context.Context, url string) (*WorkDir, error) {
+	path := filepath.Join(os.TempDir(), "mise-import", hashURL(url))
+
+	if _, err := os.Stat(path); err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+
+	if err := os.MkdirAll(path, 0o755); err != nil {
 		return nil, err
 	}
 
 	return &WorkDir{Path: path}, nil
+}
+
+func hashURL(url string) string {
+	sum := sha256.Sum256([]byte(url))
+	return hex.EncodeToString(sum[:])[:workdirHashLen]
 }
 
 func (w *WorkDir) Join(elem ...string) string {

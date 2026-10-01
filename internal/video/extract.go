@@ -26,30 +26,20 @@ func Probe(ctx context.Context, url string, cfg section.ExtractConfig, onProgres
 		return nil, err
 	}
 
-	workdir, err := newWorkDir()
+	workdir, err := newWorkDir(ctx, url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create work directory: %w", err)
 	}
 
 	baseCmd := newBaseCommand(workdir, cfg, executable, ffmpeg, onProgress)
 
-	infos, res, err := baseCmd.ExtractInfo(ctx, append([]string{url}, cfg.YtdlpArgs...)...)
-	if err != nil {
-		return nil, classify(err, res)
-	}
-
-	info, err := singleVideo(infos)
+	info, document, err := resolveInfo(ctx, url, cfg, baseCmd, workdir)
 	if err != nil {
 		return nil, err
 	}
 
 	if err := checkDuration(info, cfg.MaxDurationMinutes); err != nil {
 		return nil, err
-	}
-
-	document, err := infoDocument(res, info)
-	if err != nil {
-		return nil, fmt.Errorf("failed to encode video metadata: %w", err)
 	}
 
 	return &Extraction{
@@ -88,6 +78,53 @@ func singleVideo(infos []*ytdlp.ExtractedInfo) (*ytdlp.ExtractedInfo, error) {
 	default:
 		return infos[0], nil
 	}
+}
+
+func resolveInfo(ctx context.Context, url string, cfg section.ExtractConfig, baseCmd *ytdlp.Command, workdir *WorkDir) (*ytdlp.ExtractedInfo, []byte, error) {
+	info, document, err := loadCachedInfo(workdir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read cached video metadata: %w", err)
+	}
+
+	if info != nil {
+		slog.InfoContext(ctx, "Using cached video, skipping fetch", "path", workdir.Join(metadataFilename))
+		return info, document, nil
+	}
+
+	infos, res, err := baseCmd.ExtractInfo(ctx, append([]string{url}, cfg.YtdlpArgs...)...)
+	if err != nil {
+		return nil, nil, classify(err, res)
+	}
+
+	info, err = singleVideo(infos)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	document, err = infoDocument(res, info)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to encode video metadata: %w", err)
+	}
+
+	return info, document, nil
+}
+
+func loadCachedInfo(workdir *WorkDir) (*ytdlp.ExtractedInfo, []byte, error) {
+	if !workdir.Exists(metadataFilename) {
+		return nil, nil, nil
+	}
+
+	document, err := workdir.ReadFile(metadataFilename)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	info := new(ytdlp.ExtractedInfo)
+	if err := json.Unmarshal(document, info); err != nil {
+		return nil, nil, err
+	}
+
+	return info, document, nil
 }
 
 func infoDocument(res *ytdlp.Result, info *ytdlp.ExtractedInfo) ([]byte, error) {
