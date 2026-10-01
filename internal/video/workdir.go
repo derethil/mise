@@ -1,7 +1,6 @@
 package video
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -18,7 +17,7 @@ type WorkDir struct {
 	Path string
 }
 
-func newWorkDir(ctx context.Context, url string) (*WorkDir, error) {
+func newWorkDir(url string) (*WorkDir, error) {
 	path := filepath.Join(os.TempDir(), "mise-import", hashURL(url))
 
 	if _, err := os.Stat(path); err != nil && !os.IsNotExist(err) {

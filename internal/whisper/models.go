@@ -13,7 +13,6 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/config/section"
 )
@@ -23,6 +22,9 @@ var baseURL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/"
 const ext = ".bin"
 
 var ErrInvalidModel = errors.New("invalid whisper model")
+var ErrPullDeclined = errors.New("model download declined")
+
+type ConfirmFunc func(question string) (bool, error)
 
 var modelAliases = map[string]string{
 	"large": "large-v3",
@@ -121,7 +123,7 @@ func Pull(ctx context.Context, model string, onProgress PullProgressFunc) (bool,
 	return true, nil
 }
 
-func Ensure(ctx context.Context, model string, onProgress PullProgressFunc) error {
+func Ensure(ctx context.Context, model string, confirm ConfirmFunc, onProgress PullProgressFunc) error {
 	destination := ModelPath(model)
 	if _, err := os.Stat(destination); err == nil {
 		return nil
@@ -129,9 +131,15 @@ func Ensure(ctx context.Context, model string, onProgress PullProgressFunc) erro
 		return err
 	}
 
-	cliutil.ConfirmOrDie(fmt.Sprintf("Whisper model %q is not available locally. Download it now?", model))
+	ok, err := confirm(fmt.Sprintf("Whisper model %q is not available locally. Download it now?", model))
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrPullDeclined, model)
+	}
 
-	_, err := Pull(ctx, model, onProgress)
+	_, err = Pull(ctx, model, onProgress)
 	return err
 }
 

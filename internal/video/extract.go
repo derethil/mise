@@ -26,7 +26,7 @@ func Probe(ctx context.Context, url string, cfg section.ExtractConfig, onProgres
 		return nil, err
 	}
 
-	workdir, err := newWorkDir(ctx, url)
+	workdir, err := newWorkDir(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create work directory: %w", err)
 	}

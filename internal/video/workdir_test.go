@@ -68,11 +68,11 @@ func (s *WorkDirSuite) TestGlobIsRelativeToTheWorkdir() {
 }
 
 func (s *WorkDirSuite) TestNewWorkDirCreatesIsolatedDirectoriesPerURL() {
-	first, err := newWorkDir(s.T().Context(), "https://example.com/a")
+	first, err := newWorkDir("https://example.com/a")
 	s.Require().NoError(err)
 	s.T().Cleanup(func() { _ = first.Cleanup() })
 
-	second, err := newWorkDir(s.T().Context(), "https://example.com/b")
+	second, err := newWorkDir("https://example.com/b")
 	s.Require().NoError(err)
 	s.T().Cleanup(func() { _ = second.Cleanup() })
 
@@ -81,12 +81,12 @@ func (s *WorkDirSuite) TestNewWorkDirCreatesIsolatedDirectoriesPerURL() {
 }
 
 func (s *WorkDirSuite) TestNewWorkDirReusesDirectoryForSameURL() {
-	first, err := newWorkDir(s.T().Context(), "https://example.com/a")
+	first, err := newWorkDir("https://example.com/a")
 	s.Require().NoError(err)
 	s.T().Cleanup(func() { _ = first.Cleanup() })
 	s.Require().NoError(first.WriteFile("video.mp4", []byte("x")))
 
-	second, err := newWorkDir(s.T().Context(), "https://example.com/a")
+	second, err := newWorkDir("https://example.com/a")
 	s.Require().NoError(err)
 
 	s.Equal(first.Path, second.Path, "re-running the same URL should reuse its workdir so media isn't re-downloaded")
@@ -94,7 +94,7 @@ func (s *WorkDirSuite) TestNewWorkDirReusesDirectoryForSameURL() {
 }
 
 func (s *WorkDirSuite) TestCleanupRemovesEverything() {
-	workdir, err := newWorkDir(s.T().Context(), "https://example.com/a")
+	workdir, err := newWorkDir("https://example.com/a")
 	s.Require().NoError(err)
 	s.Require().NoError(workdir.WriteFile("video.mp4", []byte("x")))
 

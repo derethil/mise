@@ -66,12 +66,37 @@ func (s *PullSuite) TestEnsureSkipsExistingModel() {
 	require.NoError(s.T(), os.MkdirAll(ModelsDir(), 0o755))
 	require.NoError(s.T(), os.WriteFile(ModelPath("tiny"), []byte("already here"), 0o644))
 
-	err := Ensure(s.T().Context(), "tiny", nil)
+	called := false
+	confirm := func(string) (bool, error) { called = true; return true, nil }
+
+	err := Ensure(s.T().Context(), "tiny", confirm, nil)
 	s.Require().NoError(err)
+	s.False(called, "should not ask for confirmation when the model is already present")
 
 	data, err := os.ReadFile(ModelPath("tiny"))
 	s.Require().NoError(err)
 	s.Equal("already here", string(data))
+}
+
+func (s *PullSuite) TestEnsurePullsWhenConfirmed() {
+	confirm := func(string) (bool, error) { return true, nil }
+
+	err := Ensure(s.T().Context(), "tiny", confirm, nil)
+	s.Require().NoError(err)
+
+	data, err := os.ReadFile(ModelPath("tiny"))
+	s.Require().NoError(err)
+	s.Equal(s.body, string(data))
+}
+
+func (s *PullSuite) TestEnsureReturnsErrorWhenDeclined() {
+	confirm := func(string) (bool, error) { return false, nil }
+
+	err := Ensure(s.T().Context(), "tiny", confirm, nil)
+
+	s.Require().Error(err)
+	s.ErrorIs(err, ErrPullDeclined)
+	s.NoFileExists(ModelPath("tiny"))
 }
 
 func (s *PullSuite) TestPullRejectsInvalidModel() {

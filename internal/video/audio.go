@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	cwhisper "github.com/ggerganov/whisper.cpp/bindings/go"
 	"github.com/lrstanley/go-ytdlp"
 )
 
@@ -11,7 +12,6 @@ const (
 	audioFormat         = "wav"
 	audioSourceFormat   = "bestaudio/best"
 	audioOutputTemplate = "audio.%(ext)s"
-	audioSampleRate     = 16000 // must match cwhisper.SampleRate
 	audioChannels       = 1
 )
 
@@ -30,6 +30,6 @@ func audioCommand(cmd *ytdlp.Command, format string) *ytdlp.Command {
 		Format(audioSourceFormat).
 		ExtractAudio().
 		AudioFormat(format).
-		PostProcessorArgs(fmt.Sprintf("ExtractAudio+ffmpeg:-ar %d -ac %d", audioSampleRate, audioChannels)).
+		PostProcessorArgs(fmt.Sprintf("ExtractAudio+ffmpeg:-ar %d -ac %d", cwhisper.SampleRate, audioChannels)).
 		Output(audioOutputTemplate)
 }

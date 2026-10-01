@@ -3,12 +3,14 @@ package importcmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/derethil/mise/internal/cliutil"
 	"github.com/derethil/mise/internal/config"
 	"github.com/derethil/mise/internal/video"
+	"github.com/derethil/mise/internal/whisper"
 	"github.com/urfave/cli/v3"
 )
 
@@ -67,7 +69,7 @@ var Command = &cli.Command{
 			return cliutil.VideoUserError(err)
 		}
 
-		showExtractionInfo(*extraction)
+		slog.InfoContext(ctx, fmt.Sprintf("Running import for video: %s", extraction.Source.Title))
 
 		if cmd.Bool(flagDryRun) {
 			slog.InfoContext(ctx, "Dry run complete, no import performed.")
@@ -79,9 +81,15 @@ var Command = &cli.Command{
 			return cliutil.VideoUserError(err)
 		}
 
-		fmt.Printf("\nFile:     %s\n", media.VideoPath)
-		fmt.Printf("Audio:    %s\n", media.AudioPath)
-		fmt.Println("\nTranscription, extraction, and Tandoor creation aren't built yet — the download is left in the workdir above.")
+		transript, err := transcribe(ctx, cfg, *media)
+		if errors.Is(err, whisper.ErrPullDeclined) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(transript)
 
 		return nil
 	},
@@ -98,19 +106,4 @@ func progressPrinter() video.ProgressFunc {
 			Completed: p.Completed,
 		})
 	}
-}
-
-func showExtractionInfo(e video.Extraction) {
-	source := e.Source
-	workdir := e.WorkDir()
-
-	fmt.Printf("Title:    %s\n", source.Title)
-
-	if source.Uploader != "" {
-		fmt.Printf("Uploader: %s\n", source.Uploader)
-	}
-
-	fmt.Printf("Duration: %s\n", source.Duration)
-	fmt.Printf("Source:   %s\n", source.URL)
-	fmt.Printf("Workdir:  %s\n", workdir)
 }
