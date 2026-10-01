@@ -113,7 +113,11 @@ func newGlobalFlagCategories(flags []cli.Flag, allowedNames ...string) globalFla
 }
 
 func configureGlobalHelp(cmd *cli.Command, flags []cli.Flag) {
-	categories := cmd.Metadata[cliutil.GlobalFlagCategoriesMetadataKey].([]string)
+	if cmd.Metadata == nil {
+		cmd.Metadata = map[string]any{}
+	}
+
+	categories, _ := cmd.Metadata[cliutil.GlobalFlagCategoriesMetadataKey].([]string)
 	cmd.Metadata[hasLocalOptionsMetadataKey] = len(cmd.Flags) > 0
 	cmd.Metadata[visibleGlobalFlagCategoriesMetadataKey] = newGlobalFlagCategories(flags, categories...)
 	if cmd.Name != "mise" {
@@ -134,7 +138,7 @@ func completeWithGlobalFlags(ctx context.Context, cmd *cli.Command) {
 }
 
 func relevantGlobalFlags(cmd *cli.Command) []cli.Flag {
-	categories := cmd.Metadata[visibleGlobalFlagCategoriesMetadataKey].(globalFlagCategories)
+	categories, _ := cmd.Metadata[visibleGlobalFlagCategoriesMetadataKey].(globalFlagCategories)
 	var flags []cli.Flag
 	for _, category := range categories.VisibleFlagCategories() {
 		flags = append(flags, category.Flags()...)
