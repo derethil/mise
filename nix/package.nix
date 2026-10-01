@@ -4,7 +4,7 @@
     pkgs,
     ...
   }: let
-    whisperCpp = mise.whisperCppFor pkgs {};
+    whisperCpp = mise.whisperCppFor mise.unstablePackages {};
 
     package = (pkgs.buildGoModule.override {go = mise.goPackage;}) rec {
       buildInputs = [whisperCpp];

@@ -15,6 +15,7 @@
 
     # go-whisper's cgo LDFLAGS need a single libggml-cpu.so, not
     # dlopen'd microarchitecture variants as packaged in nixpkgs.
+    # nixpkgs also passes the old GGML_HIPBLAS instead of GGML_HIP.
     whisperCppFor = packageSet: overrides:
       (packageSet.whisper-cpp.override overrides).overrideAttrs (old: {
         cmakeFlags =
@@ -24,9 +25,11 @@
               "GGML_BACKEND_DL"
               "GGML_CPU_ALL_VARIANTS"
               "GGML_BACKEND_DIR"
+              "GGML_HIPBLAS"
             ]))
           old.cmakeFlags
-          ++ ["-DGGML_BACKEND_DL=OFF" "-DGGML_CPU_ALL_VARIANTS=OFF"];
+          ++ ["-DGGML_BACKEND_DL=OFF" "-DGGML_CPU_ALL_VARIANTS=OFF"]
+          ++ packageSet.lib.optionals (overrides.rocmSupport or false) ["-DGGML_HIP=ON"];
       });
   in {
     _module.args.mise = {
