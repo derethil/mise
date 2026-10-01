@@ -47,6 +47,10 @@ func (s *AudioSuite) TestAudioCommandSetsExtractionFlags() {
 	output, ok := s.flagValue(args, "--output")
 	s.Require().True(ok)
 	s.Equal(audioOutputTemplate, output, "audio files must not collide with the video's own output name")
+
+	ppArgs, ok := s.flagValue(args, "--postprocessor-args")
+	s.Require().True(ok)
+	s.Equal("ExtractAudio+ffmpeg:-ar 16000 -ac 1", ppArgs, "audio must be resampled to what whisper expects")
 }
 
 func (s *AudioSuite) TestAudioCommandDoesNotMutateTheOriginal() {

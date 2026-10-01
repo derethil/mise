@@ -2,14 +2,17 @@ package video
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/lrstanley/go-ytdlp"
 )
 
 const (
-	audioFormat         = "mp3"
+	audioFormat         = "wav"
 	audioSourceFormat   = "bestaudio/best"
 	audioOutputTemplate = "audio.%(ext)s"
+	audioSampleRate     = 16000 // must match cwhisper.SampleRate
+	audioChannels       = 1
 )
 
 func (e *Extraction) extractAudio(ctx context.Context) (string, error) {
@@ -27,5 +30,6 @@ func audioCommand(cmd *ytdlp.Command, format string) *ytdlp.Command {
 		Format(audioSourceFormat).
 		ExtractAudio().
 		AudioFormat(format).
+		PostProcessorArgs(fmt.Sprintf("ExtractAudio+ffmpeg:-ar %d -ac %d", audioSampleRate, audioChannels)).
 		Output(audioOutputTemplate)
 }
