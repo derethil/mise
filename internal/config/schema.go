@@ -13,6 +13,7 @@ const (
 
 type schemaField struct {
 	Key      string
+	Index    []int
 	FlagName string
 	Alias    string
 	Usage    string
@@ -22,15 +23,17 @@ type schemaField struct {
 }
 
 func walkSchema(t reflect.Type, prefix string, visit func(schemaField)) {
-	walkFields(t, prefix, "", "", visit)
+	walkFields(t, prefix, nil, "", "", visit)
 }
 
-func walkFields(t reflect.Type, prefix, category, command string, visit func(schemaField)) {
+func walkFields(t reflect.Type, prefix string, path []int, category, command string, visit func(schemaField)) {
 	for field := range t.Fields() {
+		fieldPath := append(append([]int{}, path...), field.Index...)
+
 		name := field.Tag.Get("key")
 		if name == "" {
 			if field.Anonymous && field.Type.Kind() == reflect.Struct {
-				walkFields(field.Type, prefix, category, command, visit)
+				walkFields(field.Type, prefix, fieldPath, category, command, visit)
 			}
 			continue
 		}
@@ -51,7 +54,7 @@ func walkFields(t reflect.Type, prefix, category, command string, visit func(sch
 		}
 
 		if field.Type.Kind() == reflect.Struct {
-			walkFields(field.Type, key, fieldCategory, fieldCommand, visit)
+			walkFields(field.Type, key, fieldPath, fieldCategory, fieldCommand, visit)
 			continue
 		}
 
@@ -59,6 +62,7 @@ func walkFields(t reflect.Type, prefix, category, command string, visit func(sch
 
 		visit(schemaField{
 			Key:      key,
+			Index:    fieldPath,
 			FlagName: flagName,
 			Alias:    field.Tag.Get("alias"),
 			Usage:    field.Tag.Get("usage"),

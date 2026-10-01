@@ -41,6 +41,32 @@ func TestWalkSchemaSkipsUntaggedFields(t *testing.T) {
 	assert.Equal(t, []string{"tagged"}, keys)
 }
 
+func TestWalkSchemaIndexResolvesThroughAnonymousEmbedding(t *testing.T) {
+	type embedded struct {
+		Value string `key:"value"`
+	}
+
+	type root struct {
+		embedded
+		Section struct {
+			embedded
+		} `key:"section"`
+	}
+
+	data := root{}
+	data.Value = "top"
+	data.Section.Value = "nested"
+
+	indexes := map[string][]int{}
+	walkSchema(reflect.TypeFor[root](), "", func(f schemaField) {
+		indexes[f.Key] = f.Index
+	})
+
+	value := reflect.ValueOf(data)
+	assert.Equal(t, "top", value.FieldByIndex(indexes["value"]).String())
+	assert.Equal(t, "nested", value.FieldByIndex(indexes["section.value"]).String())
+}
+
 func TestFieldTypeOf(t *testing.T) {
 	assert.Equal(t, fieldTypeString, fieldTypeOf(reflect.TypeOf("")))
 	assert.Equal(t, fieldTypeStrings, fieldTypeOf(reflect.TypeOf([]string{})))

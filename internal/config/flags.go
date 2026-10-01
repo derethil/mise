@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/urfave/cli/v3"
 )
@@ -67,19 +66,15 @@ func (f *stringSliceFlag) IsMultiValueFlag() bool {
 }
 
 func flagDefaultText(key string) string {
-	value := reflect.ValueOf(defaultConfig)
+	var value reflect.Value
 
-	for _, part := range strings.Split(key, ".") {
-		typeOfValue := value.Type()
-		for i := range typeOfValue.NumField() {
-			if typeOfValue.Field(i).Tag.Get("key") == part {
-				value = value.Field(i)
-				break
-			}
+	walkSchema(reflect.TypeFor[Config](), "", func(f schemaField) {
+		if f.Key == key {
+			value = reflect.ValueOf(defaultConfig).FieldByIndex(f.Index)
 		}
-	}
+	})
 
-	if value.Kind() == reflect.Slice && value.Len() == 0 {
+	if !value.IsValid() || (value.Kind() == reflect.Slice && value.Len() == 0) {
 		return ""
 	}
 
