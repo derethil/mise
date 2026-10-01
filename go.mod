@@ -5,6 +5,8 @@ go 1.27.1
 require (
 	github.com/adrg/xdg v0.5.3
 	github.com/firebase/genkit/go v1.13.1
+	github.com/ggerganov/whisper.cpp/bindings/go v0.0.0-20260928183545-6e4ab854f67f
+	github.com/go-audio/wav v1.1.0
 	github.com/knadh/koanf/parsers/toml v0.1.0
 	github.com/knadh/koanf/providers/confmap v1.0.1
 	github.com/knadh/koanf/providers/env v1.1.0
@@ -67,7 +69,8 @@ require (
 	github.com/fsnotify/fsevents v0.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fvbommel/sortorder v1.1.0 // indirect
-	github.com/ggerganov/whisper.cpp/bindings/go v0.0.0-20260928183545-6e4ab854f67f // indirect
+	github.com/go-audio/audio v1.0.0 // indirect
+	github.com/go-audio/riff v1.0.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
