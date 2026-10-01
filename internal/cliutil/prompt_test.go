@@ -51,7 +51,7 @@ func TestConfirmOrDieHelperProcess(t *testing.T) {
 }
 
 func (s *PromptSuite) TestSelectOptionErrorsWhenNotInteractive() {
-	result, err := SelectOption("pick one", []string{"a", "b"})
+	result, err := SelectOptionWithDefault("pick one", []string{"a", "b"}, "a")
 
 	s.Empty(result)
 	s.Error(err)

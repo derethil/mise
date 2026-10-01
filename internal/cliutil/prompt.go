@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
 
 	"github.com/manifoldco/promptui"
 )
@@ -14,11 +15,15 @@ func AutoConfirm(string) (bool, error) {
 }
 
 func Confirm(question string) (bool, error) {
-	return requestConfirmation(question)
+	return requestConfirmation(question, false)
+}
+
+func ConfirmWithDefault(question string, defaultYes bool) (bool, error) {
+	return requestConfirmation(question, defaultYes)
 }
 
 func ConfirmOrDie(question string) {
-	confirmed, err := requestConfirmation(question)
+	confirmed, err := requestConfirmation(question, false)
 	if err == nil && confirmed {
 		return
 	}
@@ -28,9 +33,19 @@ func ConfirmOrDie(question string) {
 }
 
 func SelectOption(question string, options []string) (string, error) {
+	return SelectOptionWithDefault(question, options, options[0])
+}
+
+func SelectOptionWithDefault(question string, options []string, defaultOption string) (string, error) {
+	cursor := slices.Index(options, defaultOption)
+	if cursor < 0 {
+		cursor = 0
+	}
+
 	prompt := promptui.Select{
-		Label: question,
-		Items: options,
+		Label:     question,
+		Items:     options,
+		CursorPos: cursor,
 	}
 
 	_, result, err := prompt.Run()
@@ -80,10 +95,16 @@ func promptForInput(question, preset string, hidden bool, validators ...PromptVa
 	return userInput, err
 }
 
-func requestConfirmation(question string) (bool, error) {
+func requestConfirmation(question string, defaultYes bool) (bool, error) {
+	def := ""
+	if defaultYes {
+		def = "y"
+	}
+
 	prompt := promptui.Prompt{
 		Label:     question,
 		IsConfirm: true,
+		Default:   def,
 	}
 
 	_, err := prompt.Run()
