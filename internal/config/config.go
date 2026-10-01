@@ -8,12 +8,13 @@ import (
 )
 
 type Config struct {
-	Tandoor   section.TandoorConfig   `key:"tandoor" category:"TANDOOR OPTIONS"`
-	Backup    section.BackupConfig    `key:"backup"`
-	Providers section.ProvidersConfig `key:"providers" category:"PROVIDER OPTIONS"`
-	Models    section.ModelsConfig    `key:"models"`
-	Keywords  section.KeywordsConfig  `key:"keywords" command:"recipe keyword"`
-	Extract   section.ExtractConfig   `key:"extract" command:"import"`
+	Tandoor       section.TandoorConfig       `key:"tandoor" category:"TANDOOR OPTIONS"`
+	Backup        section.BackupConfig        `key:"backup"`
+	Providers     section.ProvidersConfig     `key:"providers" category:"PROVIDER OPTIONS"`
+	Models        section.ModelsConfig        `key:"models"`
+	Keywords      section.KeywordsConfig      `key:"keywords" command:"recipe keyword"`
+	Extract       section.ExtractConfig       `key:"extract" command:"import"`
+	Transcription section.TranscriptionConfig `key:"transcription" command:"import"`
 }
 
 var defaultConfig = Config{
@@ -37,5 +38,9 @@ var defaultConfig = Config{
 	Extract: section.ExtractConfig{
 		Format:             "best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
 		MaxDurationMinutes: 30,
+	},
+	Transcription: section.TranscriptionConfig{
+		DefaultLanguage:  "en",
+		DefaultTranslate: false,
 	},
 }
